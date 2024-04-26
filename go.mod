@@ -4,7 +4,7 @@ go 1.22.1
 
 require (
 	github.com/aws/aws-sdk-go-v2/config v1.27.11
-	github.com/containerd/containerd v1.7.15
+	github.com/containerd/containerd v1.7.16
 	github.com/distribution/reference v0.6.0
 	github.com/go-openapi/runtime v0.28.0
 	github.com/go-openapi/strfmt v0.23.0

@@ -31,9 +31,12 @@ func VerifyAttestations(ctx context.Context, resolver oci.AttestationResolver, f
 	if err != nil {
 		return err
 	}
-	err = evaluator.Evaluate(ctx, resolver, files, input)
+	rs, err := evaluator.Evaluate(ctx, resolver, files, input)
 	if err != nil {
 		return fmt.Errorf("policy evaluation failed: %w", err)
+	}
+	if !rs.Allowed() {
+		return fmt.Errorf("policy evaluation failed: %s", fmt.Sprint(rs))
 	}
 
 	return nil

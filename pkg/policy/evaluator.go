@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/docker/attest/pkg/oci"
+	"github.com/open-policy-agent/opa/rego"
 )
 
 type policyEvaluatorCtxKeyType struct{}
@@ -26,16 +27,5 @@ func GetPolicyEvaluator(ctx context.Context) (PolicyEvaluator, error) {
 }
 
 type PolicyEvaluator interface {
-	Evaluate(ctx context.Context, resolver oci.AttestationResolver, policy []*PolicyFile, input *PolicyInput) error
-}
-
-type MockPolicyEvaluator struct {
-	EvaluateFunc func(ctx context.Context, resolver oci.AttestationResolver, policy []*PolicyFile, input *PolicyInput) error
-}
-
-func (pe *MockPolicyEvaluator) Evaluate(ctx context.Context, resolver oci.AttestationResolver, policy []*PolicyFile, input *PolicyInput) error {
-	if pe.EvaluateFunc != nil {
-		return pe.EvaluateFunc(ctx, resolver, policy, input)
-	}
-	return nil
+	Evaluate(ctx context.Context, resolver oci.AttestationResolver, policy []*PolicyFile, input *PolicyInput) (*rego.ResultSet, error)
 }

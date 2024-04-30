@@ -10,9 +10,9 @@ import (
 )
 
 const (
-	DockerDsseExtKind             = "application/vnd.docker.attestation-verification.v1+json"
-	RekorTlExtKind                = "Rekor"
-	OCIDescriptorDSSEMediaType    = ociv1.MediaTypeDescriptor + "+dsse"
+	DockerDsseExtKind          = "application/vnd.docker.attestation-verification.v1+json"
+	RekorTlExtKind             = "Rekor"
+	OCIDescriptorDSSEMediaType = ociv1.MediaTypeDescriptor + "+dsse"
 )
 
 var base64Encoding = base64.StdEncoding.Strict()

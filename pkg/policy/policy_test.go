@@ -101,6 +101,7 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 
 			if tc.expectSuccess {
 				assert.NoErrorf(t, err, "Evaluate failed")
+				assert.True(t, rs.Allowed(), "Evaluate should have succeeded")
 			} else {
 				assert.False(t, rs.Allowed(), "Evaluate should have failed")
 			}

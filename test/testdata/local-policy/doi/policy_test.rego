@@ -1,4 +1,4 @@
-package docker
+package attest
 import rego.v1
 
 config := {"keys": []}

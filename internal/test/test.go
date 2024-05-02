@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/docker/attest/pkg/attestation"
-	"github.com/docker/attest/pkg/oci"
 	"github.com/docker/attest/pkg/policy"
 	"github.com/docker/attest/pkg/signerverifier"
 	"github.com/docker/attest/pkg/tlog"
@@ -18,7 +17,6 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/layout"
 	"github.com/google/go-containerregistry/pkg/v1/partial"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
-	"github.com/open-policy-agent/opa/rego"
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 )
 
@@ -59,7 +57,7 @@ func Setup(t *testing.T) (context.Context, dsse.SignerVerifier) {
 
 	var policyEvaluator policy.PolicyEvaluator
 	if USE_MOCK_POLICY {
-		policyEvaluator = GetMockPolicy()
+		policyEvaluator = policy.GetMockPolicy()
 	} else {
 		policyEvaluator = policy.NewRegoEvaluator(true)
 	}
@@ -85,38 +83,6 @@ func Setup(t *testing.T) (context.Context, dsse.SignerVerifier) {
 
 func GetMockSigner(ctx context.Context) (dsse.SignerVerifier, error) {
 	return signerverifier.GenKeyPair()
-}
-
-type MockPolicyEvaluator struct {
-	EvaluateFunc func(ctx context.Context, resolver oci.AttestationResolver, policy []*policy.PolicyFile, input *policy.PolicyInput) (*rego.ResultSet, error)
-}
-
-func (pe *MockPolicyEvaluator) Evaluate(ctx context.Context, resolver oci.AttestationResolver, policy []*policy.PolicyFile, input *policy.PolicyInput) (*rego.ResultSet, error) {
-	if pe.EvaluateFunc != nil {
-		return pe.EvaluateFunc(ctx, resolver, policy, input)
-	}
-	return AllowedResult(), nil
-}
-
-func GetMockPolicy() policy.PolicyEvaluator {
-	return &MockPolicyEvaluator{
-		EvaluateFunc: func(ctx context.Context, resolver oci.AttestationResolver, pfs []*policy.PolicyFile, input *policy.PolicyInput) (*rego.ResultSet, error) {
-			return AllowedResult(), nil
-		},
-	}
-}
-
-func AllowedResult() *rego.ResultSet {
-	return &rego.ResultSet{
-		{
-			Bindings: rego.Vars{},
-			Expressions: []*rego.ExpressionValue{
-				{
-					Value: true,
-				},
-			},
-		},
-	}
 }
 
 type AnnotatedStatement struct {

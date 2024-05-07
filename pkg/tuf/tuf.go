@@ -36,7 +36,7 @@ type TufClient struct {
 }
 
 // NewTufClient creates a new TUF client
-func NewTufClient(initialRoot []byte, tufPath, metadataSource, targetsSource string) (*TufClient, error) {
+func NewTufClient(initialRoot []byte, tufPath, metadataSource, targetsSource string, versionChecker VersionChecker) (*TufClient, error) {
 	var tufSource TufSource
 	if strings.HasPrefix(metadataSource, "https://") || strings.HasPrefix(metadataSource, "http://") {
 		tufSource = HttpSource
@@ -102,8 +102,13 @@ func NewTufClient(initialRoot []byte, tufPath, metadataSource, targetsSource str
 		updater: up,
 		cfg:     cfg,
 	}
-	return client, nil
 
+	err = versionChecker.CheckVersion(client)
+	if err != nil {
+		return nil, err
+	}
+
+	return client, nil
 }
 
 // DownloadTarget downloads the target file using Updater. The Updater gets the target

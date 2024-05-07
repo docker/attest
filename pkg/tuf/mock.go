@@ -58,3 +58,15 @@ func (dc *mockTufClient) DownloadTarget(target string, filePath string) (actualF
 
 	return dstFilePath, b, nil
 }
+
+type mockVersionChecker struct {
+	err error
+}
+
+func NewMockVersionChecker() *mockVersionChecker {
+	return &mockVersionChecker{}
+}
+
+func (vc *mockVersionChecker) CheckVersion(client TUFClient) error {
+	return vc.err
+}

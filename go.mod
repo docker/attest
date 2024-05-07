@@ -3,6 +3,7 @@ module github.com/docker/attest
 go 1.22.1
 
 require (
+	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/aws/aws-sdk-go-v2/config v1.27.15
 	github.com/containerd/containerd v1.7.17
 	github.com/distribution/reference v0.6.0

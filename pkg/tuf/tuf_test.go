@@ -52,6 +52,9 @@ func TestRootInit(t *testing.T) {
 	}()
 	LoadRegistryTestData(t, regAddr, OciTufTestDataPath)
 
+	alwaysGoodVersionChecker := &mockVersionChecker{err: nil}
+	alwaysBadVersionChecker := &mockVersionChecker{err: assert.AnError}
+
 	testCases := []struct {
 		name           string
 		metadataSource string
@@ -62,15 +65,18 @@ func TestRootInit(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		_, err := NewTufClient(embed.DevRoot, tufPath, tc.metadataSource, tc.targetsSource)
+		_, err := NewTufClient(embed.DevRoot, tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker)
 		assert.NoErrorf(t, err, "Failed to create TUF client: %v", err)
 
 		// recreation should work with same root
-		_, err = NewTufClient(embed.DevRoot, tufPath, tc.metadataSource, tc.targetsSource)
+		_, err = NewTufClient(embed.DevRoot, tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker)
 		assert.NoErrorf(t, err, "Failed to recreate TUF client: %v", err)
 
-		_, err = NewTufClient([]byte("broken"), tufPath, tc.metadataSource, tc.targetsSource)
+		_, err = NewTufClient([]byte("broken"), tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker)
 		assert.Errorf(t, err, "Expected error recreating TUF client with broken root: %v", err)
+
+		_, err = NewTufClient(embed.DevRoot, tufPath, tc.metadataSource, tc.targetsSource, alwaysBadVersionChecker)
+		assert.Errorf(t, err, "Expected error creating TUF client with bad attest version: %v", err)
 	}
 }
 
@@ -93,6 +99,8 @@ func TestDownloadTarget(t *testing.T) {
 	}()
 	LoadRegistryTestData(t, regAddr, OciTufTestDataPath)
 
+	alwaysGoodVersionChecker := &mockVersionChecker{err: nil}
+
 	testCases := []struct {
 		name           string
 		metadataSource string
@@ -103,7 +111,7 @@ func TestDownloadTarget(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tufClient, err := NewTufClient(embed.DevRoot, tufPath, tc.metadataSource, tc.targetsSource)
+		tufClient, err := NewTufClient(embed.DevRoot, tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker)
 		assert.NoErrorf(t, err, "Failed to create TUF client: %v", err)
 
 		// get trusted tuf metadata

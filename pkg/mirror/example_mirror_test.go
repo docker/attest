@@ -8,6 +8,7 @@ import (
 
 	"github.com/docker/attest/internal/embed"
 	"github.com/docker/attest/pkg/mirror"
+	"github.com/docker/attest/pkg/tuf"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 )
 
@@ -28,7 +29,7 @@ func ExampleNewTufMirror() {
 	// configure TUF mirror
 	metadataURI := "https://docker.github.io/tuf-staging/metadata"
 	targetsURI := "https://docker.github.io/tuf-staging/targets"
-	m, err := mirror.NewTufMirror(embed.StagingRoot, tufOutputPath, metadataURI, targetsURI)
+	m, err := mirror.NewTufMirror(embed.StagingRoot, tufOutputPath, metadataURI, targetsURI, tuf.NewMockVersionChecker())
 	if err != nil {
 		panic(err)
 	}

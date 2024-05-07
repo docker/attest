@@ -21,7 +21,7 @@ func createTufClient(outputPath string) (*tuf.TufClient, error) {
 	// metadataURI := "https://docker.github.io/tuf-staging/metadata"
 	// targetsURI := "https://docker.github.io/tuf-staging/targets"
 
-	return tuf.NewTufClient(embed.StagingRoot, outputPath, metadataURI, targetsURI)
+	return tuf.NewTufClient(embed.StagingRoot, outputPath, metadataURI, targetsURI, tuf.NewMockVersionChecker())
 }
 
 func ExampleVerify_remote() {

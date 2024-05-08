@@ -65,6 +65,8 @@ func (vc *versionChecker) CheckVersion(client TUFClient) error {
 		return fmt.Errorf("failed to parse version %s: %w", attestMod.Version, err)
 	}
 
+	// see https://github.com/Masterminds/semver/blob/v3.2.1/README.md#checking-version-constraints
+	// for more information on the expected format of the version constraints in the TUF repo
 	_, versionConstraintsBytes, err := client.DownloadTarget("version-constraints", "")
 	if err != nil {
 		return fmt.Errorf("failed to download version-constraints: %w", err)

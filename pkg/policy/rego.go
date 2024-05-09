@@ -23,17 +23,17 @@ import (
 
 type regoEvaluator struct {
 	debug bool
-	query string
 }
+
+const DefaultQuery = "data.attest.allow"
 
 func NewRegoEvaluator(debug bool) PolicyEvaluator {
 	return &regoEvaluator{
 		debug: debug,
-		query: "data.attest.allow",
 	}
 }
 
-func (re *regoEvaluator) Evaluate(ctx context.Context, resolver oci.AttestationResolver, files []*PolicyFile, input *PolicyInput) (*rego.ResultSet, error) {
+func (re *regoEvaluator) Evaluate(ctx context.Context, resolver oci.AttestationResolver, pctx *Policy, input *PolicyInput) (*rego.ResultSet, error) {
 	var regoOpts []func(*rego.Rego)
 
 	// Create a new in-memory store
@@ -45,7 +45,7 @@ func (re *regoEvaluator) Evaluate(ctx context.Context, resolver oci.AttestationR
 		return nil, err
 	}
 
-	for _, target := range files {
+	for _, target := range pctx.InputFiles {
 		// load yaml as data (no rego opt for this!?)
 		if filepath.Ext(target.Path) == ".yaml" {
 			yamlData, err := loadYAML(target.Path, target.Content)
@@ -74,9 +74,12 @@ func (re *regoEvaluator) Evaluate(ctx context.Context, resolver oci.AttestationR
 			rego.Dump(os.Stderr),
 		)
 	}
-
+	query := DefaultQuery
+	if pctx.Query != "" {
+		query = pctx.Query
+	}
 	regoOpts = append(regoOpts,
-		rego.Query(re.query),
+		rego.Query(query),
 		rego.StrictBuiltinErrors(true),
 		rego.Input(input),
 		rego.Store(store),

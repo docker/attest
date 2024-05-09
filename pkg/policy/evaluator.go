@@ -27,5 +27,5 @@ func GetPolicyEvaluator(ctx context.Context) (PolicyEvaluator, error) {
 }
 
 type PolicyEvaluator interface {
-	Evaluate(ctx context.Context, resolver oci.AttestationResolver, policy []*PolicyFile, input *PolicyInput) (*rego.ResultSet, error)
+	Evaluate(ctx context.Context, resolver oci.AttestationResolver, pctx *Policy, input *PolicyInput) (*rego.ResultSet, error)
 }

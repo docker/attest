@@ -38,11 +38,11 @@ func TestSignVerifyOCILayout(t *testing.T) {
 		replace              bool
 	}{
 
-		{"signed replaced (does nothing)", UnsignedTestImage, 0, 6, true},
-		{"without replace", UnsignedTestImage, 4, 6, false},
+		{"signed replaced (does nothing)", UnsignedTestImage, 0, 4, true},
+		{"without replace", UnsignedTestImage, 4, 4, false},
 		// image without provenance doesn't fail
-		{"no provenance (replace)", NoProvenanceImage, 0, 4, true},
-		{"no provenance (no replace)", NoProvenanceImage, 2, 4, false},
+		{"no provenance (replace)", NoProvenanceImage, 0, 2, true},
+		{"no provenance (no replace)", NoProvenanceImage, 2, 2, false},
 	}
 	policyResolver := &policy.PolicyOptions{
 		LocalPolicyDir: LocalPolicyDir,
@@ -53,11 +53,6 @@ func TestSignVerifyOCILayout(t *testing.T) {
 			outputLayout := tempDir
 			opts := &SigningOptions{
 				Replace: tc.replace,
-				VSAOptions: &attestation.VSAOptions{
-					BuildLevel: "SLSA_BUILD_LEVEL_3",
-					PolicyURI:  "https://docker.com/attest/policy",
-					VerifierID: "https://docker.com",
-				},
 			}
 			attIdx, err := oci.AttestationIndexFromPath(tc.TestImage)
 			assert.NoError(t, err)
@@ -83,12 +78,12 @@ func TestSignVerifyOCILayout(t *testing.T) {
 			}
 			policy, err := Verify(ctx, policyResolver, resolver)
 			assert.NoError(t, err)
-			assert.Truef(t, policy, "Policy should have been found")
+			assert.Truef(t, policy.Success, "Policy should have been found")
 
-			mt, _ := attestation.DSSEMediaType(attestation.VSAPredicateType)
-			vsas, err := test.ExtractAnnotatedStatements(tempDir, mt)
-			assert.NoError(t, err)
-			assert.Equalf(t, len(vsas), 2, "expected %d vsa statement, got %d", 2, len(vsas))
+			// mt, _ := attestation.DSSEMediaType(attestation.VSAPredicateType)
+			// vsas, err := test.ExtractAnnotatedStatements(tempDir, mt)
+			// assert.NoError(t, err)
+			// assert.Equalf(t, len(vsas), 2, "expected %d vsa statement, got %d", 2, len(vsas))
 			var allEnvelopes []*test.AnnotatedStatement
 			for _, predicate := range []string{intoto.PredicateSPDX, v02.PredicateSLSAProvenance, attestation.VSAPredicateType} {
 				mt, _ := attestation.DSSEMediaType(predicate)

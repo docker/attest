@@ -58,6 +58,13 @@ type PolicyOptions struct {
 	TufClient       tuf.TUFClient
 	LocalTargetsDir string
 	LocalPolicyDir  string
+	RegoQuery       string
+}
+
+type Policy struct {
+	InputFiles []*PolicyFile
+	Query      string
+	URI        string
 }
 
 type PolicyInput struct {
@@ -71,7 +78,7 @@ type PolicyFile struct {
 	Content []byte
 }
 
-func resolveLocalPolicy(opts *PolicyOptions, mapping *PolicyMapping) ([]*PolicyFile, error) {
+func resolveLocalPolicy(opts *PolicyOptions, mapping *PolicyMapping) (*Policy, error) {
 	if opts.LocalPolicyDir == "" {
 		return nil, fmt.Errorf("local policy dir not set")
 	}
@@ -87,7 +94,11 @@ func resolveLocalPolicy(opts *PolicyOptions, mapping *PolicyMapping) ([]*PolicyF
 			Content: fileContents,
 		})
 	}
-	return files, nil
+	policy := &Policy{
+		InputFiles: files,
+		Query:      opts.RegoQuery,
+	}
+	return policy, nil
 }
 
 func loadLocalMappings(opts *PolicyOptions) (*PolicyMappings, error) {
@@ -107,7 +118,7 @@ func loadLocalMappings(opts *PolicyOptions) (*PolicyMappings, error) {
 	return mappings, nil
 }
 
-func resolveTufPolicy(opts *PolicyOptions, mapping *PolicyMapping) ([]*PolicyFile, error) {
+func resolveTufPolicy(opts *PolicyOptions, mapping *PolicyMapping) (*Policy, error) {
 	files := make([]*PolicyFile, 0, len(PolicyFileNames))
 	for _, filename := range PolicyFileNames {
 		filePath := path.Join(mapping.Location, filename)
@@ -120,7 +131,11 @@ func resolveTufPolicy(opts *PolicyOptions, mapping *PolicyMapping) ([]*PolicyFil
 			Content: fileContents,
 		})
 	}
-	return files, nil
+	policy := &Policy{
+		InputFiles: files,
+		Query:      opts.RegoQuery,
+	}
+	return policy, nil
 }
 
 func loadTufMappings(tufClient tuf.TUFClient, localTargetsDir string) (*PolicyMappings, error) {
@@ -162,7 +177,7 @@ func findPolicyMatch(named reference.Named, mappings *PolicyMappings) (*PolicyMa
 	return nil, nil
 }
 
-func ResolvePolicy(ctx context.Context, resolver oci.AttestationResolver, opts *PolicyOptions) ([]*PolicyFile, error) {
+func ResolvePolicy(ctx context.Context, resolver oci.AttestationResolver, opts *PolicyOptions) (*Policy, error) {
 	imageName, err := resolver.ImageName(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get image name: %w", err)

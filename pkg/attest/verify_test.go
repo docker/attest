@@ -43,13 +43,13 @@ func TestVerifyAttestations(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 
 			mockPE := policy.MockPolicyEvaluator{
-				EvaluateFunc: func(ctx context.Context, resolver oci.AttestationResolver, pfs []*policy.PolicyFile, input *policy.PolicyInput) (*rego.ResultSet, error) {
+				EvaluateFunc: func(ctx context.Context, resolver oci.AttestationResolver, pctx *policy.Policy, input *policy.PolicyInput) (*rego.ResultSet, error) {
 					return policy.AllowedResult(), tc.policyEvaluationError
 				},
 			}
 
 			ctx := policy.WithPolicyEvaluator(context.Background(), &mockPE)
-			err = VerifyAttestations(ctx, resolver, nil)
+			_, err := VerifyAttestations(ctx, resolver, nil)
 			if tc.expectedError != nil {
 				assert.Error(t, err)
 				assert.Equal(t, tc.expectedError.Error(), err.Error())

@@ -20,7 +20,7 @@ require (
 	github.com/sigstore/rekor v1.3.6
 	github.com/sigstore/sigstore/pkg/signature/kms/aws v1.8.3
 	github.com/stretchr/testify v1.9.0
-	github.com/testcontainers/testcontainers-go v0.30.0
+	github.com/testcontainers/testcontainers-go v0.31.0
 	github.com/testcontainers/testcontainers-go/modules/registry v0.30.0
 	github.com/theupdateframework/go-tuf/v2 v2.0.0-20240402164131-b2e024ad4752
 	gopkg.in/yaml.v3 v3.0.1

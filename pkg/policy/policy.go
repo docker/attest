@@ -64,7 +64,6 @@ type PolicyOptions struct {
 type Policy struct {
 	InputFiles []*PolicyFile
 	Query      string
-	URI        string
 }
 
 type PolicyInput struct {

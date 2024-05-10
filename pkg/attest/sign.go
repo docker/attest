@@ -104,6 +104,12 @@ func addSignedLayersToIndex(
 		return nil, fmt.Errorf("failed to get config file: %w", err)
 	}
 	newDesc.Platform = cf.Platform()
+	if newDesc.Platform == nil {
+		newDesc.Platform = &v1.Platform{
+			Architecture: "unknown",
+			OS:           "unknown",
+		}
+	}
 	newDesc.MediaType = manifest.MediaType
 	newDesc.Annotations = manifest.Annotations
 	idx = mutate.RemoveManifests(idx, match.Digests(manifest.Digest))

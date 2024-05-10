@@ -80,10 +80,6 @@ func TestSignVerifyOCILayout(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Truef(t, policy.Success, "Policy should have been found")
 
-			// mt, _ := attestation.DSSEMediaType(attestation.VSAPredicateType)
-			// vsas, err := test.ExtractAnnotatedStatements(tempDir, mt)
-			// assert.NoError(t, err)
-			// assert.Equalf(t, len(vsas), 2, "expected %d vsa statement, got %d", 2, len(vsas))
 			var allEnvelopes []*test.AnnotatedStatement
 			for _, predicate := range []string{intoto.PredicateSPDX, v02.PredicateSLSAProvenance, attestation.VSAPredicateType} {
 				mt, _ := attestation.DSSEMediaType(predicate)

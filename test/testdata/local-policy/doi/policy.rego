@@ -11,10 +11,16 @@ digestType := splitDigest[0]
 digest := splitDigest[1]
 
 allow if {
-	some env in attestations.attestation("https://slsa.dev/verification_summary/v0.1")
+	some env in attestations.attestation("https://slsa.dev/verification_summary/v1")
 	some statement in verified_statements(config.doi.keys, env)
 }
 
+# TODO return nice VSA structures
+summary := true
+
+hasvsa if {
+	some env in attestations.attestation("https://slsa.dev/verification_summary/v1")
+}
 
 verified_statements(keys, env) := statements if {
 	statements := {statement |

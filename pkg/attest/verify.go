@@ -24,7 +24,7 @@ func Verify(ctx context.Context, opts *policy.PolicyOptions, resolver oci.Attest
 			Success: true,
 		}, nil
 	}
-
+	pctx.Query = opts.RegoQuery
 	result, err = VerifyAttestations(ctx, resolver, pctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to evaluate policy: %w", err)

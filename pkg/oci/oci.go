@@ -72,7 +72,7 @@ func attestationManifestFromOCILayout(path string, platformStr string) (*Attesta
 		}
 	}
 	for _, mf := range mfs2.Manifests {
-		if mf.Annotations[DockerReferenceType] != AttestationManifestType {
+		if mf.Annotations[att.DockerReferenceType] != AttestationManifestType {
 			continue
 		}
 
@@ -339,8 +339,8 @@ func imageDigestForPlatform(ix *v1.IndexManifest, platform *v1.Platform) (string
 
 func attestationDigestForDigest(ix *v1.IndexManifest, imageDigest string, attestType string) (string, error) {
 	for _, m := range ix.Manifests {
-		if v, ok := m.Annotations["vnd.docker.reference.type"]; ok && v == attestType {
-			if d, ok := m.Annotations["vnd.docker.reference.digest"]; ok && d == imageDigest {
+		if v, ok := m.Annotations[att.DockerReferenceType]; ok && v == attestType {
+			if d, ok := m.Annotations[DockerReferenceDigest]; ok && d == imageDigest {
 				return m.Digest.String(), nil
 			}
 		}

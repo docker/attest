@@ -8,9 +8,14 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/docker/attest/internal/test"
 	"github.com/docker/attest/pkg/attestation"
 	"github.com/docker/attest/pkg/oci"
 	"github.com/docker/attest/pkg/policy"
+	v1 "github.com/google/go-containerregistry/pkg/v1"
+	"github.com/google/go-containerregistry/pkg/v1/empty"
+	"github.com/google/go-containerregistry/pkg/v1/layout"
+	"github.com/google/go-containerregistry/pkg/v1/mutate"
 	"github.com/open-policy-agent/opa/rego"
 	"github.com/stretchr/testify/assert"
 )
@@ -51,11 +56,90 @@ func TestVerifyAttestations(t *testing.T) {
 			ctx := policy.WithPolicyEvaluator(context.Background(), &mockPE)
 			_, err := VerifyAttestations(ctx, resolver, nil)
 			if tc.expectedError != nil {
-				assert.Error(t, err)
-				assert.Equal(t, tc.expectedError.Error(), err.Error())
+				if assert.Error(t, err) {
+					assert.Equal(t, tc.expectedError.Error(), err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 			}
 		})
 	}
+}
+
+func TestVSA(t *testing.T) {
+	ctx, signer := test.Setup(t)
+	ctx = policy.WithPolicyEvaluator(ctx, policy.NewRegoEvaluator(false))
+	policyOpts := &policy.PolicyOptions{
+		LocalPolicyDir: LocalPolicyDir,
+	}
+	// setup an image with signed attestations
+	tempDir := test.CreateTempDir(t, "", TestTempDir)
+	outputLayout := tempDir
+
+	opts := &SigningOptions{
+		Replace: true,
+	}
+	attIdx, err := oci.AttestationIndexFromPath(UnsignedTestImage)
+	assert.NoError(t, err)
+	signedIndex, err := Sign(ctx, attIdx.Index, signer, opts)
+	assert.NoError(t, err)
+
+	// output signed attestations
+	idx := v1.ImageIndex(empty.Index)
+	idx = mutate.AppendManifests(idx, mutate.IndexAddendum{
+		Add: signedIndex,
+		Descriptor: v1.Descriptor{
+			Annotations: map[string]string{
+				oci.OciReferenceTarget: attIdx.Name,
+			},
+		},
+	})
+	_, err = layout.Write(outputLayout, idx)
+	assert.NoError(t, err)
+
+	//verify (without vsa should fail)
+	resolver := &oci.OCILayoutResolver{
+		Path:     outputLayout,
+		Platform: "linux/amd64",
+	}
+
+	results, err := Verify(ctx, policyOpts, resolver)
+	assert.NoError(t, err)
+	assert.Equal(t, false, results.Success)
+
+	// mocked vsa query should pass
+	policyOpts.RegoQuery = "data.attest.summary"
+	results, err = Verify(ctx, policyOpts, resolver)
+	assert.NoError(t, err)
+	assert.Equal(t, true, results.Success)
+
+	// create a signed attestation and add it
+	withVSA, err := AddAttestation(ctx, signedIndex, results.Summary, signer, opts)
+	assert.NoError(t, err)
+
+	// output signed attestations with vsa
+	idx = v1.ImageIndex(empty.Index)
+	idx = mutate.AppendManifests(idx, mutate.IndexAddendum{
+		Add: withVSA,
+		Descriptor: v1.Descriptor{
+			Annotations: map[string]string{
+				oci.OciReferenceTarget: attIdx.Name,
+			},
+		},
+	})
+	tempDir = test.CreateTempDir(t, "", TestTempDir)
+	outputLayout = tempDir
+
+	_, err = layout.Write(outputLayout, idx)
+	assert.NoError(t, err)
+	resolver = &oci.OCILayoutResolver{
+		Path:     outputLayout,
+		Platform: "linux/amd64",
+	}
+	// policy requiring VSA (default) should work
+	ctx = policy.WithPolicyEvaluator(ctx, policy.NewRegoEvaluator(true))
+	policyOpts.RegoQuery = "data.attest.hasvsa"
+	results, err = Verify(ctx, policyOpts, resolver)
+	assert.NoError(t, err)
+	assert.Equal(t, true, results.Success)
 }

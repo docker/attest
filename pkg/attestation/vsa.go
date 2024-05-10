@@ -11,11 +11,6 @@ const (
 	VSAPredicateType = "https://slsa.dev/verification_summary/v1"
 )
 
-type VerificationSummary struct {
-	intoto.StatementHeader
-	Predicate VSAPredicate `json:"predicate"`
-}
-
 type VSAPredicate struct {
 	Verifier           VSAVerifier           `json:"verifier"`
 	TimeVerified       string                `json:"timeVerified"`

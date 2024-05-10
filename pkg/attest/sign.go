@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/docker/attest/pkg/attestation"
+	"github.com/docker/attest/pkg/oci"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/empty"
 	"github.com/google/go-containerregistry/pkg/v1/match"
@@ -26,35 +27,90 @@ func Sign(ctx context.Context, idx v1.ImageIndex, signer dsse.SignerVerifier, op
 
 	// sign every attestation layer in each manifest
 	for _, manifest := range attestationManifests {
-		attestationLayers, err := attestation.GetAttestationsFromImage(manifest.Attestation.Image)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get attestations from image: %w", err)
-		}
-		signedLayers, err := signLayers(ctx, attestationLayers, signer)
-		if err != nil {
-			return nil, fmt.Errorf("failed to sign attestations: %w", err)
-		}
-		newImg, err := addSignedLayers(signedLayers, manifest, opts)
+		idx, err = addSignedLayersToIndex(ctx, idx, manifest.Attestation.Layers, manifest, signer, opts)
 		if err != nil {
 			return nil, fmt.Errorf("failed to add signed layers: %w", err)
 		}
-		newDesc, err := partial.Descriptor(newImg)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get descriptor: %w", err)
-		}
-		cf, err := manifest.Attestation.Image.ConfigFile()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get config file: %w", err)
-		}
-		newDesc.Platform = cf.Platform()
-		newDesc.MediaType = manifest.MediaType
-		newDesc.Annotations = manifest.Annotations
-		idx = mutate.RemoveManifests(idx, match.Digests(manifest.Digest))
-		idx = mutate.AppendManifests(idx, mutate.IndexAddendum{
-			Add:        newImg,
-			Descriptor: *newDesc,
-		})
 	}
+	return idx, nil
+}
+
+func SignInTotoStatement(ctx context.Context, statement *intoto.Statement, signer dsse.SignerVerifier) (*attestation.Envelope, error) {
+	payload, err := json.Marshal(statement)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal statement: %w", err)
+	}
+	env, err := attestation.SignDSSE(ctx, payload, intoto.PayloadType, signer)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign statement: %w", err)
+	}
+	return env, nil
+}
+
+func AddAttestation(ctx context.Context, idx v1.ImageIndex, statement *intoto.Statement, signer dsse.SignerVerifier, opts *SigningOptions) (v1.ImageIndex, error) {
+	attestationManifests, err := attestation.GetAttestationManifestsFromIndex(idx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get attestation manifests: %w", err)
+	}
+	var updatedIndex v1.ImageIndex
+	for _, manifest := range attestationManifests {
+		if manifest.Annotations[oci.DockerReferenceDigest] == fmt.Sprintf("sha256:%s", statement.Subject[0].Digest["sha256"]) {
+			attestationLayers := []attestation.AttestationLayer{
+				{
+					Statement: statement,
+					MediaType: types.MediaType(intoto.PayloadType),
+					Annotations: map[string]string{
+						oci.InTotoPredicateType: statement.PredicateType,
+					},
+				},
+			}
+			updatedIndex, err = addSignedLayersToIndex(ctx, idx, attestationLayers, manifest, signer, opts)
+			if err != nil {
+				return nil, fmt.Errorf("failed to add signed layers: %w", err)
+			}
+			break
+		}
+	}
+	if updatedIndex == nil {
+		return nil, fmt.Errorf("no attestation manifest found for statement")
+	}
+	return updatedIndex, nil
+
+}
+
+func addSignedLayersToIndex(
+	ctx context.Context,
+	idx v1.ImageIndex,
+	attestationLayers []attestation.AttestationLayer,
+	manifest attestation.AttestationManifest,
+	signer dsse.SignerVerifier,
+	opts *SigningOptions) (v1.ImageIndex, error) {
+
+	signedLayers, err := signLayers(ctx, attestationLayers, signer)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign attestations: %w", err)
+	}
+
+	newImg, err := addSignedLayers(signedLayers, manifest, opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to add signed layers: %w", err)
+	}
+	newDesc, err := partial.Descriptor(newImg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get descriptor: %w", err)
+	}
+	cf, err := manifest.Attestation.Image.ConfigFile()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get config file: %w", err)
+	}
+	newDesc.Platform = cf.Platform()
+	newDesc.MediaType = manifest.MediaType
+	newDesc.Annotations = manifest.Annotations
+	idx = mutate.RemoveManifests(idx, match.Digests(manifest.Digest))
+	idx = mutate.AppendManifests(idx, mutate.IndexAddendum{
+		Add:        newImg,
+		Descriptor: *newDesc,
+	})
 	return idx, nil
 }
 
@@ -70,11 +126,7 @@ func signLayers(ctx context.Context, layers []attestation.AttestationLayer, sign
 		layer.Annotations[InTotoReferenceLifecycleStage] = LifecycleStageExperimental
 
 		// sign the statement
-		payload, err := json.Marshal(layer.Statement)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal statement: %w", err)
-		}
-		env, err := attestation.SignDSSE(ctx, payload, intoto.PayloadType, signer)
+		env, err := SignInTotoStatement(ctx, layer.Statement, signer)
 		if err != nil {
 			return nil, fmt.Errorf("failed to sign statement: %w", err)
 		}

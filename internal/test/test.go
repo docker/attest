@@ -115,7 +115,7 @@ func ExtractAnnotatedStatements(path string, mediaType string) ([]*AnnotatedStat
 	var statements []*AnnotatedStatement
 
 	for _, mf := range mfs2.Manifests {
-		if mf.Annotations["vnd.docker.reference.type"] != "attestation-manifest" {
+		if mf.Annotations[attestation.DockerReferenceType] != "attestation-manifest" {
 			continue
 		}
 

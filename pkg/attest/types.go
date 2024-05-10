@@ -1,8 +1,8 @@
 package attest
 
 import (
-	"github.com/docker/attest/pkg/attestation"
 	"github.com/docker/attest/pkg/policy"
+	intoto "github.com/in-toto/in-toto-golang/in_toto"
 )
 
 const (
@@ -19,5 +19,5 @@ type PolicyResult struct {
 	Success bool
 	Policy  *policy.Policy
 	Input   *policy.PolicyInput
-	Summary *attestation.VerificationSummary
+	Summary *intoto.Statement
 }

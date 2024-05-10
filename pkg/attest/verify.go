@@ -33,7 +33,7 @@ func Verify(ctx context.Context, opts *policy.PolicyOptions, resolver oci.Attest
 }
 
 func ToPolicyResult(p *policy.Policy, input *policy.PolicyInput, result *rego.ResultSet) (*PolicyResult, error) {
-	//TODO - extract all this from result set instead of hard coding it
+	//TODO - extract all the VSA stuff from resultset instead of hard coding it
 	dgst, err := oci.SplitDigest(input.Digest)
 	if err != nil {
 		return nil, fmt.Errorf("failed to split digest: %w", err)
@@ -54,7 +54,7 @@ func ToPolicyResult(p *policy.Policy, input *policy.PolicyInput, result *rego.Re
 	return &PolicyResult{
 		Policy:  p,
 		Success: success,
-		Summary: &attestation.VerificationSummary{
+		Summary: &intoto.Statement{
 			StatementHeader: intoto.StatementHeader{
 				PredicateType: attestation.VSAPredicateType,
 				Type:          intoto.StatementInTotoV01,

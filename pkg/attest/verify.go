@@ -38,14 +38,18 @@ func ToPolicyResult(p *policy.Policy, input *policy.PolicyInput, result *rego.Re
 	if err != nil {
 		return nil, fmt.Errorf("failed to split digest: %w", err)
 	}
+	// come from policy output (interection of all the subjects in the image's attestations)
 	subject := intoto.Subject{
 		Name:   input.Purl,
 		Digest: *dgst,
 	}
+	// this is OK to come from attest library
+	//TODO confirm our interpretation
 	resourceUri, err := attestation.ToVSAResourceURI(subject)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create resource uri: %w", err)
 	}
+	// has to come from policy
 	success := result.Allowed()
 	successStr := "FAILED"
 	if success {
@@ -64,13 +68,16 @@ func ToPolicyResult(p *policy.Policy, input *policy.PolicyInput, result *rego.Re
 			},
 			Predicate: attestation.VSAPredicate{
 				Verifier: attestation.VSAVerifier{
-					ID: "attest",
+					// come from policy output
+					ID: "docker-official-images",
 				},
-				TimeVerified:       time.Now().UTC().Format(time.RFC3339),
-				ResourceUri:        resourceUri,
+				TimeVerified: time.Now().UTC().Format(time.RFC3339),
+				ResourceUri:  resourceUri,
+				// this will be a git uri to the policy commit
 				Policy:             attestation.VSAPolicy{URI: "http://docker.com/official/policy/v0.1"},
 				VerificationResult: successStr,
-				VerifiedLevels:     []string{"SLSA_BUILD_LEVEL_3"},
+				// come from policy output
+				VerifiedLevels: []string{"SLSA_BUILD_LEVEL_3"},
 			},
 		},
 	}, nil

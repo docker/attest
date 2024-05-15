@@ -31,7 +31,7 @@ func Verify(ctx context.Context, opts *policy.PolicyOptions, resolver oci.Attest
 	return result, nil
 }
 
-func ToPolicyResult(p *policy.Policy, input *policy.PolicyInput, result *rego.ResultSet) (*PolicyResult, error) {
+func ToPolicyResult(p *policy.Policy, input *policy.PolicyInput, rs rego.ResultSet) (*PolicyResult, error) {
 	//TODO - extract all the VSA stuff from resultset instead of hard coding it
 	dgst, err := oci.SplitDigest(input.Digest)
 	if err != nil {
@@ -48,35 +48,44 @@ func ToPolicyResult(p *policy.Policy, input *policy.PolicyInput, result *rego.Re
 	if err != nil {
 		return nil, fmt.Errorf("failed to create resource uri: %w", err)
 	}
-	// has to come from policy
-	success := result.Allowed()
+
+	if len(rs) == 0 {
+		return nil, fmt.Errorf("no policy evaluation result")
+	}
+	binding, ok := rs[0].Bindings["x"]
+	if !ok {
+		return nil, fmt.Errorf("failed to extract verification result")
+	}
+	result, ok := binding.(policy.VerificationResult)
+	if !ok {
+		return nil, fmt.Errorf("failed to extract verification result")
+	}
+
 	successStr := "FAILED"
-	if success {
+	if result.Success {
 		successStr = "PASSED"
 	}
+
 	return &PolicyResult{
-		Policy:  p,
-		Success: success,
+		Policy:     p,
+		Success:    result.Success,
+		Violations: result.Violations,
 		Summary: &intoto.Statement{
 			StatementHeader: intoto.StatementHeader{
 				PredicateType: attestation.VSAPredicateType,
 				Type:          intoto.StatementInTotoV01,
-				Subject: []intoto.Subject{
-					subject,
-				},
+				Subject:       result.Summary.Subjects,
 			},
 			Predicate: attestation.VSAPredicate{
 				Verifier: attestation.VSAVerifier{
-					// come from policy output
-					ID: "docker-official-images",
+					ID: result.Summary.Verifier,
 				},
 				TimeVerified: time.Now().UTC().Format(time.RFC3339),
 				ResourceUri:  resourceUri,
 				// this will be a git uri to the policy commit
 				Policy:             attestation.VSAPolicy{URI: "http://docker.com/official/policy/v0.1"},
 				VerificationResult: successStr,
-				// come from policy output
-				VerifiedLevels: []string{"SLSA_BUILD_LEVEL_3"},
+				VerifiedLevels:     []string{result.Summary.SLSALevel},
 			},
 		},
 	}, nil

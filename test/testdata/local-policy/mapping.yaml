@@ -7,7 +7,7 @@ policies:
       prefix: library/
     name: test-images
     description: Local test images
-    location: doi
+    location: doi-full
 
 mirrors:
   - name: test-images

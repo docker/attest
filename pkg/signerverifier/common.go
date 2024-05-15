@@ -6,6 +6,8 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 
 	"github.com/docker/attest/internal/util"
@@ -43,6 +45,32 @@ func (s *ECDSA256_SignerVerifier) Verify(ctx context.Context, data []byte, sig [
 		return fmt.Errorf("payload signature is not valid")
 	}
 	return nil
+}
+
+func LoadKeyPair(priv []byte) (dsse.SignerVerifier, error) {
+	privateKey, err := parsePriv(priv)
+	if err != nil {
+		return nil, err
+	}
+	return &ECDSA256_SignerVerifier{
+		Signer: privateKey,
+	}, nil
+}
+
+func parsePriv(privkeyBytes []byte) (*ecdsa.PrivateKey, error) {
+	p, _ := pem.Decode(privkeyBytes)
+	if p == nil {
+		return nil, fmt.Errorf("privkey file does not contain any PEM data")
+	}
+	if p.Type != "EC PRIVATE KEY" {
+		return nil, fmt.Errorf("privkey file does not contain a priavte key")
+	}
+	privKey, err := x509.ParseECPrivateKey(p.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("error failed to parse public key: %w", err)
+	}
+
+	return privKey, nil
 }
 
 func GenKeyPair() (dsse.SignerVerifier, error) {

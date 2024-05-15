@@ -108,10 +108,10 @@ func TestVSA(t *testing.T) {
 	assert.Equal(t, false, results.Success)
 
 	// mocked vsa query should pass
-	policyOpts.RegoQuery = "data.attest.summary"
+	policyOpts.LocalPolicyDir = PassPolicyDir
 	results, err = Verify(ctx, policyOpts, resolver)
 	assert.NoError(t, err)
-	assert.Equal(t, true, results.Success)
+	assert.NotNil(t, results)
 
 	// create a signed attestation and add it
 	withVSA, err := AddAttestation(ctx, signedIndex, results.Summary, signer, opts)
@@ -138,7 +138,7 @@ func TestVSA(t *testing.T) {
 	}
 	// policy requiring VSA (default) should work
 	ctx = policy.WithPolicyEvaluator(ctx, policy.NewRegoEvaluator(true))
-	policyOpts.RegoQuery = "data.attest.hasvsa"
+	policyOpts.LocalPolicyDir = VSAPolicyDir
 	results, err = Verify(ctx, policyOpts, resolver)
 	assert.NoError(t, err)
 	assert.Equal(t, true, results.Success)

@@ -58,7 +58,6 @@ type PolicyOptions struct {
 	TufClient       tuf.TUFClient
 	LocalTargetsDir string
 	LocalPolicyDir  string
-	RegoQuery       string
 }
 
 type Policy struct {
@@ -95,7 +94,6 @@ func resolveLocalPolicy(opts *PolicyOptions, mapping *PolicyMapping) (*Policy, e
 	}
 	policy := &Policy{
 		InputFiles: files,
-		Query:      opts.RegoQuery,
 	}
 	return policy, nil
 }
@@ -132,7 +130,6 @@ func resolveTufPolicy(opts *PolicyOptions, mapping *PolicyMapping) (*Policy, err
 	}
 	policy := &Policy{
 		InputFiles: files,
-		Query:      opts.RegoQuery,
 	}
 	return policy, nil
 }

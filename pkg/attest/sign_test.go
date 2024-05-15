@@ -24,6 +24,8 @@ var (
 	UnsignedTestImage = filepath.Join("..", "..", "test", "testdata", "unsigned-test-image")
 	NoProvenanceImage = filepath.Join("..", "..", "test", "testdata", "no-provenance-image")
 	LocalPolicyDir    = filepath.Join("..", "..", "test", "testdata", "local-policy")
+	PassPolicyDir     = filepath.Join("..", "..", "test", "testdata", "local-policy-pass")
+	VSAPolicyDir      = filepath.Join("..", "..", "test", "testdata", "local-policy-vsa")
 	TestTempDir       = "attest-sign-test"
 )
 

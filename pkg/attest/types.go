@@ -16,8 +16,9 @@ type SigningOptions struct {
 
 type PolicyResult struct {
 	// rolled up summary of policy evaluation
-	Success bool
-	Policy  *policy.Policy
-	Input   *policy.PolicyInput
-	Summary *intoto.Statement
+	Success    bool
+	Policy     *policy.Policy
+	Input      *policy.PolicyInput
+	Summary    *intoto.Statement
+	Violations []string
 }

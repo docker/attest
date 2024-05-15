@@ -1,0 +1,58 @@
+config:
+  doi:
+    keys:
+      - id: "f6a29392b1c08891ff456100aa448b4f6bf9c315850e11cc0883fe9c3c4412db"
+        key: |
+          -----BEGIN PUBLIC KEY-----
+          MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE+XOm2uWjLJhpsJtHCFdGic26suOy
+          mCl2pBgCof+AHGFZFca40JL833OT+nRSZJRMPKBGibWqsjFrLdRCkOB7bA==
+          -----END PUBLIC KEY-----
+        from: "2024-01-01T00:00:00Z"
+        to: "2024-01-15T12:00:00Z"
+        # this key was rotated at a planned time
+        status: "rotated"
+        signing-format: "dssev1"
+      - id: "e6f4c70fbba21cbcac44915fff53fd2fdf90dd8849445795fe58014c2b5f8c64"
+        key: |
+          -----BEGIN PUBLIC KEY-----
+          MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEZSkTE3si/JkRbuLjaYraS3//YBnX
+          8KtEcgdYKZQPl2DnSl4gPsu3KiVeEBWp5GK06IoZlcBAL3NF0OsUUP+yVg==
+          -----END PUBLIC KEY-----
+        from: "2024-01-15T12:00:00Z"
+        to: "2024-01-15T14:00:00Z"
+        # this key was leaked at a known time, so it revoked from that time
+        # this behaves the same way as "rotated" but might give another failure message
+        status: "revoked"
+        signing-format: "dssev1"
+      - id: "d45980c5cf39a5e1bab9febe3f16c1c0820b97a8fd061b0064e54b0826e856e4"
+        key: |
+          -----BEGIN PUBLIC KEY-----
+          MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEafssq2x1EDQcKDZhuSrCOxWWl5D4
+          JBa9iDJYDnLZp9kPKvv4RnD4rz7Ucfmd0l/zzM45qT29fSBTlguKmnOA8A==
+          -----END PUBLIC KEY-----
+        # this key was leaked at an unknown time, so it's completely distrusted
+        distrust: true
+        status: "revoked"
+        signing-format: "dssev1"
+      - id: "a0c296026645799b2a297913878e81b0aefff2a0c301e97232f717e14402f3e4"
+        key: |
+          -----BEGIN PUBLIC KEY-----
+          MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEgH23D1i2+ZIOtVjmfB7iFvX8AhVN
+          9CPJ4ie9axw+WRHozGnRy99U2dRge3zueBBg2MweF0zrToXGig2v3YOrdw==
+          -----END PUBLIC KEY-----
+        from: "2023-12-15T14:00:00Z"
+        to: null
+        # this key is still active
+        status: "active"
+        signing-format: "dssev1"
+      - id: "6b241993defaba26558c64f94a94303ce860e7ad9163d801495c91cf57197c75"
+        key: |
+          -----BEGIN PUBLIC KEY-----
+          MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEZmicqYSY38DprGr42jU0V3ND0ROj
+          zSRH1+yjsxhh0bi52Hh/DuOhrSq2KJ5a09lW3ybnDjljowbkof0Y1i9Oow==
+          -----END PUBLIC KEY-----
+        from: "2023-12-15T14:00:00Z"
+        to: null
+        # this key is still active
+        status: "active"
+        signing-format: "dssev1"

@@ -8,8 +8,8 @@ policies:
     id: test-images
     description: Local test images
     files:
-      - path: doi/data.yaml
-      - path: doi/policy.rego
+      - path: doi-full/data.yaml
+      - path: doi-full/policy.rego
 
 mirrors:
   - policy-id: test-images

@@ -64,9 +64,11 @@ func ExampleVerify_remote() {
 		panic(err) // failed policy or attestation signature verification
 	}
 	if policy.Success {
-		fmt.Printf("policy passed: %v\n", policy)
+		fmt.Println("policy passed")
 		return // passed policy
 	}
 	// no policy found for image
-	fmt.Printf("no policy for image")
+	fmt.Println("no policy for image")
+
+	// Output: policy passed
 }

@@ -9,4 +9,3 @@ policies:
     description: Local test images
     files:
       - path: doi/policy.rego
-      - path: doi/data.yaml

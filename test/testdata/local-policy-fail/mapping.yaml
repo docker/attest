@@ -8,5 +8,4 @@ policies:
     id: test-images
     description: Local test images
     files:
-      - path: doi/data.yaml
       - path: doi/policy.rego

@@ -7,10 +7,9 @@ policies:
       prefix: library/
     name: test-images
     description: Local test images
-    root: doi
     files:
-      - path: data.yaml
-      - path: policy.rego
+      - path: doi/data.yaml
+      - path: doi/policy.rego
 
 mirrors:
   - name: test-images

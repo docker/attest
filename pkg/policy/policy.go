@@ -28,7 +28,7 @@ type PolicyMappings struct {
 }
 
 type PolicyMapping struct {
-	Name        string              `json:"namespace"`
+	Id          string              `json:"id"`
 	Description string              `json:"description"`
 	Origin      PolicyOrigin        `json:"origin"`
 	Files       []PolicyMappingFile `json:"files"`
@@ -39,8 +39,8 @@ type PolicyMappingFile struct {
 }
 
 type PolicyMirror struct {
-	Name   string     `json:"name"`
-	Mirror MirrorSpec `json:"mirror"`
+	PolicyId string     `json:"policy-id"`
+	Mirror   MirrorSpec `json:"mirror"`
 }
 
 type MirrorSpec struct {
@@ -152,7 +152,7 @@ func findPolicyMatch(named reference.Named, mappings *PolicyMappings) (*PolicyMa
 			if slices.Contains(mirror.Mirror.Domains, reference.Domain(named)) &&
 				strings.HasPrefix(reference.Path(named), mirror.Mirror.Prefix) {
 				for _, mapping := range mappings.Policies {
-					if mapping.Name == mirror.Name {
+					if mapping.Id == mirror.PolicyId {
 						return &mapping, nil
 					}
 				}
@@ -189,7 +189,7 @@ func ResolvePolicy(ctx context.Context, resolver oci.AttestationResolver, opts *
 	// it's a mirror of a tuf policy
 	if mirror != nil {
 		for _, mapping := range tufMappings.Policies {
-			if mapping.Name == mirror.Name {
+			if mapping.Id == mirror.PolicyId {
 				return resolveTufPolicy(opts, &mapping)
 			}
 		}

@@ -19,6 +19,6 @@ type PolicyResult struct {
 	Success    bool
 	Policy     *policy.Policy
 	Input      *policy.PolicyInput
-	Summary    *intoto.Statement
-	Violations []string
+	VSA        *intoto.Statement
+	Violations []policy.Violation
 }

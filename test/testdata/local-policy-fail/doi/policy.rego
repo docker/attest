@@ -22,9 +22,18 @@ subjects contains subject if {
   print("subject ", subject)
 }
 
+violations contains v if {
+	v := {
+		"type": "missing_attestation",
+		"description": "Attestation missing for subject",
+		"attestation": null,
+		"details": {}
+	}
+}
+
 result := {
-	"success": true,
-	"violations": set(),
+	"success": false,
+	"violations": violations,
 	"attestations": statements,
 	"summary": {
 		"subjects": subjects,

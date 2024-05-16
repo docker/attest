@@ -23,9 +23,8 @@ import (
 var (
 	UnsignedTestImage = filepath.Join("..", "..", "test", "testdata", "unsigned-test-image")
 	NoProvenanceImage = filepath.Join("..", "..", "test", "testdata", "no-provenance-image")
-	LocalPolicyDir    = filepath.Join("..", "..", "test", "testdata", "local-policy")
 	PassPolicyDir     = filepath.Join("..", "..", "test", "testdata", "local-policy-pass")
-	VSAPolicyDir      = filepath.Join("..", "..", "test", "testdata", "local-policy-vsa")
+	FailPolicyDir     = filepath.Join("..", "..", "test", "testdata", "local-policy-fail")
 	TestTempDir       = "attest-sign-test"
 )
 
@@ -47,7 +46,7 @@ func TestSignVerifyOCILayout(t *testing.T) {
 		{"no provenance (no replace)", NoProvenanceImage, 2, 2, false},
 	}
 	policyResolver := &policy.PolicyOptions{
-		LocalPolicyDir: LocalPolicyDir,
+		LocalPolicyDir: PassPolicyDir,
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {

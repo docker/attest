@@ -16,7 +16,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/empty"
 	"github.com/google/go-containerregistry/pkg/v1/layout"
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
-	"github.com/open-policy-agent/opa/rego"
+	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -49,7 +49,7 @@ func TestVerifyAttestations(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 
 			mockPE := policy.MockPolicyEvaluator{
-				EvaluateFunc: func(ctx context.Context, resolver oci.AttestationResolver, pctx *policy.Policy, input *policy.PolicyInput) (rego.ResultSet, error) {
+				EvaluateFunc: func(ctx context.Context, resolver oci.AttestationResolver, pctx *policy.Policy, input *policy.PolicyInput) (*policy.VerificationResult, error) {
 					return policy.AllowedResult(), tc.policyEvaluationError
 				},
 			}
@@ -69,10 +69,7 @@ func TestVerifyAttestations(t *testing.T) {
 
 func TestVSA(t *testing.T) {
 	ctx, signer := test.Setup(t)
-	ctx = policy.WithPolicyEvaluator(ctx, policy.NewRegoEvaluator(false))
-	policyOpts := &policy.PolicyOptions{
-		LocalPolicyDir: LocalPolicyDir,
-	}
+	ctx = policy.WithPolicyEvaluator(ctx, policy.NewRegoEvaluator(true))
 	// setup an image with signed attestations
 	tempDir := test.CreateTempDir(t, "", TestTempDir)
 	outputLayout := tempDir
@@ -104,44 +101,85 @@ func TestVSA(t *testing.T) {
 		Platform: "linux/amd64",
 	}
 
-	// results, err := Verify(ctx, policyOpts, resolver)
-	// assert.NoError(t, err)
-	// assert.Equal(t, false, results.Success)
-
 	// mocked vsa query should pass
-	policyOpts.LocalPolicyDir = PassPolicyDir
+	policyOpts := &policy.PolicyOptions{
+		LocalPolicyDir: PassPolicyDir,
+	}
 	results, err := Verify(ctx, policyOpts, resolver)
 	require.NoError(t, err)
 	assert.True(t, results.Success)
 	assert.Empty(t, results.Violations)
 
-	// create a signed attestation and add it
-	withVSA, err := AddAttestation(ctx, signedIndex, results.Summary, signer, opts)
+	assert.Equal(t, intoto.StatementInTotoV01, results.VSA.Type)
+	assert.Equal(t, attestation.VSAPredicateType, results.VSA.PredicateType)
+	assert.Len(t, results.VSA.Subject, 1)
+
+	require.IsType(t, attestation.VSAPredicate{}, results.VSA.Predicate)
+	attestationPredicate := results.VSA.Predicate.(attestation.VSAPredicate)
+
+	assert.Equal(t, "PASSED", attestationPredicate.VerificationResult)
+	assert.Equal(t, "docker-official-images", attestationPredicate.Verifier.ID)
+	assert.Equal(t, []string{"SLSA_BUILD_LEVEL_3"}, attestationPredicate.VerifiedLevels)
+	assert.Equal(t, "https://docker.com/official/policy/v0.1", attestationPredicate.Policy.URI)
+}
+
+func TestVerificationFailure(t *testing.T) {
+	ctx, signer := test.Setup(t)
+	ctx = policy.WithPolicyEvaluator(ctx, policy.NewRegoEvaluator(true))
+	// setup an image with signed attestations
+	tempDir := test.CreateTempDir(t, "", TestTempDir)
+	outputLayout := tempDir
+
+	opts := &SigningOptions{
+		Replace: true,
+	}
+	attIdx, err := oci.AttestationIndexFromPath(UnsignedTestImage)
+	assert.NoError(t, err)
+	signedIndex, err := Sign(ctx, attIdx.Index, signer, opts)
 	assert.NoError(t, err)
 
-	// output signed attestations with vsa
-	idx = v1.ImageIndex(empty.Index)
+	// output signed attestations
+	idx := v1.ImageIndex(empty.Index)
 	idx = mutate.AppendManifests(idx, mutate.IndexAddendum{
-		Add: withVSA,
+		Add: signedIndex,
 		Descriptor: v1.Descriptor{
 			Annotations: map[string]string{
 				oci.OciReferenceTarget: attIdx.Name,
 			},
 		},
 	})
-	tempDir = test.CreateTempDir(t, "", TestTempDir)
-	outputLayout = tempDir
-
 	_, err = layout.Write(outputLayout, idx)
 	assert.NoError(t, err)
-	resolver = &oci.OCILayoutResolver{
+
+	//verify (without vsa should fail)
+	resolver := &oci.OCILayoutResolver{
 		Path:     outputLayout,
 		Platform: "linux/amd64",
 	}
-	// policy requiring VSA (default) should work
-	ctx = policy.WithPolicyEvaluator(ctx, policy.NewRegoEvaluator(true))
-	policyOpts.LocalPolicyDir = VSAPolicyDir
-	results, err = Verify(ctx, policyOpts, resolver)
+
+	// mocked vsa query should pass
+	policyOpts := &policy.PolicyOptions{
+		LocalPolicyDir: FailPolicyDir,
+	}
+	results, err := Verify(ctx, policyOpts, resolver)
 	require.NoError(t, err)
-	assert.Equal(t, true, results.Success)
+	assert.False(t, results.Success)
+	assert.Len(t, results.Violations, 1)
+
+	violation := results.Violations[0]
+	assert.Equal(t, "missing_attestation", violation.Type)
+	assert.Equal(t, "Attestation missing for subject", violation.Description)
+	assert.Nil(t, violation.Attestation)
+
+	assert.Equal(t, intoto.StatementInTotoV01, results.VSA.Type)
+	assert.Equal(t, attestation.VSAPredicateType, results.VSA.PredicateType)
+	assert.Len(t, results.VSA.Subject, 1)
+
+	require.IsType(t, attestation.VSAPredicate{}, results.VSA.Predicate)
+	attestationPredicate := results.VSA.Predicate.(attestation.VSAPredicate)
+
+	assert.Equal(t, "FAILED", attestationPredicate.VerificationResult)
+	assert.Equal(t, "docker-official-images", attestationPredicate.Verifier.ID)
+	assert.Equal(t, []string{"SLSA_BUILD_LEVEL_3"}, attestationPredicate.VerifiedLevels)
+	assert.Equal(t, "https://docker.com/official/policy/v0.1", attestationPredicate.Policy.URI)
 }

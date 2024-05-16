@@ -329,7 +329,7 @@ func ExtractEnvelopes(ia *AttestationManifest, predicateType string) ([]*att.Env
 
 func imageDigestForPlatform(ix *v1.IndexManifest, platform *v1.Platform) (string, error) {
 	for _, m := range ix.Manifests {
-		if m.MediaType == ocispec.MediaTypeImageManifest || m.MediaType == "application/vnd.docker.distribution.manifest.v2+json" && m.Platform.Equals(*platform) {
+		if (m.MediaType == ocispec.MediaTypeImageManifest || m.MediaType == "application/vnd.docker.distribution.manifest.v2+json") && m.Platform.Equals(*platform) {
 			return m.Digest.String(), nil
 		}
 	}

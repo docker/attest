@@ -29,7 +29,7 @@ type PolicyMappings struct {
 
 type PolicyMapping struct {
 	Name        string              `json:"namespace"`
-	Location    string              `json:"location"`
+	Root        string              `json:"root"`
 	Description string              `json:"description"`
 	Origin      PolicyOrigin        `json:"origin"`
 	Files       []PolicyMappingFile `json:"files"`
@@ -79,7 +79,7 @@ func resolveLocalPolicy(opts *PolicyOptions, mapping *PolicyMapping) ([]*PolicyF
 	files := make([]*PolicyFile, 0, len(mapping.Files))
 	for _, f := range mapping.Files {
 		filename := f.Path
-		filePath := path.Join(opts.LocalPolicyDir, mapping.Location, filename)
+		filePath := path.Join(opts.LocalPolicyDir, mapping.Root, filename)
 		fileContents, err := os.ReadFile(filePath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read policy file %s: %w", filename, err)
@@ -113,7 +113,7 @@ func resolveTufPolicy(opts *PolicyOptions, mapping *PolicyMapping) ([]*PolicyFil
 	files := make([]*PolicyFile, 0, len(mapping.Files))
 	for _, f := range mapping.Files {
 		filename := f.Path
-		filePath := path.Join(mapping.Location, filename)
+		filePath := path.Join(mapping.Root, filename)
 		_, fileContents, err := opts.TufClient.DownloadTarget(filePath, filepath.Join(opts.LocalTargetsDir, filePath))
 		if err != nil {
 			return nil, fmt.Errorf("failed to download policy file %s: %w", filename, err)

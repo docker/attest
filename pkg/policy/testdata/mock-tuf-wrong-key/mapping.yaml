@@ -7,6 +7,6 @@ policies:
       prefix: library/
     name: docker-official-images
     description: Docker Official Images
-    location: doi
+    root: doi
     files:
       - path: policy.rego

@@ -25,7 +25,10 @@ type regoEvaluator struct {
 	debug bool
 }
 
-const DefaultQuery = "data.attest.allow"
+const (
+	DefaultQuery  = "result := data.attest.result"
+	resultBinding = "result"
+)
 
 func NewRegoEvaluator(debug bool) PolicyEvaluator {
 	return &regoEvaluator{
@@ -33,19 +36,7 @@ func NewRegoEvaluator(debug bool) PolicyEvaluator {
 	}
 }
 
-type Summary struct {
-	Subjects  []intoto.Subject `json:"subjects"`
-	SLSALevel string           `json:"slsa_level"`
-	Verifier  string           `json:"verifier"`
-}
-
-type VerificationResult struct {
-	Success    bool     `json:"success"`
-	Violations []string `json:"violations"`
-	Summary    Summary  `json:"summary"`
-}
-
-func (re *regoEvaluator) Evaluate(ctx context.Context, resolver oci.AttestationResolver, pctx *Policy, input *PolicyInput) (rego.ResultSet, error) {
+func (re *regoEvaluator) Evaluate(ctx context.Context, resolver oci.AttestationResolver, pctx *Policy, input *PolicyInput) (*VerificationResult, error) {
 	var regoOpts []func(*rego.Rego)
 
 	// Create a new in-memory store
@@ -92,7 +83,6 @@ func (re *regoEvaluator) Evaluate(ctx context.Context, resolver oci.AttestationR
 	}
 	regoOpts = append(regoOpts,
 		rego.Query(query),
-		rego.StrictBuiltinErrors(true),
 		rego.Input(input),
 		rego.Store(store),
 		rego.GenerateJSON(jsonGenerator[VerificationResult]()),
@@ -102,7 +92,24 @@ func (re *regoEvaluator) Evaluate(ctx context.Context, resolver oci.AttestationR
 	}
 
 	r := rego.New(regoOpts...)
-	return r.Eval(ctx)
+	rs, err := r.Eval(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(rs) == 0 {
+		return nil, fmt.Errorf("no policy evaluation result")
+	}
+	binding, ok := rs[0].Bindings[resultBinding]
+	if !ok {
+		return nil, fmt.Errorf("failed to extract verification result")
+	}
+	result, ok := binding.(VerificationResult)
+	if !ok {
+		return nil, fmt.Errorf("failed to extract verification result")
+	}
+
+	return &result, nil
 }
 
 func jsonGenerator[T any]() func(t *ast.Term, ec *rego.EvalContext) (any, error) {

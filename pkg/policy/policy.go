@@ -12,6 +12,7 @@ import (
 	"github.com/distribution/reference"
 	"github.com/docker/attest/pkg/oci"
 	"github.com/docker/attest/pkg/tuf"
+	intoto "github.com/in-toto/in-toto-golang/in_toto"
 
 	goyaml "gopkg.in/yaml.v3"
 )
@@ -19,6 +20,27 @@ import (
 const (
 	PolicyMappingFileName = "mapping.yaml"
 )
+
+type Summary struct {
+	Subjects  []intoto.Subject `json:"subjects"`
+	SLSALevel string           `json:"slsa_level"`
+	Verifier  string           `json:"verifier"`
+	PolicyURI string           `json:"policy_uri"`
+}
+
+type Violation struct {
+	Type        string            `json:"type"`
+	Description string            `json:"description"`
+	Attestation *intoto.Statement `json:"attestation"`
+	Details     map[string]any    `json:"details"`
+}
+
+type VerificationResult struct {
+	Success      bool               `json:"success"`
+	Violations   []Violation        `json:"violations"`
+	Attestations []intoto.Statement `json:"attestations"`
+	Summary      Summary            `json:"summary"`
+}
 
 type PolicyMappings struct {
 	Version  string          `json:"version"`

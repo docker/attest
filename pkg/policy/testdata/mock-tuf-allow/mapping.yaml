@@ -8,3 +8,5 @@ policies:
     name: docker-official-images
     description: Docker Official Images
     location: doi
+    files:
+      - path: policy.rego

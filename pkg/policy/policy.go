@@ -21,10 +21,6 @@ const (
 	PolicyMappingFileName = "mapping.yaml"
 )
 
-var (
-	PolicyFileNames = []string{"data.yaml", "policy.rego"}
-)
-
 type Summary struct {
 	Subjects  []intoto.Subject `json:"subjects"`
 	SLSALevel string           `json:"slsa_level"`
@@ -54,15 +50,19 @@ type PolicyMappings struct {
 }
 
 type PolicyMapping struct {
-	Name        string       `json:"namespace"`
-	Location    string       `json:"location"`
-	Description string       `json:"description"`
-	Origin      PolicyOrigin `json:"origin"`
+	Id          string              `json:"id"`
+	Description string              `json:"description"`
+	Origin      PolicyOrigin        `json:"origin"`
+	Files       []PolicyMappingFile `json:"files"`
+}
+
+type PolicyMappingFile struct {
+	Path string `json:"path"`
 }
 
 type PolicyMirror struct {
-	Name   string     `json:"name"`
-	Mirror MirrorSpec `json:"mirror"`
+	PolicyId string     `json:"policy-id"`
+	Mirror   MirrorSpec `json:"mirror"`
 }
 
 type MirrorSpec struct {
@@ -102,9 +102,10 @@ func resolveLocalPolicy(opts *PolicyOptions, mapping *PolicyMapping) (*Policy, e
 	if opts.LocalPolicyDir == "" {
 		return nil, fmt.Errorf("local policy dir not set")
 	}
-	files := make([]*PolicyFile, 0, len(PolicyFileNames))
-	for _, filename := range PolicyFileNames {
-		filePath := path.Join(opts.LocalPolicyDir, mapping.Location, filename)
+	files := make([]*PolicyFile, 0, len(mapping.Files))
+	for _, f := range mapping.Files {
+		filename := f.Path
+		filePath := path.Join(opts.LocalPolicyDir, filename)
 		fileContents, err := os.ReadFile(filePath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read policy file %s: %w", filename, err)
@@ -138,10 +139,10 @@ func loadLocalMappings(opts *PolicyOptions) (*PolicyMappings, error) {
 }
 
 func resolveTufPolicy(opts *PolicyOptions, mapping *PolicyMapping) (*Policy, error) {
-	files := make([]*PolicyFile, 0, len(PolicyFileNames))
-	for _, filename := range PolicyFileNames {
-		filePath := path.Join(mapping.Location, filename)
-		_, fileContents, err := opts.TufClient.DownloadTarget(filePath, filepath.Join(opts.LocalTargetsDir, filePath))
+	files := make([]*PolicyFile, 0, len(mapping.Files))
+	for _, f := range mapping.Files {
+		filename := f.Path
+		_, fileContents, err := opts.TufClient.DownloadTarget(filename, filepath.Join(opts.LocalTargetsDir, filename))
 		if err != nil {
 			return nil, fmt.Errorf("failed to download policy file %s: %w", filename, err)
 		}
@@ -184,7 +185,7 @@ func findPolicyMatch(named reference.Named, mappings *PolicyMappings) (*PolicyMa
 			if slices.Contains(mirror.Mirror.Domains, reference.Domain(named)) &&
 				strings.HasPrefix(reference.Path(named), mirror.Mirror.Prefix) {
 				for _, mapping := range mappings.Policies {
-					if mapping.Name == mirror.Name {
+					if mapping.Id == mirror.PolicyId {
 						return &mapping, nil
 					}
 				}
@@ -221,7 +222,7 @@ func ResolvePolicy(ctx context.Context, resolver oci.AttestationResolver, opts *
 	// it's a mirror of a tuf policy
 	if mirror != nil {
 		for _, mapping := range tufMappings.Policies {
-			if mapping.Name == mirror.Name {
+			if mapping.Id == mirror.PolicyId {
 				return resolveTufPolicy(opts, &mapping)
 			}
 		}

@@ -5,12 +5,8 @@ policies:
   - origin:
       domain: docker.io
       prefix: library/
-    name: test-images
+    id: test-images
     description: Local test images
-    location: doi
-
-mirrors:
-  - name: test-images
-    mirror:
-      domains: [localhost:5001]
-      prefix: ""
+    files:
+      - path: doi/policy.rego
+      - path: doi/data.yaml

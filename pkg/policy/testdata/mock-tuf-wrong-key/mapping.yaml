@@ -5,6 +5,7 @@ policies:
   - origin:
       domain: docker.io
       prefix: library/
-    name: docker-official-images
+    id: docker-official-images
     description: Docker Official Images
-    location: doi
+    files:
+      - path: doi/policy.rego

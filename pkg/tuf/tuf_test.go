@@ -2,6 +2,7 @@ package tuf
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/docker/attest/internal/embed"
 	"github.com/stretchr/testify/assert"
+	"github.com/theupdateframework/go-tuf/v2/metadata"
 )
 
 var (
@@ -69,5 +71,57 @@ func TestRootInit(t *testing.T) {
 
 		_, err = NewTufClient([]byte("broken"), tufPath, tc.metadataSource, tc.targetsSource)
 		assert.Errorf(t, err, "Expected error recreating TUF client with broken root: %v", err)
+	}
+}
+
+func TestDownloadTarget(t *testing.T) {
+	tufPath := CreateTempDir(t, "", "tuf_temp")
+	targetFile := "test.txt"
+	delegatedRole := "test-role"
+	delegatedTargetFile := fmt.Sprintf("%s/%s", delegatedRole, targetFile)
+
+	// Start a test HTTP server to serve data from /test/testdata/tuf/test-repo/ paths
+	server := httptest.NewServer(http.FileServer(http.Dir(HttpTufTestDataPath)))
+	defer server.Close()
+
+	// run local registry
+	registry, regAddr := RunTestRegistry(t)
+	defer func() {
+		if err := registry.Terminate(context.Background()); err != nil {
+			t.Fatalf("failed to terminate container: %s", err) // nolint:gocritic
+		}
+	}()
+	LoadRegistryTestData(t, regAddr, OciTufTestDataPath)
+
+	testCases := []struct {
+		name           string
+		metadataSource string
+		targetsSource  string
+	}{
+		{"http", server.URL + "/metadata", server.URL + "/targets"},
+		{"oci", regAddr.Host + "/tuf-metadata:latest", regAddr.Host + "/tuf-targets"},
+	}
+
+	for _, tc := range testCases {
+		tufClient, err := NewTufClient(embed.DevRoot, tufPath, tc.metadataSource, tc.targetsSource)
+		assert.NoErrorf(t, err, "Failed to create TUF client: %v", err)
+
+		// get trusted tuf metadata
+		trustedMetadata := tufClient.updater.GetTrustedMetadataSet()
+		assert.NotNil(t, trustedMetadata, "Failed to get trusted metadata")
+
+		// download top-level target files
+		targets := trustedMetadata.Targets[metadata.TARGETS].Signed.Targets
+		for _, target := range targets {
+			// download target files
+			_, _, err := tufClient.DownloadTarget(target.Path, filepath.Join(tufPath, "download"))
+			assert.NoErrorf(t, err, "Failed to download target: %v", err)
+		}
+
+		// download delegated target
+		targetInfo, err := tufClient.updater.GetTargetInfo(delegatedTargetFile)
+		assert.NoError(t, err)
+		_, _, err = tufClient.DownloadTarget(targetInfo.Path, filepath.Join(tufPath, targetInfo.Path))
+		assert.NoError(t, err)
 	}
 }

@@ -18,6 +18,7 @@ import (
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	v02 "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -56,9 +57,9 @@ func TestSignVerifyOCILayout(t *testing.T) {
 				Replace: tc.replace,
 			}
 			attIdx, err := oci.AttestationIndexFromPath(tc.TestImage)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			signedIndex, err := Sign(ctx, attIdx.Index, signer, opts)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// output signed attestations
 			idx := v1.ImageIndex(empty.Index)
@@ -71,21 +72,21 @@ func TestSignVerifyOCILayout(t *testing.T) {
 				},
 			})
 			_, err = layout.Write(outputLayout, idx)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			resolver := &oci.OCILayoutResolver{
 				Path:     outputLayout,
 				Platform: "",
 			}
 			policy, err := Verify(ctx, policyResolver, resolver)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Truef(t, policy.Success, "Policy should have been found")
 
 			var allEnvelopes []*test.AnnotatedStatement
 			for _, predicate := range []string{intoto.PredicateSPDX, v02.PredicateSLSAProvenance, attestation.VSAPredicateType} {
 				mt, _ := attestation.DSSEMediaType(predicate)
 				statements, err := test.ExtractAnnotatedStatements(tempDir, mt)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				allEnvelopes = append(allEnvelopes, statements...)
 
 				for _, stmt := range statements {
@@ -95,7 +96,7 @@ func TestSignVerifyOCILayout(t *testing.T) {
 			}
 			assert.Equalf(t, tc.expectedAttestations, len(allEnvelopes), "expected %d attestations, got %d", tc.expectedAttestations, len(allEnvelopes))
 			statements, err := test.ExtractAnnotatedStatements(tempDir, intoto.PayloadType)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equalf(t, tc.expectedStatements, len(statements), "expected %d statement, got %d", tc.expectedStatements, len(statements))
 		})
 	}
@@ -139,7 +140,7 @@ func TestAddSignedLayerAnnotations(t *testing.T) {
 				},
 			}
 			newImg, err := addSignedLayers(signedLayers, manifest, opts)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			mf, _ := newImg.RawManifest()
 			type Annotations struct {
 				Annotations map[string]string `json:"annotations"`
@@ -149,7 +150,7 @@ func TestAddSignedLayerAnnotations(t *testing.T) {
 			}
 			l := &Layers{}
 			err = json.Unmarshal(mf, l)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			_, ok := l.Layers[0].Annotations["test"]
 			assert.Truef(t, ok, "missing annotations")
 		})

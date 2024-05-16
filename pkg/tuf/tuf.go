@@ -116,6 +116,14 @@ func (t *TufClient) DownloadTarget(target string, filePath string) (actualFilePa
 		return "", nil, err
 	}
 
+	// check if filePath exists and create the directory if it doesn't
+	if _, err := os.Stat(filepath.Dir(filePath)); os.IsNotExist(err) {
+		err = os.MkdirAll(filepath.Dir(filePath), 0755)
+		if err != nil {
+			return "", nil, fmt.Errorf("failed to create target download directory '%s': %w", filepath.Dir(filePath), err)
+		}
+	}
+
 	// target is available, so let's see if the target is already present locally
 	actualFilePath, data, err = t.updater.FindCachedTarget(targetInfo, filePath)
 	if err != nil {

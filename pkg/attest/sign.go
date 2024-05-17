@@ -48,13 +48,23 @@ func SignInTotoStatement(ctx context.Context, statement *intoto.Statement, signe
 }
 
 func AddAttestation(ctx context.Context, idx v1.ImageIndex, statement *intoto.Statement, signer dsse.SignerVerifier, opts *SigningOptions) (v1.ImageIndex, error) {
+	if len(statement.Subject) == 0 {
+		return nil, fmt.Errorf("statement has no subjects")
+	}
+
+	subjectDigests := make(map[string]bool)
+	for _, subject := range statement.Subject {
+		subjectDigest := fmt.Sprintf("sha256:%s", subject.Digest["sha256"])
+		subjectDigests[subjectDigest] = true
+	}
+
 	attestationManifests, err := attestation.GetAttestationManifestsFromIndex(idx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get attestation manifests: %w", err)
 	}
-	var updatedIndex v1.ImageIndex
+	updatedIndex := false
 	for _, manifest := range attestationManifests {
-		if manifest.Annotations[oci.DockerReferenceDigest] == fmt.Sprintf("sha256:%s", statement.Subject[0].Digest["sha256"]) {
+		if subjectDigests[manifest.Annotations[oci.DockerReferenceDigest]] {
 			attestationLayers := []attestation.AttestationLayer{
 				{
 					Statement: statement,
@@ -64,17 +74,17 @@ func AddAttestation(ctx context.Context, idx v1.ImageIndex, statement *intoto.St
 					},
 				},
 			}
-			updatedIndex, err = addSignedLayersToIndex(ctx, idx, attestationLayers, manifest, signer, opts)
+			idx, err = addSignedLayersToIndex(ctx, idx, attestationLayers, manifest, signer, opts)
 			if err != nil {
 				return nil, fmt.Errorf("failed to add signed layers: %w", err)
 			}
-			break
+			updatedIndex = true
 		}
 	}
-	if updatedIndex == nil {
+	if !updatedIndex {
 		return nil, fmt.Errorf("no attestation manifest found for statement")
 	}
-	return updatedIndex, nil
+	return idx, nil
 
 }
 

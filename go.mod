@@ -13,7 +13,7 @@ require (
 	github.com/in-toto/in-toto-golang v0.9.0
 	github.com/open-policy-agent/opa v0.64.1
 	github.com/opencontainers/image-spec v1.1.0
-	github.com/package-url/packageurl-go v0.1.2
+	github.com/package-url/packageurl-go v0.1.3
 	github.com/pkg/errors v0.9.1
 	github.com/secure-systems-lab/go-securesystemslib v0.8.0
 	github.com/sigstore/cosign/v2 v2.2.4

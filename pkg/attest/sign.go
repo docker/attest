@@ -47,7 +47,7 @@ func SignInTotoStatement(ctx context.Context, statement *intoto.Statement, signe
 	return env, nil
 }
 
-func AddAttestation(ctx context.Context, idx v1.ImageIndex, statement *intoto.Statement, signer dsse.SignerVerifier, opts *SigningOptions) (v1.ImageIndex, error) {
+func AddAttestation(ctx context.Context, idx v1.ImageIndex, statement *intoto.Statement, signer dsse.SignerVerifier) (v1.ImageIndex, error) {
 	if len(statement.Subject) == 0 {
 		return nil, fmt.Errorf("statement has no subjects")
 	}
@@ -74,7 +74,8 @@ func AddAttestation(ctx context.Context, idx v1.ImageIndex, statement *intoto.St
 					},
 				},
 			}
-			idx, err = addSignedLayersToIndex(ctx, idx, attestationLayers, manifest, signer, opts)
+			// hard-coding replace to false here, because if it's true we will remove any unsigned statements, even unrelated ones
+			idx, err = addSignedLayersToIndex(ctx, idx, attestationLayers, manifest, signer, &SigningOptions{Replace: false})
 			if err != nil {
 				return nil, fmt.Errorf("failed to add signed layers: %w", err)
 			}

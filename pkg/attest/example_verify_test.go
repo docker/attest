@@ -63,7 +63,7 @@ func ExampleVerify_remote() {
 	if err != nil {
 		panic(err) // failed policy or attestation signature verification
 	}
-	if policy {
+	if policy.Success {
 		fmt.Printf("policy passed: %v\n", policy)
 		return // passed policy
 	}

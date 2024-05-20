@@ -2,6 +2,7 @@ package attest
 
 import (
 	"github.com/docker/attest/pkg/attestation"
+	"github.com/docker/attest/pkg/policy"
 )
 
 const (
@@ -10,6 +11,13 @@ const (
 )
 
 type SigningOptions struct {
-	Replace    bool
-	VSAOptions *attestation.VSAOptions
+	Replace bool
+}
+
+type PolicyResult struct {
+	// rolled up summary of policy evaluation
+	Success bool
+	Policy  *policy.Policy
+	Input   *policy.PolicyInput
+	Summary *attestation.VerificationSummary
 }

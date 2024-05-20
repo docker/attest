@@ -11,6 +11,11 @@ const (
 	VSAPredicateType = "https://slsa.dev/verification_summary/v1"
 )
 
+type VerificationSummary struct {
+	intoto.StatementHeader
+	Predicate VSAPredicate `json:"predicate"`
+}
+
 type VSAPredicate struct {
 	Verifier           VSAVerifier           `json:"verifier"`
 	TimeVerified       string                `json:"timeVerified"`
@@ -32,12 +37,6 @@ type VSAPolicy struct {
 type VSAInputAttestation struct {
 	Digest    map[string]string `json:"digest"`
 	MediaType string            `json:"mediaType"`
-}
-
-type VSAOptions struct {
-	BuildLevel string
-	PolicyURI  string
-	VerifierID string
 }
 
 func ToVSAResourceURI(sub intoto.Subject) (string, error) {

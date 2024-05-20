@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/docker/attest/pkg/attest"
-	"github.com/docker/attest/pkg/attestation"
 	"github.com/docker/attest/pkg/mirror"
 	"github.com/docker/attest/pkg/oci"
 	"github.com/docker/attest/pkg/signerverifier"
@@ -28,16 +27,6 @@ func ExampleSign_remote() {
 	// configure signing options
 	opts := &attest.SigningOptions{
 		Replace: true, // replace unsigned intoto statements with signed intoto attestations, otherwise leave in place
-	}
-
-	// configure VSA options (optional)
-	slsaBuildLevel := "3"
-	slsaPolicyUri := "https://docker.com/attest/policy"
-	slsaVerifierId := "https://docker.com"
-	opts.VSAOptions = &attestation.VSAOptions{
-		BuildLevel: "SLSA_BUILD_LEVEL_" + slsaBuildLevel,
-		PolicyURI:  slsaPolicyUri,
-		VerifierID: slsaVerifierId,
 	}
 
 	// load image index with unsigned attestation-manifests

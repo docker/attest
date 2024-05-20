@@ -14,6 +14,7 @@ import (
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/layout"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
+	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/package-url/packageurl-go"
 	"github.com/pkg/errors"
@@ -392,4 +393,14 @@ func RefToPURL(ref string, platform string) (string, bool, error) {
 
 	p := packageurl.NewPackageURL("docker", ns, name, version, qualifiers, "")
 	return p.ToString(), isCanonical, nil
+}
+
+func SplitDigest(digest string) (*common.DigestSet, error) {
+	parts := strings.SplitN(digest, ":", 2)
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("invalid digest %q", digest)
+	}
+	return &common.DigestSet{
+		parts[0]: parts[1],
+	}, nil
 }

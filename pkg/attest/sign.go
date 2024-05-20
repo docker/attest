@@ -34,13 +34,6 @@ func Sign(ctx context.Context, idx v1.ImageIndex, signer dsse.SignerVerifier, op
 		if err != nil {
 			return nil, fmt.Errorf("failed to sign attestations: %w", err)
 		}
-		if opts.VSAOptions != nil {
-			newLayer, err := generateVSA(ctx, manifest, signer, opts)
-			if err != nil {
-				return nil, fmt.Errorf("failed to generate VSA: %w", err)
-			}
-			signedLayers = append(signedLayers, *newLayer)
-		}
 		newImg, err := addSignedLayers(signedLayers, manifest, opts)
 		if err != nil {
 			return nil, fmt.Errorf("failed to add signed layers: %w", err)

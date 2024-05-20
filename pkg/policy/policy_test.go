@@ -95,9 +95,9 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 				}
 			}
 
-			policyFiles, err := policy.ResolvePolicy(ctx, tc.resolver, tc.policy)
+			policy, err := policy.ResolvePolicy(ctx, tc.resolver, tc.policy)
 			assert.NoErrorf(t, err, "failed to resolve policy")
-			rs, err := re.Evaluate(ctx, tc.resolver, policyFiles, tc.input)
+			rs, err := re.Evaluate(ctx, tc.resolver, policy, tc.input)
 
 			if tc.expectSuccess {
 				assert.NoErrorf(t, err, "Evaluate failed")

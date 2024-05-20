@@ -35,18 +35,6 @@ func Sign(ctx context.Context, idx v1.ImageIndex, signer dsse.SignerVerifier, op
 	return idx, nil
 }
 
-func SignInTotoStatement(ctx context.Context, statement *intoto.Statement, signer dsse.SignerVerifier) (*attestation.Envelope, error) {
-	payload, err := json.Marshal(statement)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal statement: %w", err)
-	}
-	env, err := attestation.SignDSSE(ctx, payload, intoto.PayloadType, signer)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign statement: %w", err)
-	}
-	return env, nil
-}
-
 func AddAttestation(ctx context.Context, idx v1.ImageIndex, statement *intoto.Statement, signer dsse.SignerVerifier) (v1.ImageIndex, error) {
 	if len(statement.Subject) == 0 {
 		return nil, fmt.Errorf("statement has no subjects")
@@ -143,7 +131,7 @@ func signLayers(ctx context.Context, layers []attestation.AttestationLayer, sign
 		layer.Annotations[InTotoReferenceLifecycleStage] = LifecycleStageExperimental
 
 		// sign the statement
-		env, err := SignInTotoStatement(ctx, layer.Statement, signer)
+		env, err := signInTotoStatement(ctx, layer.Statement, signer)
 		if err != nil {
 			return nil, fmt.Errorf("failed to sign statement: %w", err)
 		}
@@ -163,6 +151,18 @@ func signLayers(ctx context.Context, layers []attestation.AttestationLayer, sign
 		signedLayers = append(signedLayers, withAnnotations)
 	}
 	return signedLayers, nil
+}
+
+func signInTotoStatement(ctx context.Context, statement *intoto.Statement, signer dsse.SignerVerifier) (*attestation.Envelope, error) {
+	payload, err := json.Marshal(statement)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal statement: %w", err)
+	}
+	env, err := attestation.SignDSSE(ctx, payload, intoto.PayloadType, signer)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign statement: %w", err)
+	}
+	return env, nil
 }
 
 // addSignedLayers adds signed layers to a new or existing attestation image

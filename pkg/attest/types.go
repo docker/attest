@@ -14,9 +14,27 @@ type SigningOptions struct {
 	Replace bool
 }
 
-type PolicyResult struct {
-	// rolled up summary of policy evaluation
-	Success    bool
+type Outcome string
+
+const (
+	OutcomeSuccess  Outcome = "success"
+	OutcomeFailure  Outcome = "failure"
+	OutcomeNoPolicy Outcome = "no_policy"
+)
+
+func (o Outcome) String() string {
+	switch o {
+	case OutcomeSuccess:
+		return "PASSED"
+	case OutcomeFailure:
+		return "FAILED"
+	default:
+		return "UNKNOWN"
+	}
+}
+
+type VerificationResult struct {
+	Outcome    Outcome
 	Policy     *policy.Policy
 	Input      *policy.PolicyInput
 	VSA        *intoto.Statement

@@ -11,18 +11,18 @@ import (
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 )
 
-func Verify(ctx context.Context, opts *policy.PolicyOptions, resolver oci.AttestationResolver) (result *PolicyResult, err error) {
+func Verify(ctx context.Context, opts *policy.PolicyOptions, resolver oci.AttestationResolver) (result *VerificationResult, err error) {
 	pctx, err := policy.ResolvePolicy(ctx, resolver, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve policy: %w", err)
 	}
 
-	// no policy for image -> success
 	if pctx == nil {
-		return &PolicyResult{
-			Success: true,
+		return &VerificationResult{
+			Outcome: OutcomeNoPolicy,
 		}, nil
 	}
+
 	result, err = VerifyAttestations(ctx, resolver, pctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to evaluate policy: %w", err)
@@ -30,7 +30,7 @@ func Verify(ctx context.Context, opts *policy.PolicyOptions, resolver oci.Attest
 	return result, nil
 }
 
-func ToPolicyResult(p *policy.Policy, input *policy.PolicyInput, result *policy.VerificationResult) (*PolicyResult, error) {
+func ToPolicyResult(p *policy.Policy, input *policy.PolicyInput, result *policy.VerificationResult) (*VerificationResult, error) {
 	dgst, err := oci.SplitDigest(input.Digest)
 	if err != nil {
 		return nil, fmt.Errorf("failed to split digest: %w", err)
@@ -44,14 +44,16 @@ func ToPolicyResult(p *policy.Policy, input *policy.PolicyInput, result *policy.
 		return nil, fmt.Errorf("failed to create resource uri: %w", err)
 	}
 
-	successStr := "FAILED"
+	var outcome Outcome
 	if result.Success {
-		successStr = "PASSED"
+		outcome = OutcomeSuccess
+	} else {
+		outcome = OutcomeFailure
 	}
 
-	return &PolicyResult{
+	return &VerificationResult{
 		Policy:     p,
-		Success:    result.Success,
+		Outcome:    outcome,
 		Violations: result.Violations,
 		VSA: &intoto.Statement{
 			StatementHeader: intoto.StatementHeader{
@@ -66,14 +68,14 @@ func ToPolicyResult(p *policy.Policy, input *policy.PolicyInput, result *policy.
 				TimeVerified:       time.Now().UTC().Format(time.RFC3339),
 				ResourceUri:        resourceUri,
 				Policy:             attestation.VSAPolicy{URI: result.Summary.PolicyURI},
-				VerificationResult: successStr,
+				VerificationResult: outcome.String(),
 				VerifiedLevels:     []string{result.Summary.SLSALevel},
 			},
 		},
 	}, nil
 }
 
-func VerifyAttestations(ctx context.Context, resolver oci.AttestationResolver, pctx *policy.Policy) (*PolicyResult, error) {
+func VerifyAttestations(ctx context.Context, resolver oci.AttestationResolver, pctx *policy.Policy) (*VerificationResult, error) {
 	digest, err := resolver.ImageDigest(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get image digest: %w", err)

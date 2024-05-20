@@ -107,7 +107,7 @@ func TestVSA(t *testing.T) {
 	}
 	results, err := Verify(ctx, policyOpts, resolver)
 	require.NoError(t, err)
-	assert.True(t, results.Success)
+	assert.Equal(t, OutcomeSuccess, results.Outcome)
 	assert.Empty(t, results.Violations)
 
 	assert.Equal(t, intoto.StatementInTotoV01, results.VSA.Type)
@@ -163,7 +163,7 @@ func TestVerificationFailure(t *testing.T) {
 	}
 	results, err := Verify(ctx, policyOpts, resolver)
 	require.NoError(t, err)
-	assert.False(t, results.Success)
+	assert.Equal(t, OutcomeFailure, results.Outcome)
 	assert.Len(t, results.Violations, 1)
 
 	violation := results.Violations[0]

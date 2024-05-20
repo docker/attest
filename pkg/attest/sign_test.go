@@ -81,7 +81,7 @@ func TestSignVerifyOCILayout(t *testing.T) {
 			}
 			policy, err := Verify(ctx, policyResolver, resolver)
 			require.NoError(t, err)
-			assert.Truef(t, policy.Success, "Policy should have been found")
+			assert.Equalf(t, OutcomeSuccess, policy.Outcome, "Policy should have been found")
 
 			var allEnvelopes []*test.AnnotatedStatement
 			for _, predicate := range []string{intoto.PredicateSPDX, v02.PredicateSLSAProvenance, attestation.VSAPredicateType} {

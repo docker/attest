@@ -36,10 +36,9 @@ type Violation struct {
 }
 
 type VerificationResult struct {
-	Success      bool               `json:"success"`
-	Violations   []Violation        `json:"violations"`
-	Attestations []intoto.Statement `json:"attestations"`
-	Summary      Summary            `json:"summary"`
+	Success    bool        `json:"success"`
+	Violations []Violation `json:"violations"`
+	Summary    Summary     `json:"summary"`
 }
 
 type PolicyMappings struct {

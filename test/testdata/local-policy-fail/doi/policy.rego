@@ -39,7 +39,6 @@ violations contains v if {
 result := {
 	"success": false,
 	"violations": violations,
-	"attestations": statements,
 	"summary": {
 		"subjects": subjects,
 		"slsa_level": "SLSA_BUILD_LEVEL_3",

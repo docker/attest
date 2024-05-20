@@ -30,7 +30,6 @@ subjects contains subject if {
 result := {
 	"success": true,
 	"violations": set(),
-	"attestations": statements,
 	"summary": {
 		"subjects": subjects,
 		"slsa_level": "SLSA_BUILD_LEVEL_3",

@@ -2,6 +2,7 @@ package attest
 
 import (
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -18,6 +19,7 @@ import (
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	v02 "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -56,9 +58,9 @@ func TestSignVerifyOCILayout(t *testing.T) {
 				Replace: tc.replace,
 			}
 			attIdx, err := oci.AttestationIndexFromPath(tc.TestImage)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			signedIndex, err := Sign(ctx, attIdx.Index, signer, opts)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// output signed attestations
 			idx := v1.ImageIndex(empty.Index)
@@ -71,21 +73,21 @@ func TestSignVerifyOCILayout(t *testing.T) {
 				},
 			})
 			_, err = layout.Write(outputLayout, idx)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			resolver := &oci.OCILayoutResolver{
 				Path:     outputLayout,
 				Platform: "",
 			}
 			policy, err := Verify(ctx, policyResolver, resolver)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Truef(t, policy.Success, "Policy should have been found")
 
 			var allEnvelopes []*test.AnnotatedStatement
 			for _, predicate := range []string{intoto.PredicateSPDX, v02.PredicateSLSAProvenance, attestation.VSAPredicateType} {
 				mt, _ := attestation.DSSEMediaType(predicate)
 				statements, err := test.ExtractAnnotatedStatements(tempDir, mt)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				allEnvelopes = append(allEnvelopes, statements...)
 
 				for _, stmt := range statements {
@@ -95,10 +97,75 @@ func TestSignVerifyOCILayout(t *testing.T) {
 			}
 			assert.Equalf(t, tc.expectedAttestations, len(allEnvelopes), "expected %d attestations, got %d", tc.expectedAttestations, len(allEnvelopes))
 			statements, err := test.ExtractAnnotatedStatements(tempDir, intoto.PayloadType)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equalf(t, tc.expectedStatements, len(statements), "expected %d statement, got %d", tc.expectedStatements, len(statements))
 		})
 	}
+}
+
+func TestAddAttestation(t *testing.T) {
+	ctx, signer := test.Setup(t)
+
+	expectedAttestations := 2
+	expectedStatements := 4
+
+	tempDir := test.CreateTempDir(t, "", TestTempDir)
+	outputLayout := tempDir
+	attIdx, err := oci.AttestationIndexFromPath(UnsignedTestImage)
+	require.NoError(t, err)
+
+	statementToAdd := &intoto.Statement{
+		StatementHeader: intoto.StatementHeader{
+			PredicateType: attestation.VSAPredicateType,
+			Type:          intoto.StatementInTotoV01,
+			Subject: []intoto.Subject{
+				{
+					Name: attIdx.Name,
+					Digest: map[string]string{
+						"sha256": "da8b190665956ea07890a0273e2a9c96bfe291662f08e2860e868eef69c34620",
+					},
+				},
+				{
+					Name: attIdx.Name,
+					Digest: map[string]string{
+						"sha256": "7a76cec943853f9f7105b1976afa1bf7cd5bb6afc4e9d5852dd8da7cf81ae86e",
+					},
+				},
+			},
+		},
+	}
+
+	signedIndex, err := AddAttestation(ctx, attIdx.Index, statementToAdd, signer)
+	require.NoError(t, err)
+
+	// output signed attestations
+	idx := v1.ImageIndex(empty.Index)
+	idx = mutate.AppendManifests(idx, mutate.IndexAddendum{
+		Add: signedIndex,
+		Descriptor: v1.Descriptor{
+			Annotations: map[string]string{
+				oci.OciReferenceTarget: attIdx.Name,
+			},
+		},
+	})
+	_, err = layout.Write(outputLayout, idx)
+	require.NoError(t, err)
+
+	var allEnvelopes []*test.AnnotatedStatement
+	mt, _ := attestation.DSSEMediaType(attestation.VSAPredicateType)
+	statements, err := test.ExtractAnnotatedStatements(tempDir, mt)
+	require.NoError(t, err)
+	allEnvelopes = append(allEnvelopes, statements...)
+
+	for _, stmt := range statements {
+		assert.Equalf(t, attestation.VSAPredicateType, stmt.Annotations[oci.InTotoPredicateType], "expected predicate-type annotation to be set to %s, got %s", attestation.VSAPredicateType, stmt.Annotations[oci.InTotoPredicateType])
+		assert.Equalf(t, LifecycleStageExperimental, stmt.Annotations[InTotoReferenceLifecycleStage], "expected reference lifecycle stage annotation to be set to %s, got %s", LifecycleStageExperimental, stmt.Annotations[InTotoReferenceLifecycleStage])
+	}
+	assert.Equalf(t, expectedAttestations, len(allEnvelopes), "expected %d attestations, got %d", expectedAttestations, len(allEnvelopes))
+	statements, err = test.ExtractAnnotatedStatements(tempDir, intoto.PayloadType)
+	fmt.Printf("statements: %+v\n", statements)
+	require.NoError(t, err)
+	assert.Equalf(t, expectedStatements, len(statements), "expected %d statement, got %d", expectedStatements, len(statements))
 }
 
 func TestAddSignedLayerAnnotations(t *testing.T) {
@@ -139,7 +206,7 @@ func TestAddSignedLayerAnnotations(t *testing.T) {
 				},
 			}
 			newImg, err := addSignedLayers(signedLayers, manifest, opts)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			mf, _ := newImg.RawManifest()
 			type Annotations struct {
 				Annotations map[string]string `json:"annotations"`
@@ -149,7 +216,7 @@ func TestAddSignedLayerAnnotations(t *testing.T) {
 			}
 			l := &Layers{}
 			err = json.Unmarshal(mf, l)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			_, ok := l.Layers[0].Annotations["test"]
 			assert.Truef(t, ok, "missing annotations")
 		})

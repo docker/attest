@@ -14,12 +14,12 @@ keys := [{
 
 atts := union({
 	attestations.attestation("https://slsa.dev/provenance/v0.2"),
-	attestations.attestation("https://spdx.dev/Document")
+	attestations.attestation("https://spdx.dev/Document"),
 })
 
 statements contains s if {
-  some att in atts
-  s := attestations.verify_envelope(att, keys)
+	some att in atts
+	s := attestations.verify_envelope(att, keys)
 }
 
 subjects contains subject if {
@@ -32,8 +32,8 @@ result := {
 	"violations": set(),
 	"summary": {
 		"subjects": subjects,
-		"slsa_level": "SLSA_BUILD_LEVEL_3",
+		"slsa_levels": ["SLSA_BUILD_LEVEL_3"],
 		"verifier": "docker-official-images",
-    "policy_uri": "https://docker.com/official/policy/v0.1"
+		"policy_uri": "https://docker.com/official/policy/v0.1",
 	},
 }

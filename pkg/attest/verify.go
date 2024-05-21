@@ -74,7 +74,7 @@ func ToPolicyResult(p *policy.Policy, input *policy.PolicyInput, result *policy.
 				ResourceUri:        resourceUri,
 				Policy:             attestation.VSAPolicy{URI: result.Summary.PolicyURI},
 				VerificationResult: outcomeStr,
-				VerifiedLevels:     []string{result.Summary.SLSALevel},
+				VerifiedLevels:     result.Summary.SLSALevels,
 			},
 		},
 	}, nil

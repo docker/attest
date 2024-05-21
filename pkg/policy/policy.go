@@ -22,10 +22,10 @@ const (
 )
 
 type Summary struct {
-	Subjects  []intoto.Subject `json:"subjects"`
-	SLSALevel string           `json:"slsa_level"`
-	Verifier  string           `json:"verifier"`
-	PolicyURI string           `json:"policy_uri"`
+	Subjects   []intoto.Subject `json:"subjects"`
+	SLSALevels []string         `json:"slsa_levels"`
+	Verifier   string           `json:"verifier"`
+	PolicyURI  string           `json:"policy_uri"`
 }
 
 type Violation struct {

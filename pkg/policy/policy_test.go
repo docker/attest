@@ -84,3 +84,15 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 	}
 
 }
+
+func TestLoadingMappings(t *testing.T) {
+	opts := &policy.PolicyOptions{
+		LocalPolicyDir: filepath.Join("testdata", "mock-tuf-allow"),
+	}
+	policyMappings, err := policy.LoadLocalMappings(opts)
+	require.NoError(t, err)
+	assert.Equal(t, len(policyMappings.Mirrors), 1)
+	for _, mirror := range policyMappings.Mirrors {
+		assert.Equal(t, "docker-official-images", mirror.PolicyId)
+	}
+}

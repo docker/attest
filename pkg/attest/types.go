@@ -1,6 +1,8 @@
 package attest
 
 import (
+	"fmt"
+
 	"github.com/docker/attest/pkg/policy"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 )
@@ -22,14 +24,14 @@ const (
 	OutcomeNoPolicy Outcome = "no_policy"
 )
 
-func (o Outcome) String() string {
+func (o Outcome) StringForVSA() (string, error) {
 	switch o {
 	case OutcomeSuccess:
-		return "PASSED"
+		return "PASSED", nil
 	case OutcomeFailure:
-		return "FAILED"
+		return "FAILED", nil
 	default:
-		return "UNKNOWN"
+		return "", fmt.Errorf("unknown outcome: %s", o)
 	}
 }
 

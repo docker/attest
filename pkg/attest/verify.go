@@ -51,6 +51,11 @@ func ToPolicyResult(p *policy.Policy, input *policy.PolicyInput, result *policy.
 		outcome = OutcomeFailure
 	}
 
+	outcomeStr, err := outcome.StringForVSA()
+	if err != nil {
+		return nil, err
+	}
+
 	return &VerificationResult{
 		Policy:     p,
 		Outcome:    outcome,
@@ -68,7 +73,7 @@ func ToPolicyResult(p *policy.Policy, input *policy.PolicyInput, result *policy.
 				TimeVerified:       time.Now().UTC().Format(time.RFC3339),
 				ResourceUri:        resourceUri,
 				Policy:             attestation.VSAPolicy{URI: result.Summary.PolicyURI},
-				VerificationResult: outcome.String(),
+				VerificationResult: outcomeStr,
 				VerifiedLevels:     []string{result.Summary.SLSALevel},
 			},
 		},

@@ -52,8 +52,7 @@ func TestSignVerifyOCILayout(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			tempDir := test.CreateTempDir(t, "", TestTempDir)
-			outputLayout := tempDir
+			outputLayout := test.CreateTempDir(t, "", TestTempDir)
 			opts := &SigningOptions{
 				Replace: tc.replace,
 			}
@@ -86,7 +85,7 @@ func TestSignVerifyOCILayout(t *testing.T) {
 			var allEnvelopes []*test.AnnotatedStatement
 			for _, predicate := range []string{intoto.PredicateSPDX, v02.PredicateSLSAProvenance, attestation.VSAPredicateType} {
 				mt, _ := attestation.DSSEMediaType(predicate)
-				statements, err := test.ExtractAnnotatedStatements(tempDir, mt)
+				statements, err := test.ExtractAnnotatedStatements(outputLayout, mt)
 				require.NoError(t, err)
 				allEnvelopes = append(allEnvelopes, statements...)
 
@@ -96,7 +95,7 @@ func TestSignVerifyOCILayout(t *testing.T) {
 				}
 			}
 			assert.Equalf(t, tc.expectedAttestations, len(allEnvelopes), "expected %d attestations, got %d", tc.expectedAttestations, len(allEnvelopes))
-			statements, err := test.ExtractAnnotatedStatements(tempDir, intoto.PayloadType)
+			statements, err := test.ExtractAnnotatedStatements(outputLayout, intoto.PayloadType)
 			require.NoError(t, err)
 			assert.Equalf(t, tc.expectedStatements, len(statements), "expected %d statement, got %d", tc.expectedStatements, len(statements))
 		})
@@ -109,8 +108,7 @@ func TestAddAttestation(t *testing.T) {
 	expectedAttestations := 2
 	expectedStatements := 4
 
-	tempDir := test.CreateTempDir(t, "", TestTempDir)
-	outputLayout := tempDir
+	outputLayout := test.CreateTempDir(t, "", TestTempDir)
 	attIdx, err := oci.AttestationIndexFromPath(UnsignedTestImage)
 	require.NoError(t, err)
 
@@ -153,7 +151,7 @@ func TestAddAttestation(t *testing.T) {
 
 	var allEnvelopes []*test.AnnotatedStatement
 	mt, _ := attestation.DSSEMediaType(attestation.VSAPredicateType)
-	statements, err := test.ExtractAnnotatedStatements(tempDir, mt)
+	statements, err := test.ExtractAnnotatedStatements(outputLayout, mt)
 	require.NoError(t, err)
 	allEnvelopes = append(allEnvelopes, statements...)
 
@@ -162,7 +160,7 @@ func TestAddAttestation(t *testing.T) {
 		assert.Equalf(t, LifecycleStageExperimental, stmt.Annotations[InTotoReferenceLifecycleStage], "expected reference lifecycle stage annotation to be set to %s, got %s", LifecycleStageExperimental, stmt.Annotations[InTotoReferenceLifecycleStage])
 	}
 	assert.Equalf(t, expectedAttestations, len(allEnvelopes), "expected %d attestations, got %d", expectedAttestations, len(allEnvelopes))
-	statements, err = test.ExtractAnnotatedStatements(tempDir, intoto.PayloadType)
+	statements, err = test.ExtractAnnotatedStatements(outputLayout, intoto.PayloadType)
 	fmt.Printf("statements: %+v\n", statements)
 	require.NoError(t, err)
 	assert.Equalf(t, expectedStatements, len(statements), "expected %d statement, got %d", expectedStatements, len(statements))

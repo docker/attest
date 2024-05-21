@@ -71,8 +71,7 @@ func TestVSA(t *testing.T) {
 	ctx, signer := test.Setup(t)
 	ctx = policy.WithPolicyEvaluator(ctx, policy.NewRegoEvaluator(true))
 	// setup an image with signed attestations
-	tempDir := test.CreateTempDir(t, "", TestTempDir)
-	outputLayout := tempDir
+	outputLayout := test.CreateTempDir(t, "", TestTempDir)
 
 	opts := &SigningOptions{
 		Replace: true,
@@ -127,8 +126,7 @@ func TestVerificationFailure(t *testing.T) {
 	ctx, signer := test.Setup(t)
 	ctx = policy.WithPolicyEvaluator(ctx, policy.NewRegoEvaluator(true))
 	// setup an image with signed attestations
-	tempDir := test.CreateTempDir(t, "", TestTempDir)
-	outputLayout := tempDir
+	outputLayout := test.CreateTempDir(t, "", TestTempDir)
 
 	opts := &SigningOptions{
 		Replace: true,

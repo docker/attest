@@ -60,7 +60,7 @@ type PolicyMappingFile struct {
 }
 
 type PolicyMirror struct {
-	PolicyId string     `json:"policy-id"`
+	PolicyId string     `yaml:"policy-id"`
 	Mirror   MirrorSpec `json:"mirror"`
 }
 
@@ -120,7 +120,7 @@ func resolveLocalPolicy(opts *PolicyOptions, mapping *PolicyMapping) (*Policy, e
 	return policy, nil
 }
 
-func loadLocalMappings(opts *PolicyOptions) (*PolicyMappings, error) {
+func LoadLocalMappings(opts *PolicyOptions) (*PolicyMappings, error) {
 	if opts.LocalPolicyDir == "" {
 		return nil, nil
 	}
@@ -204,7 +204,7 @@ func ResolvePolicy(ctx context.Context, resolver oci.AttestationResolver, opts *
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse image name: %w", err)
 	}
-	localMappings, err := loadLocalMappings(opts)
+	localMappings, err := LoadLocalMappings(opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load local policy mappings: %w", err)
 	}

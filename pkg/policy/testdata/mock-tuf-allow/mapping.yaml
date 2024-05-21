@@ -9,3 +9,8 @@ policies:
     description: Docker Official Images
     files:
       - path: doi/policy.rego
+mirrors:
+  - policy-id: docker-official-images
+    mirror:
+      domains: [localhost:5001, registry.local:5000]
+      prefix: ""

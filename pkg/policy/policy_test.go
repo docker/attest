@@ -37,12 +37,6 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 
 	re := policy.NewRegoEvaluator(true)
 
-	defaultInput := &policy.PolicyInput{
-		Digest:      "sha256:test-digest",
-		Purl:        "test-purl",
-		IsCanonical: true,
-	}
-
 	defaultResolver := oci.MockResolver{
 		Envs: []*attestation.Envelope{loadAttestation(t, ExampleAttestation)},
 	}
@@ -50,18 +44,26 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 	testCases := []struct {
 		repo          string
 		expectSuccess bool
-		input         *policy.PolicyInput
+		isCanonical   bool
 		resolver      oci.AttestationResolver
 		policy        *policy.PolicyOptions
 	}{
-		{repo: "testdata/mock-tuf-allow", expectSuccess: true, input: defaultInput, resolver: defaultResolver},
-		{repo: "testdata/mock-tuf-deny", expectSuccess: false, input: defaultInput, resolver: defaultResolver},
-		{repo: "testdata/mock-tuf-verify-sig", expectSuccess: true, input: defaultInput, resolver: defaultResolver},
-		{repo: "testdata/mock-tuf-wrong-key", expectSuccess: false, input: defaultInput, resolver: defaultResolver},
+		{repo: "testdata/mock-tuf-allow", expectSuccess: true, isCanonical: false, resolver: defaultResolver},
+		{repo: "testdata/mock-tuf-deny", expectSuccess: false, isCanonical: false, resolver: defaultResolver},
+		{repo: "testdata/mock-tuf-verify-sig", expectSuccess: true, isCanonical: false, resolver: defaultResolver},
+		{repo: "testdata/mock-tuf-wrong-key", expectSuccess: false, isCanonical: false, resolver: defaultResolver},
+		{repo: "testdata/mock-tuf-allow-canonical", expectSuccess: true, isCanonical: true, resolver: defaultResolver},
+		{repo: "testdata/mock-tuf-allow-canonical", expectSuccess: false, isCanonical: false, resolver: defaultResolver},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.repo, func(t *testing.T) {
+			input := &policy.PolicyInput{
+				Digest:      "sha256:test-digest",
+				Purl:        "test-purl",
+				IsCanonical: tc.isCanonical,
+			}
+
 			tufClient := tuf.NewMockTufClient(tc.repo, test.CreateTempDir(t, "", "tuf-dest"))
 			if tc.policy == nil {
 				tc.policy = &policy.PolicyOptions{
@@ -72,7 +74,7 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 
 			policy, err := policy.ResolvePolicy(ctx, tc.resolver, tc.policy)
 			assert.NoErrorf(t, err, "failed to resolve policy")
-			result, err := re.Evaluate(ctx, tc.resolver, policy, tc.input)
+			result, err := re.Evaluate(ctx, tc.resolver, policy, input)
 			require.NoErrorf(t, err, "Evaluate failed")
 
 			if tc.expectSuccess {

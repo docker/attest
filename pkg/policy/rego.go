@@ -36,7 +36,7 @@ func NewRegoEvaluator(debug bool) PolicyEvaluator {
 	}
 }
 
-func (re *regoEvaluator) Evaluate(ctx context.Context, resolver oci.AttestationResolver, pctx *Policy, input *PolicyInput) (*VerificationResult, error) {
+func (re *regoEvaluator) Evaluate(ctx context.Context, resolver oci.AttestationResolver, pctx *Policy, input *PolicyInput) (*Result, error) {
 	var regoOpts []func(*rego.Rego)
 
 	// Create a new in-memory store
@@ -85,7 +85,7 @@ func (re *regoEvaluator) Evaluate(ctx context.Context, resolver oci.AttestationR
 		rego.Query(query),
 		rego.Input(input),
 		rego.Store(store),
-		rego.GenerateJSON(jsonGenerator[VerificationResult]()),
+		rego.GenerateJSON(jsonGenerator[Result]()),
 	)
 	for _, custom := range RegoFunctions(resolver) {
 		regoOpts = append(regoOpts, custom.Func)
@@ -104,7 +104,7 @@ func (re *regoEvaluator) Evaluate(ctx context.Context, resolver oci.AttestationR
 	if !ok {
 		return nil, fmt.Errorf("failed to extract verification result")
 	}
-	result, ok := binding.(VerificationResult)
+	result, ok := binding.(Result)
 	if !ok {
 		return nil, fmt.Errorf("failed to extract verification result")
 	}

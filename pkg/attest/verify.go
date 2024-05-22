@@ -30,7 +30,7 @@ func Verify(ctx context.Context, opts *policy.PolicyOptions, resolver oci.Attest
 	return result, nil
 }
 
-func ToPolicyResult(p *policy.Policy, input *policy.PolicyInput, result *policy.VerificationResult) (*VerificationResult, error) {
+func ToPolicyResult(p *policy.Policy, input *policy.PolicyInput, result *policy.Result) (*VerificationResult, error) {
 	dgst, err := oci.SplitDigest(input.Digest)
 	if err != nil {
 		return nil, fmt.Errorf("failed to split digest: %w", err)

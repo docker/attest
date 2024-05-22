@@ -7,10 +7,10 @@ import (
 )
 
 type MockPolicyEvaluator struct {
-	EvaluateFunc func(ctx context.Context, resolver oci.AttestationResolver, pctx *Policy, input *PolicyInput) (*VerificationResult, error)
+	EvaluateFunc func(ctx context.Context, resolver oci.AttestationResolver, pctx *Policy, input *PolicyInput) (*Result, error)
 }
 
-func (pe *MockPolicyEvaluator) Evaluate(ctx context.Context, resolver oci.AttestationResolver, pctx *Policy, input *PolicyInput) (*VerificationResult, error) {
+func (pe *MockPolicyEvaluator) Evaluate(ctx context.Context, resolver oci.AttestationResolver, pctx *Policy, input *PolicyInput) (*Result, error) {
 	if pe.EvaluateFunc != nil {
 		return pe.EvaluateFunc(ctx, resolver, pctx, input)
 	}
@@ -19,14 +19,14 @@ func (pe *MockPolicyEvaluator) Evaluate(ctx context.Context, resolver oci.Attest
 
 func GetMockPolicy() PolicyEvaluator {
 	return &MockPolicyEvaluator{
-		EvaluateFunc: func(ctx context.Context, resolver oci.AttestationResolver, pctx *Policy, input *PolicyInput) (*VerificationResult, error) {
+		EvaluateFunc: func(ctx context.Context, resolver oci.AttestationResolver, pctx *Policy, input *PolicyInput) (*Result, error) {
 			return AllowedResult(), nil
 		},
 	}
 }
 
-func AllowedResult() *VerificationResult {
-	return &VerificationResult{
+func AllowedResult() *Result {
+	return &Result{
 		Success: true,
 	}
 }

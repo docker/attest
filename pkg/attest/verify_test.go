@@ -49,7 +49,7 @@ func TestVerifyAttestations(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 
 			mockPE := policy.MockPolicyEvaluator{
-				EvaluateFunc: func(ctx context.Context, resolver oci.AttestationResolver, pctx *policy.Policy, input *policy.PolicyInput) (*policy.VerificationResult, error) {
+				EvaluateFunc: func(ctx context.Context, resolver oci.AttestationResolver, pctx *policy.Policy, input *policy.PolicyInput) (*policy.Result, error) {
 					return policy.AllowedResult(), tc.policyEvaluationError
 				},
 			}

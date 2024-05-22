@@ -35,7 +35,7 @@ type Violation struct {
 	Details     map[string]any    `json:"details"`
 }
 
-type VerificationResult struct {
+type Result struct {
 	Success    bool        `json:"success"`
 	Violations []Violation `json:"violations"`
 	Summary    Summary     `json:"summary"`

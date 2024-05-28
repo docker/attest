@@ -56,6 +56,7 @@ func ExampleVerify_remote() {
 		TufClient:       tufClient,
 		LocalTargetsDir: filepath.Join(home, ".docker", "policy"), // location to store policy files downloaded from TUF
 		LocalPolicyDir:  "",                                       // overrides TUF policy for local policy files if set
+		PolicyId:        "",                                       // set to ignore policy mapping and select a policy by id
 	}
 
 	// verify attestations

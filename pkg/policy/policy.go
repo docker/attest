@@ -79,6 +79,7 @@ type PolicyOptions struct {
 	TufClient       tuf.TUFClient
 	LocalTargetsDir string
 	LocalPolicyDir  string
+	PolicyId        string
 }
 
 type Policy struct {
@@ -195,7 +196,44 @@ func findPolicyMatch(named reference.Named, mappings *PolicyMappings) (*PolicyMa
 	return nil, nil
 }
 
+func resolvePolicyById(opts *PolicyOptions) (*Policy, error) {
+	if opts.PolicyId != "" {
+		localMappings, err := LoadLocalMappings(opts)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load local policy mappings: %w", err)
+		}
+		if localMappings != nil {
+			for _, mapping := range localMappings.Policies {
+				if mapping.Id == opts.PolicyId {
+					return resolveLocalPolicy(opts, &mapping)
+				}
+			}
+		}
+
+		// must check tuf
+		tufMappings, err := loadTufMappings(opts.TufClient, opts.LocalTargetsDir)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load tuf policy mappings: %w", err)
+		}
+		for _, mapping := range tufMappings.Policies {
+			if mapping.Id == opts.PolicyId {
+				return resolveTufPolicy(opts, &mapping)
+			}
+		}
+		return nil, fmt.Errorf("policy with id %s not found", opts.PolicyId)
+	}
+	return nil, nil
+}
+
 func ResolvePolicy(ctx context.Context, resolver oci.AttestationResolver, opts *PolicyOptions) (*Policy, error) {
+	p, err := resolvePolicyById(opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve policy by id: %w", err)
+	}
+	if p != nil {
+		return p, nil
+	}
+
 	imageName, err := resolver.ImageName(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get image name: %w", err)

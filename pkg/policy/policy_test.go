@@ -31,7 +31,7 @@ func loadAttestation(t *testing.T, path string) *attestation.Envelope {
 
 func TestRegoEvaluator_Evaluate(t *testing.T) {
 	ctx, _ := test.Setup(t)
-
+	errorStr := "failed to resolve policy by id: policy with id non-existent-policy-id not found"
 	TestDataPath := filepath.Join("..", "..", "test", "testdata")
 	ExampleAttestation := filepath.Join(TestDataPath, "example_attestation.json")
 
@@ -47,8 +47,12 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 		isCanonical   bool
 		resolver      oci.AttestationResolver
 		policy        *policy.PolicyOptions
+		policyId      string
+		errorStr      string
 	}{
 		{repo: "testdata/mock-tuf-allow", expectSuccess: true, isCanonical: false, resolver: defaultResolver},
+		{repo: "testdata/mock-tuf-allow", expectSuccess: true, isCanonical: false, resolver: defaultResolver, policyId: "docker-official-images"},
+		{repo: "testdata/mock-tuf-allow", expectSuccess: false, isCanonical: false, resolver: defaultResolver, policyId: "non-existent-policy-id", errorStr: errorStr},
 		{repo: "testdata/mock-tuf-deny", expectSuccess: false, isCanonical: false, resolver: defaultResolver},
 		{repo: "testdata/mock-tuf-verify-sig", expectSuccess: true, isCanonical: false, resolver: defaultResolver},
 		{repo: "testdata/mock-tuf-wrong-key", expectSuccess: false, isCanonical: false, resolver: defaultResolver},
@@ -69,11 +73,17 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 				tc.policy = &policy.PolicyOptions{
 					TufClient:       tufClient,
 					LocalTargetsDir: test.CreateTempDir(t, "", "tuf-targets"),
+					PolicyId:        tc.policyId,
 				}
 			}
 
 			policy, err := policy.ResolvePolicy(ctx, tc.resolver, tc.policy)
-			assert.NoErrorf(t, err, "failed to resolve policy")
+			if tc.errorStr != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.errorStr)
+				return
+			}
+			require.NoErrorf(t, err, "failed to resolve policy")
 			result, err := re.Evaluate(ctx, tc.resolver, policy, input)
 			require.NoErrorf(t, err, "Evaluate failed")
 

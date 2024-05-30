@@ -73,11 +73,8 @@ func TestSignVerifyOCILayout(t *testing.T) {
 			})
 			_, err = layout.Write(outputLayout, idx)
 			require.NoError(t, err)
-
-			resolver := &oci.OCILayoutResolver{
-				Path:     outputLayout,
-				Platform: "",
-			}
+			resolver, err := oci.NewOCILayoutAttestationResolver(outputLayout, "")
+			require.NoError(t, err)
 			policy, err := Verify(ctx, policyResolver, resolver)
 			require.NoError(t, err)
 			assert.Equalf(t, OutcomeSuccess, policy.Outcome, "Policy should have been found")

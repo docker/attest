@@ -95,10 +95,8 @@ func TestVSA(t *testing.T) {
 	assert.NoError(t, err)
 
 	//verify (without vsa should fail)
-	resolver := &oci.OCILayoutResolver{
-		Path:     outputLayout,
-		Platform: "linux/amd64",
-	}
+	resolver, err := oci.NewOCILayoutAttestationResolver(outputLayout, "linux/amd64")
+	require.NoError(t, err)
 
 	// mocked vsa query should pass
 	policyOpts := &policy.PolicyOptions{
@@ -150,10 +148,8 @@ func TestVerificationFailure(t *testing.T) {
 	assert.NoError(t, err)
 
 	//verify (without vsa should fail)
-	resolver := &oci.OCILayoutResolver{
-		Path:     outputLayout,
-		Platform: "linux/amd64",
-	}
+	resolver, err := oci.NewOCILayoutAttestationResolver(outputLayout, "linux/amd64")
+	require.NoError(t, err)
 
 	// mocked vsa query should pass
 	policyOpts := &policy.PolicyOptions{

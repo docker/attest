@@ -100,29 +100,28 @@ func attestationManifestFromOCILayout(path string, platform *v1.Platform) (*Atte
 
 // implementation of AttestationResolver that closes over attestations from an oci layout
 type OCILayoutResolver struct {
-	Path     string
-	Platform string
+	path     string
 	platform *v1.Platform
 	*AttestationManifest
 }
 
-func (r *OCILayoutResolver) ImagePlatform() (*v1.Platform, error) {
-	if r.platform == nil {
-		p, err := parsePlatform(r.Platform)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse platform %s: %w", r.Platform, err)
-		}
-		r.platform = p
+func NewOCILayoutAttestationResolver(path string, platform string) (*OCILayoutResolver, error) {
+	p, err := parsePlatform(platform)
+	if err != nil {
+		return nil, err
 	}
+	return &OCILayoutResolver{
+		path:     path,
+		platform: p,
+	}, nil
+}
+
+func (r *OCILayoutResolver) ImagePlatform() (*v1.Platform, error) {
 	return r.platform, nil
 }
 func (r *OCILayoutResolver) fetchAttestationManifest() (*AttestationManifest, error) {
 	if r.AttestationManifest == nil {
-		p, err := r.ImagePlatform()
-		if err != nil {
-			return nil, err
-		}
-		m, err := attestationManifestFromOCILayout(r.Path, p)
+		m, err := attestationManifestFromOCILayout(r.path, r.platform)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get attestation manifest: %w", err)
 		}
@@ -197,34 +196,33 @@ func (r *OCILayoutResolver) ImageDigest(ctx context.Context) (string, error) {
 }
 
 type RegistryResolver struct {
-	Image    string
-	Platform string
+	image    string
 	platform *v1.Platform
 	*AttestationManifest
 }
 
+func NewRegistryAttestationResolver(image string, platform string) (*RegistryResolver, error) {
+	p, err := parsePlatform(platform)
+	if err != nil {
+		return nil, err
+	}
+	return &RegistryResolver{
+		image:    image,
+		platform: p,
+	}, nil
+}
+
 func (r *RegistryResolver) ImageName(ctx context.Context) (string, error) {
-	return r.Image, nil
+	return r.image, nil
 }
 
 func (r *RegistryResolver) ImagePlatform() (*v1.Platform, error) {
-	if r.platform == nil {
-		p, err := parsePlatform(r.Platform)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse platform %s: %w", r.Platform, err)
-		}
-		r.platform = p
-	}
 	return r.platform, nil
 }
 
 func (r *RegistryResolver) ImageDigest(ctx context.Context) (string, error) {
 	if r.AttestationManifest == nil {
-		p, err := r.ImagePlatform()
-		if err != nil {
-			return "", err
-		}
-		attest, err := FetchAttestationManifest(ctx, r.Image, p)
+		attest, err := FetchAttestationManifest(ctx, r.image, r.platform)
 		if err != nil {
 			return "", fmt.Errorf("failed to get attestation manifest: %w", err)
 		}
@@ -235,11 +233,7 @@ func (r *RegistryResolver) ImageDigest(ctx context.Context) (string, error) {
 
 func (r *RegistryResolver) Attestations(ctx context.Context, predicateType string) ([]*att.Envelope, error) {
 	if r.AttestationManifest == nil {
-		p, err := r.ImagePlatform()
-		if err != nil {
-			return nil, err
-		}
-		attest, err := FetchAttestationManifest(ctx, r.Image, p)
+		attest, err := FetchAttestationManifest(ctx, r.image, r.platform)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get attestation manifest: %w", err)
 		}

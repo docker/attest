@@ -20,7 +20,7 @@ type AttestationManifest struct {
 
 type AttestationResolver interface {
 	ImageName(ctx context.Context) (string, error)
-	ImagePlatformStr() string
+	ImagePlatform() (*v1.Platform, error)
 	ImageDigest(ctx context.Context) (string, error)
 	Attestations(ctx context.Context, mediaType string) ([]*att.Envelope, error)
 }
@@ -41,6 +41,6 @@ func (r MockResolver) ImageDigest(ctx context.Context) (string, error) {
 	return "sha256:test-digest", nil
 }
 
-func (r MockResolver) ImagePlatformStr() string {
-	return "linux/amd64"
+func (r MockResolver) ImagePlatform() (*v1.Platform, error) {
+	return parsePlatform("linux/amd64")
 }

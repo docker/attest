@@ -38,7 +38,7 @@ func parsePlatform(platformStr string) (*v1.Platform, error) {
 	}
 }
 
-func attestationManifestFromOCILayout(path string, platformStr string) (*AttestationManifest, error) {
+func attestationManifestFromOCILayout(path string, platform *v1.Platform) (*AttestationManifest, error) {
 	idx, err := layout.ImageIndexFromPath(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load image index: %w", err)
@@ -60,10 +60,6 @@ func attestationManifestFromOCILayout(path string, platformStr string) (*Attesta
 	mfs2, err := mfs.IndexManifest()
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract IndexManifest from ImageIndex: %w", err)
-	}
-	platform, err := parsePlatform(platformStr)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse platform: %w", err)
 	}
 	var imageDigest string
 	for _, mf := range mfs2.Manifests {
@@ -106,15 +102,27 @@ func attestationManifestFromOCILayout(path string, platformStr string) (*Attesta
 type OCILayoutResolver struct {
 	Path     string
 	Platform string
+	platform *v1.Platform
 	*AttestationManifest
 }
 
-func (r *OCILayoutResolver) ImagePlatformStr() string {
-	return r.Platform
+func (r *OCILayoutResolver) ImagePlatform() (*v1.Platform, error) {
+	if r.platform == nil {
+		p, err := parsePlatform(r.Platform)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse platform %s: %w", r.Platform, err)
+		}
+		r.platform = p
+	}
+	return r.platform, nil
 }
 func (r *OCILayoutResolver) fetchAttestationManifest() (*AttestationManifest, error) {
 	if r.AttestationManifest == nil {
-		m, err := attestationManifestFromOCILayout(r.Path, r.Platform)
+		p, err := r.ImagePlatform()
+		if err != nil {
+			return nil, err
+		}
+		m, err := attestationManifestFromOCILayout(r.Path, p)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get attestation manifest: %w", err)
 		}
@@ -191,6 +199,7 @@ func (r *OCILayoutResolver) ImageDigest(ctx context.Context) (string, error) {
 type RegistryResolver struct {
 	Image    string
 	Platform string
+	platform *v1.Platform
 	*AttestationManifest
 }
 
@@ -198,13 +207,24 @@ func (r *RegistryResolver) ImageName(ctx context.Context) (string, error) {
 	return r.Image, nil
 }
 
-func (r *RegistryResolver) ImagePlatformStr() string {
-	return r.Platform
+func (r *RegistryResolver) ImagePlatform() (*v1.Platform, error) {
+	if r.platform == nil {
+		p, err := parsePlatform(r.Platform)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse platform %s: %w", r.Platform, err)
+		}
+		r.platform = p
+	}
+	return r.platform, nil
 }
 
 func (r *RegistryResolver) ImageDigest(ctx context.Context) (string, error) {
 	if r.AttestationManifest == nil {
-		attest, err := FetchAttestationManifest(ctx, r.Image, r.Platform)
+		p, err := r.ImagePlatform()
+		if err != nil {
+			return "", err
+		}
+		attest, err := FetchAttestationManifest(ctx, r.Image, p)
 		if err != nil {
 			return "", fmt.Errorf("failed to get attestation manifest: %w", err)
 		}
@@ -215,7 +235,11 @@ func (r *RegistryResolver) ImageDigest(ctx context.Context) (string, error) {
 
 func (r *RegistryResolver) Attestations(ctx context.Context, predicateType string) ([]*att.Envelope, error) {
 	if r.AttestationManifest == nil {
-		attest, err := FetchAttestationManifest(ctx, r.Image, r.Platform)
+		p, err := r.ImagePlatform()
+		if err != nil {
+			return nil, err
+		}
+		attest, err := FetchAttestationManifest(ctx, r.Image, p)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get attestation manifest: %w", err)
 		}
@@ -224,19 +248,13 @@ func (r *RegistryResolver) Attestations(ctx context.Context, predicateType strin
 	return ExtractEnvelopes(r.AttestationManifest, predicateType)
 }
 
-func FetchAttestationManifest(ctx context.Context, image, platformStr string) (*AttestationManifest, error) {
-	platform, err := parsePlatform(platformStr)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse platform %s: %w", platform, err)
-	}
-
+func FetchAttestationManifest(ctx context.Context, image string, platform *v1.Platform) (*AttestationManifest, error) {
 	// we want to get to the image index, so ignoring platform for now
 	options := withOptions(ctx, nil)
 	ref, err := name.ParseReference(image)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse reference: %w", err)
 	}
-
 	desc, err := remote.Index(ref, options...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to obtain index manifest: %w", err)
@@ -348,7 +366,7 @@ func attestationDigestForDigest(ix *v1.IndexManifest, imageDigest string, attest
 	return "", errors.New(fmt.Sprintf("no attestation found for image %s", imageDigest))
 }
 
-func RefToPURL(ref string, platform string) (string, bool, error) {
+func RefToPURL(ref string, platform *v1.Platform) (string, bool, error) {
 	var isCanonical bool
 	named, err := reference.ParseNormalizedNamed(ref)
 	if err != nil {
@@ -380,14 +398,10 @@ func RefToPURL(ref string, platform string) (string, bool, error) {
 	}
 	name = parts[len(parts)-1]
 
-	pf, err := parsePlatform(platform)
-	if err != nil {
-		return "", false, fmt.Errorf("failed to parse platform %q: %w", platform, err)
-	}
-	if pf != nil {
+	if platform != nil {
 		qualifiers = append(qualifiers, packageurl.Qualifier{
 			Key:   "platform",
-			Value: pf.String(),
+			Value: platform.String(),
 		})
 	}
 

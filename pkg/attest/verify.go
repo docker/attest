@@ -89,7 +89,11 @@ func VerifyAttestations(ctx context.Context, resolver oci.AttestationResolver, p
 	if err != nil {
 		return nil, fmt.Errorf("failed to get image name: %w", err)
 	}
-	purl, canonical, err := oci.RefToPURL(name, resolver.ImagePlatformStr())
+	platform, err := resolver.ImagePlatform()
+	if err != nil {
+		return nil, err
+	}
+	purl, canonical, err := oci.RefToPURL(name, platform)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert ref to purl: %w", err)
 	}

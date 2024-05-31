@@ -12,7 +12,7 @@ require (
 	github.com/google/go-containerregistry v0.19.1
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/in-toto/in-toto-golang v0.9.0
-	github.com/open-policy-agent/opa v0.64.1
+	github.com/open-policy-agent/opa v0.65.0
 	github.com/opencontainers/image-spec v1.1.0
 	github.com/package-url/packageurl-go v0.1.3
 	github.com/pkg/errors v0.9.1
@@ -74,7 +74,7 @@ require (
 	github.com/go-chi/chi v4.1.2+incompatible // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.0.1 // indirect
-	github.com/go-logr/logr v1.4.1 // indirect
+	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/go-openapi/analysis v0.23.0 // indirect

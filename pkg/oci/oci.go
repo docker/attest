@@ -20,9 +20,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-// parsePlatform parses the provided platform string or attempts to obtain
+// ParsePlatform parses the provided platform string or attempts to obtain
 // the platform of the current host system
-func parsePlatform(platformStr string) (*v1.Platform, error) {
+func ParsePlatform(platformStr string) (*v1.Platform, error) {
 	if platformStr == "" {
 		cdp := platforms.Normalize(platforms.DefaultSpec())
 		if cdp.OS != "windows" {
@@ -106,7 +106,7 @@ type OCILayoutResolver struct {
 }
 
 func NewOCILayoutAttestationResolver(path string, platform string) (*OCILayoutResolver, error) {
-	p, err := parsePlatform(platform)
+	p, err := ParsePlatform(platform)
 	if err != nil {
 		return nil, err
 	}
@@ -202,7 +202,7 @@ type RegistryResolver struct {
 }
 
 func NewRegistryAttestationResolver(image string, platform string) (*RegistryResolver, error) {
-	p, err := parsePlatform(platform)
+	p, err := ParsePlatform(platform)
 	if err != nil {
 		return nil, err
 	}

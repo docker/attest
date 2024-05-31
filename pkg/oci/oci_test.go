@@ -10,7 +10,7 @@ import (
 )
 
 func TestRefToPurl(t *testing.T) {
-	arm, err := parsePlatform("arm64/linux")
+	arm, err := ParsePlatform("arm64/linux")
 	require.NoError(t, err)
 	purl, canonical, err := RefToPURL("alpine", arm)
 	assert.NoError(t, err)
@@ -73,13 +73,13 @@ func TestImageDigestForPlatform(t *testing.T) {
 	mfs2, err := mfs.IndexManifest()
 	assert.NoError(t, err)
 
-	p, err := parsePlatform("linux/amd64")
+	p, err := ParsePlatform("linux/amd64")
 	assert.NoError(t, err)
 	digest, err := imageDigestForPlatform(mfs2, p)
 	assert.NoError(t, err)
 	assert.Equal(t, "sha256:da8b190665956ea07890a0273e2a9c96bfe291662f08e2860e868eef69c34620", digest)
 
-	p, err = parsePlatform("linux/arm64")
+	p, err = ParsePlatform("linux/arm64")
 	assert.NoError(t, err)
 	digest, err = imageDigestForPlatform(mfs2, p)
 	assert.NoError(t, err)

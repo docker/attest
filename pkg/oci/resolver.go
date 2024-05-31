@@ -42,5 +42,5 @@ func (r MockResolver) ImageDigest(ctx context.Context) (string, error) {
 }
 
 func (r MockResolver) ImagePlatform() (*v1.Platform, error) {
-	return parsePlatform("linux/amd64")
+	return ParsePlatform("linux/amd64")
 }

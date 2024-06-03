@@ -7,6 +7,7 @@ import (
 
 	"github.com/docker/attest/pkg/attestation"
 	"github.com/docker/attest/pkg/oci"
+	"github.com/docker/attest/pkg/tlog"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/empty"
 	"github.com/google/go-containerregistry/pkg/v1/match"
@@ -85,7 +86,7 @@ func signLayersAndAddToIndex(
 	signer dsse.SignerVerifier,
 	opts *SigningOptions) (v1.ImageIndex, error) {
 
-	signedLayers, err := signLayers(ctx, attestationLayers, signer)
+	signedLayers, err := signLayers(ctx, attestationLayers, signer, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign attestations: %w", err)
 	}
@@ -120,7 +121,7 @@ func signLayersAndAddToIndex(
 }
 
 // signLayers signs each intoto attestation layer with the given signer
-func signLayers(ctx context.Context, layers []attestation.AttestationLayer, signer dsse.SignerVerifier) ([]mutate.Addendum, error) {
+func signLayers(ctx context.Context, layers []attestation.AttestationLayer, signer dsse.SignerVerifier, opts *SigningOptions) ([]mutate.Addendum, error) {
 	var signedLayers []mutate.Addendum
 	for _, layer := range layers {
 		// only sign intoto layers
@@ -134,6 +135,12 @@ func signLayers(ctx context.Context, layers []attestation.AttestationLayer, sign
 		env, err := signInTotoStatement(ctx, layer.Statement, signer)
 		if err != nil {
 			return nil, fmt.Errorf("failed to sign statement: %w", err)
+		}
+		if !opts.SkipTL {
+			env, err = attestation.LogSignature(ctx, tlog.GetTL(ctx), env, signer)
+			if err != nil {
+				return nil, fmt.Errorf("failed to log to rekor: %w", err)
+			}
 		}
 		mediaType, err := attestation.DSSEMediaType(layer.Statement.PredicateType)
 		if err != nil {

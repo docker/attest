@@ -39,8 +39,11 @@ func TestVerifyUnsignedAttestation(t *testing.T) {
 		Payload:     base64.StdEncoding.EncodeToString(payload),
 		PayloadType: intoto.PayloadType,
 	}
+	opts := &attestation.VerifyOptions{
+		Keys: attestation.Keys{},
+	}
 
-	_, err := attestation.VerifyDSSE(ctx, env, attestation.KeysMap{})
+	_, err := attestation.VerifyDSSE(ctx, env, opts)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "no signatures")
 }

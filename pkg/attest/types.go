@@ -14,6 +14,7 @@ const (
 
 type SigningOptions struct {
 	Replace bool
+	SkipTL  bool
 }
 
 type Outcome string

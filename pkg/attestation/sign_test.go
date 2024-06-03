@@ -12,8 +12,10 @@ import (
 	"github.com/docker/attest/internal/test"
 	"github.com/docker/attest/pkg/attestation"
 	"github.com/docker/attest/pkg/signerverifier"
+	"github.com/docker/attest/pkg/tlog"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSignVerifyAttestation(t *testing.T) {
@@ -27,17 +29,20 @@ func TestSignVerifyAttestation(t *testing.T) {
 	}
 
 	payload, err := json.Marshal(stmt)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	env, err := attestation.SignDSSE(ctx, payload, intoto.PayloadType, signer)
-	assert.NoError(t, err)
+	require.NoError(t, err)
+
+	env, err = attestation.LogSignature(ctx, tlog.GetTL(ctx), env, signer)
+	require.NoError(t, err)
 
 	// marshal envelope to json to test for bugs when marshaling envelope data
 	serializedEnv, err := json.Marshal(env)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	deserializedEnv := new(attestation.Envelope)
 	err = json.Unmarshal(serializedEnv, deserializedEnv)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// signer.Public() calls AWS API when using AWS signer, use attestation.GetPublicVerificationKey() to get key from TUF repo
 	// signer.Public() used here for test purposes
@@ -49,10 +54,10 @@ func TestSignVerifyAttestation(t *testing.T) {
 	assert.NoError(t, err)
 
 	badKeyPriv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	badKey := &badKeyPriv.PublicKey
 	badPEM, err := signerverifier.ToPEM(badKey)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	testCases := []struct {
 		name          string
@@ -136,7 +141,10 @@ func TestSignVerifyAttestation(t *testing.T) {
 				To:       tc.to,
 				Status:   tc.status,
 			}
-			_, err = attestation.VerifyDSSE(ctx, deserializedEnv, attestation.KeysMap{tc.keyId: keyMeta})
+			opts := &attestation.VerifyOptions{
+				Keys: attestation.Keys{keyMeta},
+			}
+			_, err = attestation.VerifyDSSE(ctx, deserializedEnv, opts)
 			if tc.expectedError != "" {
 				assert.Contains(t, err.Error(), tc.expectedError)
 			} else {

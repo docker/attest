@@ -1,0 +1,11 @@
+# map repos to policies
+version: v1
+kind: policy-mapping
+policies:
+  - origin:
+      domain: docker.io
+      prefix: library/
+    id: test-images
+    description: Local test images
+    files:
+      - path: doi/policy.rego

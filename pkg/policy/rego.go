@@ -133,13 +133,12 @@ func jsonGenerator[T any]() func(t *ast.Term, ec *rego.EvalContext) (any, error)
 	}
 }
 
-var dynamicObj = types.NewObject(nil, types.NewDynamicProperty(types.S, types.A))
-var arrayObj = types.NewArray(nil, dynamicObj)
+var dynamicObj = types.NewObject(nil, types.NewDynamicProperty(types.A, types.A))
 var setObj = types.NewSet(dynamicObj)
 
 var verifyDecl = &ast.Builtin{
-	Name:             "attestations.verify_envelope",
-	Decl:             types.NewFunction(types.Args(dynamicObj, arrayObj), dynamicObj),
+	Name:             "attestations.verify",
+	Decl:             types.NewFunction(types.Args(dynamicObj, dynamicObj), dynamicObj),
 	Nondeterministic: true,
 }
 var attestDecl = &ast.Builtin{
@@ -205,22 +204,19 @@ func fetchIntotoAttestations(resolver oci.AttestationResolver) func(rego.Builtin
 	}
 }
 
-func verifyIntotoEnvelope(rCtx rego.BuiltinContext, envTerm, keysTerm *ast.Term) (*ast.Term, error) {
+func verifyIntotoEnvelope(rCtx rego.BuiltinContext, envTerm, optsTerm *ast.Term) (*ast.Term, error) {
 	env := new(att.Envelope)
-	var keys att.Keys
+	opts := new(att.VerifyOptions)
 	err := ast.As(envTerm.Value, env)
 	if err != nil {
 		return nil, fmt.Errorf("failed to cast envelope: %w", err)
 	}
-	err = ast.As(keysTerm.Value, &keys)
+	err = ast.As(optsTerm.Value, &opts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to cast keys: %w", err)
+		return nil, fmt.Errorf("failed to cast verifier options: %w", err)
 	}
-	keysmap := make(map[string]att.KeyMetadata, len(keys))
-	for _, key := range keys {
-		keysmap[key.ID] = key
-	}
-	payload, err := att.VerifyDSSE(rCtx.Context, env, keysmap)
+
+	payload, err := att.VerifyDSSE(rCtx.Context, env, opts)
 	if err != nil {
 		return nil, err
 	}

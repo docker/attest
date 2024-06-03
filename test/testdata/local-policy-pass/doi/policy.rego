@@ -17,9 +17,11 @@ atts := union({
 	attestations.attestation("https://spdx.dev/Document"),
 })
 
+opts := {"keys": keys}
+
 statements contains s if {
 	some att in atts
-	s := attestations.verify_envelope(att, keys)
+	s := attestations.verify(att, opts)
 }
 
 subjects contains subject if {

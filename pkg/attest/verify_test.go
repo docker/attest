@@ -94,7 +94,6 @@ func TestVSA(t *testing.T) {
 	_, err = layout.Write(outputLayout, idx)
 	assert.NoError(t, err)
 
-	//verify (without vsa should fail)
 	resolver, err := oci.NewOCILayoutAttestationResolver(outputLayout, "linux/amd64")
 	require.NoError(t, err)
 
@@ -147,11 +146,10 @@ func TestVerificationFailure(t *testing.T) {
 	_, err = layout.Write(outputLayout, idx)
 	assert.NoError(t, err)
 
-	//verify (without vsa should fail)
 	resolver, err := oci.NewOCILayoutAttestationResolver(outputLayout, "linux/amd64")
 	require.NoError(t, err)
 
-	// mocked vsa query should pass
+	// mocked vsa query should fail
 	policyOpts := &policy.PolicyOptions{
 		LocalPolicyDir: FailPolicyDir,
 	}
@@ -176,4 +174,61 @@ func TestVerificationFailure(t *testing.T) {
 	assert.Equal(t, "docker-official-images", attestationPredicate.Verifier.ID)
 	assert.Equal(t, []string{"SLSA_BUILD_LEVEL_3"}, attestationPredicate.VerifiedLevels)
 	assert.Equal(t, "https://docker.com/official/policy/v0.1", attestationPredicate.Policy.URI)
+}
+
+// test signing without a TL entry
+func TestSignVerifyNoTL(t *testing.T) {
+	ctx, signer := test.Setup(t)
+	ctx = policy.WithPolicyEvaluator(ctx, policy.NewRegoEvaluator(true))
+	// setup an image with signed attestations
+	outputLayout := test.CreateTempDir(t, "", TestTempDir)
+
+	testCases := []struct {
+		name      string
+		signTL    bool
+		policyDir string
+		success   bool
+	}{
+		{name: "happy path", signTL: true, policyDir: PassNoTLPolicyDir, success: true},
+		{name: "sign tl, verify no tl", signTL: true, policyDir: PassPolicyDir, success: false},
+		{name: "no tl", signTL: false, policyDir: PassPolicyDir, success: false},
+	}
+
+	attIdx, err := oci.AttestationIndexFromPath(UnsignedTestImage)
+	assert.NoError(t, err)
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			opts := &SigningOptions{
+				Replace: true,
+				SkipTL:  tc.signTL,
+			}
+
+			signedIndex, err := Sign(ctx, attIdx.Index, signer, opts)
+			assert.NoError(t, err)
+
+			// output signed attestations
+			idx := v1.ImageIndex(empty.Index)
+			idx = mutate.AppendManifests(idx, mutate.IndexAddendum{
+				Add: signedIndex,
+				Descriptor: v1.Descriptor{
+					Annotations: map[string]string{
+						oci.OciReferenceTarget: attIdx.Name,
+					},
+				},
+			})
+			_, err = layout.Write(outputLayout, idx)
+			assert.NoError(t, err)
+
+			resolver, err := oci.NewOCILayoutAttestationResolver(outputLayout, "linux/amd64")
+			require.NoError(t, err)
+
+			policyOpts := &policy.PolicyOptions{
+				LocalPolicyDir: tc.policyDir,
+			}
+			results, err := Verify(ctx, policyOpts, resolver)
+			require.NoError(t, err)
+			assert.Equal(t, OutcomeSuccess, results.Outcome)
+		})
+	}
 }

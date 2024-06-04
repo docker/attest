@@ -77,11 +77,6 @@ func verifySignature(ctx context.Context, sig Signature, payload []byte, opts *V
 		return fmt.Errorf("failed to parse public key: %w", err)
 	}
 
-	// verify TL entry payload
-	encodedPub, err := x509.MarshalPKIXPublicKey(publicKey)
-	if err != nil {
-		return fmt.Errorf("error failed to marshal public key: %w", err)
-	}
 	if !opts.SkipTL {
 		t := tlog.GetTL(ctx)
 
@@ -111,6 +106,11 @@ func verifySignature(ctx context.Context, sig Signature, payload []byte, opts *V
 		}
 		if keyMeta.To != nil && !integratedTime.Before(*keyMeta.To) {
 			return fmt.Errorf("key %s was already %s at TL log time %s (key %s at %s)", keyMeta.ID, keyMeta.Status, integratedTime, keyMeta.Status, *keyMeta.To)
+		}
+		// verify TL entry payload
+		encodedPub, err := x509.MarshalPKIXPublicKey(publicKey)
+		if err != nil {
+			return fmt.Errorf("error failed to marshal public key: %w", err)
 		}
 		err = t.VerifyEntryPayload(entryBytes, payload, encodedPub)
 		if err != nil {

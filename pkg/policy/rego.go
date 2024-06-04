@@ -154,7 +154,7 @@ func wrapFunctionResult(value *ast.Term, err error) (*ast.Term, error) {
 	if value != nil {
 		terms = append(terms, [2]*ast.Term{ast.StringTerm("value"), value})
 	}
-	return ast.NewTerm(ast.NewObject(terms...)), nil
+	return ast.ObjectTerm(terms...), nil
 }
 
 func handleErrors1(f func(rCtx rego.BuiltinContext, a *ast.Term) (*ast.Term, error)) rego.Builtin1 {

@@ -32,7 +32,7 @@ func SignDSSE(ctx context.Context, payload []byte, payloadType string, signer ds
 		return nil, fmt.Errorf("error getting public key ID: %w", err)
 	}
 
-	// add signature w/ tl extension to dsse envelope
+	// add signature to dsse envelope
 	env.Signatures = append(env.Signatures, Signature{
 		KeyID: keyId,
 		Sig:   base64Encoding.EncodeToString(sig),

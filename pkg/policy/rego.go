@@ -134,17 +134,39 @@ func jsonGenerator[T any]() func(t *ast.Term, ec *rego.EvalContext) (any, error)
 }
 
 var dynamicObj = types.NewObject(nil, types.NewDynamicProperty(types.A, types.A))
-var setObj = types.NewSet(dynamicObj)
 
 var verifyDecl = &ast.Builtin{
-	Name:             "attestations.verify",
+	Name:             "attest.verify",
 	Decl:             types.NewFunction(types.Args(dynamicObj, dynamicObj), dynamicObj),
 	Nondeterministic: true,
 }
 var attestDecl = &ast.Builtin{
-	Name:             "attestations.attestation",
-	Decl:             types.NewFunction(types.Args(types.S), setObj),
+	Name:             "attest.fetch",
+	Decl:             types.NewFunction(types.Args(types.S), dynamicObj),
 	Nondeterministic: true,
+}
+
+func wrapFunctionResult(value *ast.Term, err error) (*ast.Term, error) {
+	var terms [][2]*ast.Term
+	if err != nil {
+		terms = append(terms, [2]*ast.Term{ast.StringTerm("error"), ast.StringTerm(err.Error())})
+	}
+	if value != nil {
+		terms = append(terms, [2]*ast.Term{ast.StringTerm("value"), value})
+	}
+	return ast.NewTerm(ast.NewObject(terms...)), nil
+}
+
+func handleErrors1(f func(rCtx rego.BuiltinContext, a *ast.Term) (*ast.Term, error)) rego.Builtin1 {
+	return func(rCtx rego.BuiltinContext, a *ast.Term) (*ast.Term, error) {
+		return wrapFunctionResult(f(rCtx, a))
+	}
+}
+
+func handleErrors2(f func(rCtx rego.BuiltinContext, a, b *ast.Term) (*ast.Term, error)) rego.Builtin2 {
+	return func(rCtx rego.BuiltinContext, a, b *ast.Term) (*ast.Term, error) {
+		return wrapFunctionResult(f(rCtx, a, b))
+	}
 }
 
 func RegoFunctions(resolver oci.AttestationResolver) []*tester.Builtin {
@@ -158,7 +180,7 @@ func RegoFunctions(resolver oci.AttestationResolver) []*tester.Builtin {
 					Memoize:          true,
 					Nondeterministic: verifyDecl.Nondeterministic,
 				},
-				verifyIntotoEnvelope),
+				handleErrors2(verifyIntotoEnvelope)),
 		},
 		{
 			Decl: attestDecl,
@@ -169,12 +191,12 @@ func RegoFunctions(resolver oci.AttestationResolver) []*tester.Builtin {
 					Memoize:          true,
 					Nondeterministic: attestDecl.Nondeterministic,
 				},
-				fetchIntotoAttestations(resolver)),
+				handleErrors1(fetchIntotoAttestations(resolver))),
 		},
 	}
 }
 
-func fetchIntotoAttestations(resolver oci.AttestationResolver) func(rego.BuiltinContext, *ast.Term) (*ast.Term, error) {
+func fetchIntotoAttestations(resolver oci.AttestationResolver) rego.Builtin1 {
 	return func(rCtx rego.BuiltinContext, predicateTypeTerm *ast.Term) (*ast.Term, error) {
 		predicateTypeStr, ok := predicateTypeTerm.Value.(ast.String)
 		if !ok {
@@ -238,7 +260,6 @@ func verifyIntotoEnvelope(rCtx rego.BuiltinContext, envTerm, optsTerm *ast.Term)
 	if err != nil {
 		return nil, err
 	}
-
 	return ast.NewTerm(value), nil
 }
 

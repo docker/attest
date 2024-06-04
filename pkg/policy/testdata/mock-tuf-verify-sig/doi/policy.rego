@@ -12,8 +12,8 @@ keys := [{
 opts := {"keys": keys}
 
 success if {
-	some env in attestations.attestation("foo")
-	statement := attestations.verify(env, opts)
+	some env in attest.fetch("foo")
+	statement := attest.verify(env, opts)
 }
 
 result := {"success": success}

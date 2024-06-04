@@ -12,16 +12,24 @@ keys := [{
 	"signing-format": "dssev1",
 }]
 
+provs(pred) := p if {
+	res := attest.fetch(pred)
+	not res.error
+	p := res.value
+}
+
 atts := union({
-	attestations.attestation("https://slsa.dev/provenance/v0.2"),
-	attestations.attestation("https://spdx.dev/Document"),
+	provs("https://slsa.dev/provenance/v0.2"),
+	provs("https://spdx.dev/Document"),
 })
 
 opts := {"keys": keys}
 
 statements contains s if {
 	some att in atts
-	s := attestations.verify(att, opts)
+	res := attest.verify(att, opts)
+	not res.error
+	s := res.value
 }
 
 subjects contains subject if {

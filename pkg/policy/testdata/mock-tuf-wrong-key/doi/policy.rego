@@ -11,11 +11,20 @@ keys := [{
 
 default success := false
 
+provs(pred) := p if {
+	res := attest.fetch(pred)
+	not res.error
+	p := res.value
+}
+
+atts := union({provs("foo")})
+
 opts := {"keys": keys}
 
 success if {
-	some env in attestations.attestation("foo")
-	statement := attestations.verify(env, opts)
+	some env in atts
+	res := attest.verify(env, opts)
+	not res.error
 }
 
 result := {"success": success}

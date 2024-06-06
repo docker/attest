@@ -7,7 +7,6 @@ import (
 
 	"github.com/docker/attest/pkg/attestation"
 	"github.com/docker/attest/pkg/oci"
-	"github.com/docker/attest/pkg/tlog"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/empty"
 	"github.com/google/go-containerregistry/pkg/v1/match"
@@ -19,7 +18,7 @@ import (
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 )
 
-func Sign(ctx context.Context, idx v1.ImageIndex, signer dsse.SignerVerifier, opts *SigningOptions) (v1.ImageIndex, error) {
+func Sign(ctx context.Context, idx v1.ImageIndex, signer dsse.SignerVerifier, opts *attestation.SigningOptions) (v1.ImageIndex, error) {
 	// extract attestation manifests from index
 	attestationManifests, err := attestation.GetAttestationManifestsFromIndex(idx)
 	if err != nil {
@@ -64,7 +63,7 @@ func AddAttestation(ctx context.Context, idx v1.ImageIndex, statement *intoto.St
 				},
 			}
 			// hard-coding replace to false here, because if it's true we will remove any unsigned statements, even unrelated ones
-			idx, err = signLayersAndAddToIndex(ctx, idx, attestationLayers, manifest, signer, &SigningOptions{Replace: false})
+			idx, err = signLayersAndAddToIndex(ctx, idx, attestationLayers, manifest, signer, &attestation.SigningOptions{Replace: false})
 			if err != nil {
 				return nil, fmt.Errorf("failed to add signed layers: %w", err)
 			}
@@ -84,7 +83,7 @@ func signLayersAndAddToIndex(
 	attestationLayers []attestation.AttestationLayer,
 	manifest attestation.AttestationManifest,
 	signer dsse.SignerVerifier,
-	opts *SigningOptions) (v1.ImageIndex, error) {
+	opts *attestation.SigningOptions) (v1.ImageIndex, error) {
 
 	signedLayers, err := signLayers(ctx, attestationLayers, signer, opts)
 	if err != nil {
@@ -121,7 +120,7 @@ func signLayersAndAddToIndex(
 }
 
 // signLayers signs each intoto attestation layer with the given signer
-func signLayers(ctx context.Context, layers []attestation.AttestationLayer, signer dsse.SignerVerifier, opts *SigningOptions) ([]mutate.Addendum, error) {
+func signLayers(ctx context.Context, layers []attestation.AttestationLayer, signer dsse.SignerVerifier, opts *attestation.SigningOptions) ([]mutate.Addendum, error) {
 	var signedLayers []mutate.Addendum
 	for _, layer := range layers {
 		// only sign intoto layers
@@ -132,16 +131,11 @@ func signLayers(ctx context.Context, layers []attestation.AttestationLayer, sign
 		layer.Annotations[InTotoReferenceLifecycleStage] = LifecycleStageExperimental
 
 		// sign the statement
-		env, err := signInTotoStatement(ctx, layer.Statement, signer)
+		env, err := signInTotoStatement(ctx, layer.Statement, signer, opts)
 		if err != nil {
 			return nil, fmt.Errorf("failed to sign statement: %w", err)
 		}
-		if !opts.SkipTL {
-			env, err = attestation.LogSignature(ctx, tlog.GetTL(ctx), env, signer)
-			if err != nil {
-				return nil, fmt.Errorf("failed to log to rekor: %w", err)
-			}
-		}
+
 		mediaType, err := attestation.DSSEMediaType(layer.Statement.PredicateType)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get DSSE media type: %w", err)
@@ -160,12 +154,12 @@ func signLayers(ctx context.Context, layers []attestation.AttestationLayer, sign
 	return signedLayers, nil
 }
 
-func signInTotoStatement(ctx context.Context, statement *intoto.Statement, signer dsse.SignerVerifier) (*attestation.Envelope, error) {
+func signInTotoStatement(ctx context.Context, statement *intoto.Statement, signer dsse.SignerVerifier, opts *attestation.SigningOptions) (*attestation.Envelope, error) {
 	payload, err := json.Marshal(statement)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal statement: %w", err)
 	}
-	env, err := attestation.SignDSSE(ctx, payload, intoto.PayloadType, signer)
+	env, err := attestation.SignDSSE(ctx, payload, signer, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign statement: %w", err)
 	}
@@ -173,7 +167,7 @@ func signInTotoStatement(ctx context.Context, statement *intoto.Statement, signe
 }
 
 // addSignedLayers adds signed layers to a new or existing attestation image
-func addSignedLayers(signedLayers []mutate.Addendum, manifest attestation.AttestationManifest, opts *SigningOptions) (v1.Image, error) {
+func addSignedLayers(signedLayers []mutate.Addendum, manifest attestation.AttestationManifest, opts *attestation.SigningOptions) (v1.Image, error) {
 	var err error
 	if opts.Replace {
 		// create a new attestation image with only signed layers

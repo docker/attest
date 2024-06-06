@@ -12,7 +12,6 @@ import (
 	"github.com/docker/attest/internal/test"
 	"github.com/docker/attest/pkg/attestation"
 	"github.com/docker/attest/pkg/signerverifier"
-	"github.com/docker/attest/pkg/tlog"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -30,11 +29,8 @@ func TestSignVerifyAttestation(t *testing.T) {
 
 	payload, err := json.Marshal(stmt)
 	require.NoError(t, err)
-
-	env, err := attestation.SignDSSE(ctx, payload, intoto.PayloadType, signer)
-	require.NoError(t, err)
-
-	env, err = attestation.LogSignature(ctx, tlog.GetTL(ctx), env, signer)
+	opts := &attestation.SigningOptions{}
+	env, err := attestation.SignDSSE(ctx, payload, signer, opts)
 	require.NoError(t, err)
 
 	// marshal envelope to json to test for bugs when marshaling envelope data

@@ -73,7 +73,7 @@ func TestVSA(t *testing.T) {
 	// setup an image with signed attestations
 	outputLayout := test.CreateTempDir(t, "", TestTempDir)
 
-	opts := &SigningOptions{
+	opts := &attestation.SigningOptions{
 		Replace: true,
 	}
 	attIdx, err := oci.AttestationIndexFromPath(UnsignedTestImage)
@@ -125,7 +125,7 @@ func TestVerificationFailure(t *testing.T) {
 	// setup an image with signed attestations
 	outputLayout := test.CreateTempDir(t, "", TestTempDir)
 
-	opts := &SigningOptions{
+	opts := &attestation.SigningOptions{
 		Replace: true,
 	}
 	attIdx, err := oci.AttestationIndexFromPath(UnsignedTestImage)
@@ -199,7 +199,7 @@ func TestSignVerifyNoTL(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			opts := &SigningOptions{
+			opts := &attestation.SigningOptions{
 				Replace: true,
 				SkipTL:  tc.signTL,
 			}

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/docker/attest/pkg/attest"
+	"github.com/docker/attest/pkg/attestation"
 	"github.com/docker/attest/pkg/mirror"
 	"github.com/docker/attest/pkg/oci"
 	"github.com/docker/attest/pkg/signerverifier"
@@ -25,7 +26,7 @@ func ExampleSign_remote() {
 	// signer, err := signerverifier.GetAWSSigner(cmd.Context(), aws_arn, aws_region)
 
 	// configure signing options
-	opts := &attest.SigningOptions{
+	opts := &attestation.SigningOptions{
 		Replace: true, // replace unsigned intoto statements with signed intoto attestations, otherwise leave in place
 	}
 

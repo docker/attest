@@ -54,7 +54,7 @@ func TestSignVerifyOCILayout(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			outputLayout := test.CreateTempDir(t, "", TestTempDir)
-			opts := &SigningOptions{
+			opts := &attestation.SigningOptions{
 				Replace: tc.replace,
 			}
 			attIdx, err := oci.AttestationIndexFromPath(tc.TestImage)
@@ -186,7 +186,7 @@ func TestAddSignedLayerAnnotations(t *testing.T) {
 			data = []byte("test")
 			testLayer := static.NewLayer(data, types.MediaType(intoto.PayloadType))
 			mediaType := types.OCIManifestSchema1
-			opts := &SigningOptions{
+			opts := &attestation.SigningOptions{
 				Replace: tc.replace,
 			}
 			manifest := attestation.AttestationManifest{

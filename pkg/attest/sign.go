@@ -19,20 +19,42 @@ import (
 )
 
 func Sign(ctx context.Context, idx v1.ImageIndex, signer dsse.SignerVerifier, opts *attestation.SigningOptions) (v1.ImageIndex, error) {
+	images, err := SignedAttestationImages(ctx, idx, signer, opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign attestation images: %w", err)
+	}
+	for _, image := range images {
+		idx, err = addImageToIndex(ctx, idx, image.Image, image.Desc, image.AttestationManifest)
+		if err != nil {
+			return nil, fmt.Errorf("failed to add signed layers to index: %w", err)
+		}
+	}
+	return idx, nil
+}
+
+func SignedAttestationImages(ctx context.Context, idx v1.ImageIndex, signer dsse.SignerVerifier, opts *attestation.SigningOptions) ([]*attestation.SignedAttestationImage, error) {
 	// extract attestation manifests from index
 	attestationManifests, err := attestation.GetAttestationManifestsFromIndex(idx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get attestation manifests: %w", err)
 	}
-
+	if len(attestationManifests) == 0 {
+		return nil, fmt.Errorf("no attestation manifests found")
+	}
+	images := []*attestation.SignedAttestationImage{}
 	// sign every attestation layer in each manifest
 	for _, manifest := range attestationManifests {
-		idx, err = signLayersAndAddToIndex(ctx, idx, manifest.Attestation.Layers, manifest, signer, opts)
+		newImg, newDec, err := ImageWithAttestations(ctx, manifest.Attestation.Layers, manifest, signer, opts)
 		if err != nil {
-			return nil, fmt.Errorf("failed to add signed layers: %w", err)
+			return nil, fmt.Errorf("failed to add signed layers to image: %w", err)
 		}
+		images = append(images, &attestation.SignedAttestationImage{
+			Image:               newImg,
+			Desc:                newDec,
+			AttestationManifest: manifest,
+		})
 	}
-	return idx, nil
+	return images, nil
 }
 
 func AddAttestation(ctx context.Context, idx v1.ImageIndex, statement *intoto.Statement, signer dsse.SignerVerifier) (v1.ImageIndex, error) {
@@ -52,7 +74,7 @@ func AddAttestation(ctx context.Context, idx v1.ImageIndex, statement *intoto.St
 	}
 	updatedIndex := false
 	for _, manifest := range attestationManifests {
-		if subjectDigests[manifest.Annotations[oci.DockerReferenceDigest]] {
+		if subjectDigests[manifest.Annotations[attestation.DockerReferenceDigest]] {
 			attestationLayers := []attestation.AttestationLayer{
 				{
 					Statement: statement,
@@ -63,10 +85,11 @@ func AddAttestation(ctx context.Context, idx v1.ImageIndex, statement *intoto.St
 				},
 			}
 			// hard-coding replace to false here, because if it's true we will remove any unsigned statements, even unrelated ones
-			idx, err = signLayersAndAddToIndex(ctx, idx, attestationLayers, manifest, signer, &attestation.SigningOptions{Replace: false})
+			newImg, newDec, err := ImageWithAttestations(ctx, attestationLayers, manifest, signer, &attestation.SigningOptions{Replace: false})
 			if err != nil {
-				return nil, fmt.Errorf("failed to add signed layers: %w", err)
+				return nil, fmt.Errorf("failed to add signed layers to image: %w", err)
 			}
+			idx, err = addImageToIndex(ctx, idx, newImg, newDec, manifest)
 			updatedIndex = true
 		}
 	}
@@ -74,33 +97,34 @@ func AddAttestation(ctx context.Context, idx v1.ImageIndex, statement *intoto.St
 		return nil, fmt.Errorf("no attestation manifest found for statement")
 	}
 	return idx, nil
-
 }
 
-func signLayersAndAddToIndex(
+func ImageWithAttestations(
 	ctx context.Context,
-	idx v1.ImageIndex,
 	attestationLayers []attestation.AttestationLayer,
 	manifest attestation.AttestationManifest,
 	signer dsse.SignerVerifier,
-	opts *attestation.SigningOptions) (v1.ImageIndex, error) {
+	opts *attestation.SigningOptions) (v1.Image, *v1.Descriptor, error) {
 
 	signedLayers, err := signLayers(ctx, attestationLayers, signer, opts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to sign attestations: %w", err)
+		return nil, nil, fmt.Errorf("failed to sign attestations: %w", err)
 	}
 
 	newImg, err := addSignedLayers(signedLayers, manifest, opts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to add signed layers: %w", err)
+		return nil, nil, fmt.Errorf("failed to add signed layers: %w", err)
+	}
+	if !opts.SkipSubject {
+		newImg = mutate.Subject(newImg, *manifest.SubjectDescriptor).(v1.Image)
 	}
 	newDesc, err := partial.Descriptor(newImg)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get descriptor: %w", err)
+		return nil, nil, fmt.Errorf("failed to get descriptor: %w", err)
 	}
 	cf, err := manifest.Attestation.Image.ConfigFile()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get config file: %w", err)
+		return nil, nil, fmt.Errorf("failed to get config file: %w", err)
 	}
 	newDesc.Platform = cf.Platform()
 	if newDesc.Platform == nil {
@@ -111,10 +135,22 @@ func signLayersAndAddToIndex(
 	}
 	newDesc.MediaType = manifest.MediaType
 	newDesc.Annotations = manifest.Annotations
+
+	return newImg, newDesc, nil
+}
+
+func addImageToIndex(
+	ctx context.Context,
+	idx v1.ImageIndex,
+	img v1.Image,
+	desc *v1.Descriptor,
+	manifest attestation.AttestationManifest,
+) (v1.ImageIndex, error) {
+
 	idx = mutate.RemoveManifests(idx, match.Digests(manifest.Digest))
 	idx = mutate.AppendManifests(idx, mutate.IndexAddendum{
-		Add:        newImg,
-		Descriptor: *newDesc,
+		Add:        img,
+		Descriptor: *desc,
 	})
 	return idx, nil
 }
@@ -168,6 +204,13 @@ func signInTotoStatement(ctx context.Context, statement *intoto.Statement, signe
 
 // addSignedLayers adds signed layers to a new or existing attestation image
 func addSignedLayers(signedLayers []mutate.Addendum, manifest attestation.AttestationManifest, opts *attestation.SigningOptions) (v1.Image, error) {
+	withAnnotations := func(img v1.Image) v1.Image {
+		// this is handy when dealing with referrers
+		return mutate.Annotations(img, map[string]string{
+			attestation.DockerReferenceType:   attestation.AttestationManifestType,
+			attestation.DockerReferenceDigest: manifest.SubjectDescriptor.Digest.String(),
+		}).(v1.Image)
+	}
 	var err error
 	if opts.Replace {
 		// create a new attestation image with only signed layers
@@ -189,7 +232,7 @@ func addSignedLayers(signedLayers []mutate.Addendum, manifest attestation.Attest
 				}
 			}
 		}
-		return newImg, nil
+		return withAnnotations(newImg), nil
 	}
 	// Add signed layers to the existing image
 	for _, layer := range signedLayers {
@@ -198,5 +241,5 @@ func addSignedLayers(signedLayers []mutate.Addendum, manifest attestation.Attest
 			return nil, fmt.Errorf("failed to append layer: %w", err)
 		}
 	}
-	return manifest.Attestation.Image, nil
+	return withAnnotations(manifest.Attestation.Image), nil
 }

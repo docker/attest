@@ -96,23 +96,8 @@ type AnnotatedStatement struct {
 	Annotations     map[string]string
 }
 
-func ExtractAnnotatedStatements(path string, mediaType string) ([]*AnnotatedStatement, error) {
-	idx, err := layout.ImageIndexFromPath(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load image index: %w", err)
-	}
-
-	idxm, err := idx.IndexManifest()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get digest: %w", err)
-	}
-	idxDigest := idxm.Manifests[0].Digest
-
-	mfs, err := idx.ImageIndex(idxDigest)
-	if err != nil {
-		return nil, fmt.Errorf("failed to extract ImageIndex for digest %s: %w", idxDigest.String(), err)
-	}
-	mfs2, err := mfs.IndexManifest()
+func ExtractStatementsFromIndex(idx v1.ImageIndex, mediaType string) ([]*AnnotatedStatement, error) {
+	mfs2, err := idx.IndexManifest()
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract IndexManifest from ImageIndex: %w", err)
 	}
@@ -124,7 +109,7 @@ func ExtractAnnotatedStatements(path string, mediaType string) ([]*AnnotatedStat
 			continue
 		}
 
-		attestationImage, err := mfs.Image(mf.Digest)
+		attestationImage, err := idx.Image(mf.Digest)
 		if err != nil {
 			return nil, fmt.Errorf("failed to extract attestation image with digest %s: %w", mf.Digest.String(), err)
 		}
@@ -188,4 +173,23 @@ func ExtractAnnotatedStatements(path string, mediaType string) ([]*AnnotatedStat
 		}
 	}
 	return statements, nil
+}
+
+func ExtractAnnotatedStatements(path string, mediaType string) ([]*AnnotatedStatement, error) {
+	idx, err := layout.ImageIndexFromPath(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load image index: %w", err)
+	}
+
+	idxm, err := idx.IndexManifest()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get digest: %w", err)
+	}
+	idxDigest := idxm.Manifests[0].Digest
+
+	mfs, err := idx.ImageIndex(idxDigest)
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract ImageIndex for digest %s: %w", idxDigest.String(), err)
+	}
+	return ExtractStatementsFromIndex(mfs, mediaType)
 }

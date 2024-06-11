@@ -7,6 +7,10 @@ import (
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 )
 
+type AttestationManifests struct {
+	Manifests []*AttestationManifest
+}
+
 type AttestationManifest struct {
 	// attestation image details
 	Image      v1.Image

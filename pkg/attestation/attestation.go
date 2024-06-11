@@ -17,9 +17,19 @@ func GetAttestationManifestsFromIndex(index v1.ImageIndex) ([]AttestationManifes
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract IndexManifest from ImageIndex: %w", err)
 	}
+	subjects := make(map[string]*v1.Descriptor)
+	for _, subject := range idx.Manifests {
+		subjects[subject.Digest.String()] = &subject
+	}
+
 	var attestationManifests []AttestationManifest
 	for _, manifest := range idx.Manifests {
+
 		if manifest.Annotations[DockerReferenceType] == AttestationManifestType {
+			subject := subjects[manifest.Annotations[DockerReferenceDigest]]
+			if subject == nil {
+				return nil, fmt.Errorf("failed to find subject for attestation manifest: %w", err)
+			}
 			attestationImage, err := index.Image(manifest.Digest)
 			if err != nil {
 				return nil, fmt.Errorf("failed to extract attestation image with digest %s: %w", manifest.Digest.String(), err)
@@ -30,7 +40,8 @@ func GetAttestationManifestsFromIndex(index v1.ImageIndex) ([]AttestationManifes
 			}
 			attestationManifests = append(attestationManifests,
 				AttestationManifest{
-					Manifest: manifest,
+					Manifest:          manifest,
+					SubjectDescriptor: subject,
 					Attestation: AttestationImage{
 						Layers: attestationLayers,
 						Image:  attestationImage},

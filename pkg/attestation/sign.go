@@ -12,10 +12,7 @@ import (
 
 // SignDSSE signs a payload with a given signer and uploads the signature to the transparency log
 func SignDSSE(ctx context.Context, payload []byte, signer dsse.SignerVerifier, opts *SigningOptions) (*Envelope, error) {
-	payloadType := opts.PayloadType
-	if payloadType == "" {
-		payloadType = intoto.PayloadType
-	}
+	payloadType := intoto.PayloadType
 	env := new(Envelope)
 	env.Payload = base64Encoding.EncodeToString(payload)
 	env.PayloadType = payloadType

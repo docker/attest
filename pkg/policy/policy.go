@@ -158,6 +158,9 @@ func resolveTufPolicy(opts *PolicyOptions, mapping *PolicyMapping) (*Policy, err
 }
 
 func loadTufMappings(tufClient tuf.TUFClient, localTargetsDir string) (*PolicyMappings, error) {
+	if tufClient == nil {
+		return nil, fmt.Errorf("tuf client not set")
+	}
 	filename := PolicyMappingFileName
 	_, fileContents, err := tufClient.DownloadTarget(filename, filepath.Join(localTargetsDir, filename))
 	if err != nil {
@@ -182,7 +185,8 @@ func findPolicyMatch(named reference.Named, mappings *PolicyMappings) (*PolicyMa
 		}
 		// now search mirrors
 		for _, mirror := range mappings.Mirrors {
-			if slices.Contains(mirror.Mirror.Domains, reference.Domain(named)) &&
+			if (slices.Contains(mirror.Mirror.Domains, reference.Domain(named)) ||
+				slices.Contains(mirror.Mirror.Domains, "*")) &&
 				strings.HasPrefix(reference.Path(named), mirror.Mirror.Prefix) {
 				for _, mapping := range mappings.Policies {
 					if mapping.Id == mirror.PolicyId {

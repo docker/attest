@@ -72,7 +72,7 @@ func attestationManifestFromOCILayout(path string, platform *v1.Platform) (*Atte
 			continue
 		}
 
-		if mf.Annotations[DockerReferenceDigest] != imageDigest {
+		if mf.Annotations[att.DockerReferenceDigest] != imageDigest {
 			continue
 		}
 
@@ -193,6 +193,152 @@ func (r *OCILayoutResolver) ImageDigest(ctx context.Context) (string, error) {
 		}
 	}
 	return r.Digest, nil
+}
+
+type ReferrersResolver struct {
+	image         string
+	platform      *v1.Platform
+	referrersRepo string
+	manifests     []*AttestationManifest
+}
+
+// set platfor on indexes if not part of image reference
+func NewReferrersAttestationResolver(image string, options ...func(*ReferrersResolver) error) (*ReferrersResolver, error) {
+	res := &ReferrersResolver{
+		image: image,
+	}
+	for _, opt := range options {
+		err := opt(res)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func WithReferrersRepo(repo string) func(*ReferrersResolver) error {
+	return func(r *ReferrersResolver) error {
+		r.referrersRepo = repo
+		return nil
+	}
+}
+
+func WithPlatform(platform string) func(*ReferrersResolver) error {
+	return func(r *ReferrersResolver) error {
+		p, err := ParsePlatform(platform)
+		if err != nil {
+			return err
+		}
+		r.platform = p
+		return nil
+	}
+}
+
+func (r *ReferrersResolver) resolveAttestations(ctx context.Context) error {
+	if r.manifests == nil {
+		options := withOptions(ctx, r.platform)
+		subjectRef, err := name.ParseReference(r.image)
+		if err != nil {
+			return fmt.Errorf("failed to parse reference: %w", err)
+		}
+		desc, err := remote.Image(subjectRef, options...)
+		if err != nil {
+			return fmt.Errorf("failed to get image manifest: %w", err)
+		}
+		subjectDigest, err := desc.Digest()
+		if err != nil {
+			return fmt.Errorf("failed to get image digest: %w", err)
+		}
+		var refRef name.Digest
+		if r.referrersRepo != "" {
+			refRef, err = name.NewDigest(fmt.Sprintf("%s@%s", r.referrersRepo, subjectDigest.String()))
+			if err != nil {
+				return fmt.Errorf("failed to create referrers reference: %w", err)
+			}
+		} else {
+			refRef = subjectRef.Context().Digest(subjectDigest.String())
+		}
+		index, err := remote.Referrers(refRef)
+		if err != nil {
+			return fmt.Errorf("failed to get referrers: %w", err)
+		}
+		ix, err := index.IndexManifest()
+		if err != nil {
+			return fmt.Errorf("failed to get index manifest: %w", err)
+		}
+		if len(ix.Manifests) == 0 {
+			return errors.New("no referrers found")
+		}
+		aManifests := make([]*AttestationManifest, 0)
+		for _, m := range ix.Manifests {
+
+			remoteRef := refRef.Context().Digest(m.Digest.String())
+			attestationImage, err := remote.Image(remoteRef)
+			if err != nil {
+				return fmt.Errorf("failed to get referred image: %w", err)
+			}
+			manifest, err := attestationImage.Manifest()
+			if err != nil {
+				return fmt.Errorf("failed to get manifest: %w", err)
+			}
+			if manifest.Annotations[att.DockerReferenceType] != AttestationManifestType {
+				continue
+			}
+			if manifest.Annotations[att.DockerReferenceDigest] != subjectDigest.String() {
+				continue
+			}
+			attest := &AttestationManifest{
+				Name:       r.image,
+				Image:      attestationImage,
+				Manifest:   manifest,
+				Descriptor: &m,
+				Digest:     subjectDigest.String(),
+				Platform:   r.platform,
+			}
+			aManifests = append(aManifests, attest)
+		}
+
+		if len(aManifests) == 0 {
+			return errors.New("no attestation manifests found")
+		}
+		r.manifests = aManifests
+	}
+	return nil
+}
+
+func (r *ReferrersResolver) Attestations(ctx context.Context, predicateType string) ([]*att.Envelope, error) {
+	err := r.resolveAttestations(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve attestations: %w", err)
+	}
+	var envs []*att.Envelope
+	for _, attest := range r.manifests {
+		es, err := ExtractEnvelopes(attest, predicateType)
+		if err != nil {
+			return nil, fmt.Errorf("failed to extract envelopes: %w", err)
+		}
+		envs = append(envs, es...)
+	}
+	return envs, nil
+}
+
+func (r *ReferrersResolver) ImageName(ctx context.Context) (string, error) {
+	return r.image, nil
+}
+
+func (r *ReferrersResolver) ImagePlatform() (*v1.Platform, error) {
+	return r.platform, nil
+}
+
+func (r *ReferrersResolver) ImageDigest(ctx context.Context) (string, error) {
+	err := r.resolveAttestations(ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve attestations: %w", err)
+	}
+	if len(r.manifests) == 0 {
+		return "", errors.New("no attestation manifests found")
+	}
+	return r.manifests[0].Digest, nil
 }
 
 type RegistryResolver struct {
@@ -352,7 +498,7 @@ func imageDigestForPlatform(ix *v1.IndexManifest, platform *v1.Platform) (string
 func attestationDigestForDigest(ix *v1.IndexManifest, imageDigest string, attestType string) (string, error) {
 	for _, m := range ix.Manifests {
 		if v, ok := m.Annotations[att.DockerReferenceType]; ok && v == attestType {
-			if d, ok := m.Annotations[DockerReferenceDigest]; ok && d == imageDigest {
+			if d, ok := m.Annotations[att.DockerReferenceDigest]; ok && d == imageDigest {
 				return m.Digest.String(), nil
 			}
 		}

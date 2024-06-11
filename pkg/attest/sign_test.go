@@ -42,7 +42,7 @@ func TestSignVerifyOCILayout(t *testing.T) {
 		replace              bool
 	}{
 
-		{"signed replaced (does nothing)", UnsignedTestImage, 0, 4, true},
+		{"signed replaced", UnsignedTestImage, 0, 4, true},
 		{"without replace", UnsignedTestImage, 4, 4, false},
 		// image without provenance doesn't fail
 		{"no provenance (replace)", NoProvenanceImage, 0, 2, true},
@@ -200,6 +200,7 @@ func TestAddSignedLayerAnnotations(t *testing.T) {
 						},
 					},
 				},
+				SubjectDescriptor: &v1.Descriptor{},
 			}
 			newImg, err := addSignedLayers(signedLayers, manifest, opts)
 			require.NoError(t, err)

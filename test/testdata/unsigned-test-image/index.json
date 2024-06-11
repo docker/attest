@@ -1,1 +1,14 @@
-{"schemaVersion":2,"manifests":[{"mediaType":"application/vnd.oci.image.index.v1+json","digest":"sha256:db8f2a6e112ea6396f57d073269ecfac61e8dcdad3a4a643dcb577522492f898","size":1607,"annotations":{"org.opencontainers.image.created":"2024-04-29T10:23:46Z","org.opencontainers.image.ref.name":"docker.io/library/test-image:test"}}]}
+{
+    "schemaVersion": 2,
+    "manifests": [
+        {
+            "mediaType": "application/vnd.oci.image.index.v1+json",
+            "digest": "sha256:db8f2a6e112ea6396f57d073269ecfac61e8dcdad3a4a643dcb577522492f898",
+            "size": 1607,
+            "annotations": {
+                "org.opencontainers.image.created": "2024-04-29T10:23:46Z",
+                "org.opencontainers.image.ref.name": "docker.io/library/test-image:test"
+            }
+        }
+    ]
+}

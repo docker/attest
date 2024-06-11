@@ -14,6 +14,7 @@ import (
 const (
 	DockerReferenceType        = "vnd.docker.reference.type"
 	AttestationManifestType    = "attestation-manifest"
+	DockerReferenceDigest      = "vnd.docker.reference.digest"
 	DockerDsseExtKind          = "application/vnd.docker.attestation-verification.v1+json"
 	RekorTlExtKind             = "Rekor"
 	OCIDescriptorDSSEMediaType = ociv1.MediaTypeDescriptor + "+dsse"
@@ -33,12 +34,19 @@ type AttestationImage struct {
 	Image  v1.Image
 }
 
+type SignedAttestationImage struct {
+	Image               v1.Image
+	Desc                *v1.Descriptor
+	AttestationManifest AttestationManifest
+}
+
 type AttestationManifest struct {
-	Manifest    v1.Descriptor
-	Attestation AttestationImage
-	MediaType   types.MediaType
-	Annotations map[string]string
-	Digest      v1.Hash
+	Manifest          v1.Descriptor
+	Attestation       AttestationImage
+	MediaType         types.MediaType
+	Annotations       map[string]string
+	Digest            v1.Hash
+	SubjectDescriptor *v1.Descriptor
 }
 
 // the following types are needed until https://github.com/secure-systems-lab/dsse/pull/61 is merged
@@ -72,9 +80,12 @@ type VerifyOptions struct {
 }
 
 type SigningOptions struct {
-	Replace     bool
-	SkipTL      bool
-	PayloadType string
+	// replace unsigned statements with signed attestations
+	Replace bool
+	// don't log to the configured transparency log
+	SkipTL bool
+	// don't add OCI subject field to attestation image
+	SkipSubject bool
 }
 
 func DSSEMediaType(predicateType string) (string, error) {

@@ -9,3 +9,8 @@ policies:
     description: Local test images
     files:
       - path: doi/policy.rego
+mirrors:
+  - policy-id: test-images
+    mirror:
+      domains: ["*"]
+      prefix: ""

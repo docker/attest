@@ -57,7 +57,7 @@ func TestSignVerifyOCILayout(t *testing.T) {
 			opts := &attestation.SigningOptions{
 				Replace: tc.replace,
 			}
-			attIdx, err := oci.AttestationIndexFromPath(tc.TestImage)
+			attIdx, err := oci.SubjectIndexFromPath(tc.TestImage)
 			require.NoError(t, err)
 			signedIndex, err := Sign(ctx, attIdx.Index, signer, opts)
 			require.NoError(t, err)
@@ -107,7 +107,7 @@ func TestAddAttestation(t *testing.T) {
 	expectedStatements := 4
 
 	outputLayout := test.CreateTempDir(t, "", TestTempDir)
-	attIdx, err := oci.AttestationIndexFromPath(UnsignedTestImage)
+	attIdx, err := oci.SubjectIndexFromPath(UnsignedTestImage)
 	require.NoError(t, err)
 
 	statementToAdd := &intoto.Statement{

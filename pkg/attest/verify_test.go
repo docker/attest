@@ -76,7 +76,7 @@ func TestVSA(t *testing.T) {
 	opts := &attestation.SigningOptions{
 		Replace: true,
 	}
-	attIdx, err := oci.AttestationIndexFromPath(UnsignedTestImage)
+	attIdx, err := oci.SubjectIndexFromPath(UnsignedTestImage)
 	assert.NoError(t, err)
 	signedIndex, err := Sign(ctx, attIdx.Index, signer, opts)
 	assert.NoError(t, err)
@@ -128,7 +128,7 @@ func TestVerificationFailure(t *testing.T) {
 	opts := &attestation.SigningOptions{
 		Replace: true,
 	}
-	attIdx, err := oci.AttestationIndexFromPath(UnsignedTestImage)
+	attIdx, err := oci.SubjectIndexFromPath(UnsignedTestImage)
 	assert.NoError(t, err)
 	signedIndex, err := Sign(ctx, attIdx.Index, signer, opts)
 	assert.NoError(t, err)
@@ -194,7 +194,7 @@ func TestSignVerifyNoTL(t *testing.T) {
 		{name: "no tl", signTL: false, policyDir: PassPolicyDir, success: false},
 	}
 
-	attIdx, err := oci.AttestationIndexFromPath(UnsignedTestImage)
+	attIdx, err := oci.SubjectIndexFromPath(UnsignedTestImage)
 	assert.NoError(t, err)
 
 	for _, tc := range testCases {

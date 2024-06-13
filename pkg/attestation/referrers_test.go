@@ -53,7 +53,7 @@ func TestAttestationReferenceTypes(t *testing.T) {
 			Replace:     true,
 			SkipSubject: tc.skipSubject,
 		}
-		attIdx, err := oci.AttestationIndexFromPath(UnsignedTestImage)
+		attIdx, err := oci.SubjectIndexFromPath(UnsignedTestImage)
 		require.NoError(t, err)
 		signedIndex, err := attest.Sign(ctx, attIdx.Index, signer, opts)
 		require.NoError(t, err)
@@ -123,7 +123,7 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 			Replace: true,
 			SkipTL:  true,
 		}
-		attIdx, err := oci.AttestationIndexFromPath(UnsignedTestImage)
+		attIdx, err := oci.SubjectIndexFromPath(UnsignedTestImage)
 		require.NoError(t, err)
 
 		indexName := fmt.Sprintf("%s/%s:latest", serverUrl.Host, repoName)

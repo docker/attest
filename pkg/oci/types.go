@@ -17,12 +17,12 @@ const (
 	OciReferenceTarget      = "org.opencontainers.image.ref.name"
 )
 
-type AttestationIndex struct {
+type SubjectIndex struct {
 	Index v1.ImageIndex
 	Name  string
 }
 
-func AttestationIndexFromPath(path string) (*AttestationIndex, error) {
+func SubjectIndexFromPath(path string) (*SubjectIndex, error) {
 	wrapperIdx, err := layout.ImageIndexFromPath(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load image index: %w", err)
@@ -39,13 +39,13 @@ func AttestationIndexFromPath(path string) (*AttestationIndex, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract ImageIndex for digest %s: %w", idxDigest.String(), err)
 	}
-	return &AttestationIndex{
+	return &SubjectIndex{
 		Index: idx,
 		Name:  imageName,
 	}, nil
 }
 
-func AttestationIndexFromRemote(image string) (*AttestationIndex, error) {
+func SubjectIndexFromRemote(image string) (*SubjectIndex, error) {
 	ref, err := name.ParseReference(image)
 	if err != nil {
 		log.Fatalf("Failed to parse image name: %v", err)
@@ -60,7 +60,7 @@ func AttestationIndexFromRemote(image string) (*AttestationIndex, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to pull image %s: %w", image, err)
 	}
-	return &AttestationIndex{
+	return &SubjectIndex{
 		Index: idx,
 		Name:  image,
 	}, nil

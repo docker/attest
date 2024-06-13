@@ -32,7 +32,7 @@ func ExampleSign_remote() {
 
 	// load image index with unsigned attestation-manifests
 	ref := "docker/image-signer-verifier:latest"
-	att, err := oci.AttestationIndexFromRemote(ref)
+	att, err := oci.SubjectIndexFromRemote(ref)
 	if err != nil {
 		panic(err)
 	}

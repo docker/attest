@@ -24,7 +24,7 @@ func Sign(ctx context.Context, idx v1.ImageIndex, signer dsse.SignerVerifier, op
 		return nil, fmt.Errorf("failed to sign attestation images: %w", err)
 	}
 	for _, image := range images {
-		idx, err = addImageToIndex(ctx, idx, image.Image, image.Descriptor, image.AttestationManifest)
+		idx, err = addImageToIndex(idx, image.Image, image.Descriptor, image.AttestationManifest)
 		if err != nil {
 			return nil, fmt.Errorf("failed to add signed layers to index: %w", err)
 		}
@@ -89,7 +89,10 @@ func AddAttestation(ctx context.Context, idx v1.ImageIndex, statement *intoto.St
 			if err != nil {
 				return nil, fmt.Errorf("failed to add signed layers to image: %w", err)
 			}
-			idx, err = addImageToIndex(ctx, idx, newImg, newDec, manifest)
+			idx, err = addImageToIndex(idx, newImg, newDec, manifest)
+			if err != nil {
+				return nil, fmt.Errorf("failed to add attestation image to index: %w", err)
+			}
 			updatedIndex = true
 		}
 	}
@@ -140,7 +143,6 @@ func ImageWithAttestations(
 }
 
 func addImageToIndex(
-	ctx context.Context,
 	idx v1.ImageIndex,
 	img v1.Image,
 	desc *v1.Descriptor,

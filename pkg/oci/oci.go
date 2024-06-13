@@ -249,30 +249,30 @@ func (r *ReferrersResolver) resolveAttestations(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("failed to get image digest: %w", err)
 		}
-		var referrersRef name.Digest
+		var referrersSubjectRef name.Digest
 		if r.referrersRepo != "" {
-			referrersRef, err = name.NewDigest(fmt.Sprintf("%s@%s", r.referrersRepo, subjectDigest.String()))
+			referrersSubjectRef, err = name.NewDigest(fmt.Sprintf("%s@%s", r.referrersRepo, subjectDigest.String()))
 			if err != nil {
 				return fmt.Errorf("failed to create referrers reference: %w", err)
 			}
 		} else {
-			referrersRef = subjectRef.Context().Digest(subjectDigest.String())
+			referrersSubjectRef = subjectRef.Context().Digest(subjectDigest.String())
 		}
-		referrersIndex, err := remote.Referrers(referrersRef)
+		referrersIndex, err := remote.Referrers(referrersSubjectRef)
 		if err != nil {
 			return fmt.Errorf("failed to get referrers: %w", err)
 		}
-		referersIndexManifest, err := referrersIndex.IndexManifest()
+		referrersIndexManifest, err := referrersIndex.IndexManifest()
 		if err != nil {
 			return fmt.Errorf("failed to get index manifest: %w", err)
 		}
-		if len(referersIndexManifest.Manifests) == 0 {
+		if len(referrersIndexManifest.Manifests) == 0 {
 			return errors.New("no referrers found")
 		}
 		aManifests := make([]*AttestationManifest, 0)
-		for _, m := range referersIndexManifest.Manifests {
+		for _, m := range referrersIndexManifest.Manifests {
 
-			remoteRef := referrersRef.Context().Digest(m.Digest.String())
+			remoteRef := referrersSubjectRef.Context().Digest(m.Digest.String())
 			attestationImage, err := remote.Image(remoteRef)
 			if err != nil {
 				return fmt.Errorf("failed to get referred image: %w", err)

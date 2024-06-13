@@ -202,7 +202,6 @@ type ReferrersResolver struct {
 	manifests     []*AttestationManifest
 }
 
-// set platfor on indexes if not part of image reference
 func NewReferrersAttestationResolver(image string, options ...func(*ReferrersResolver) error) (*ReferrersResolver, error) {
 	res := &ReferrersResolver{
 		image: image,
@@ -223,6 +222,7 @@ func WithReferrersRepo(repo string) func(*ReferrersResolver) error {
 	}
 }
 
+// WithPlatform sets the platform for the resolver (needed for platform specific tag resolution)
 func WithPlatform(platform string) func(*ReferrersResolver) error {
 	return func(r *ReferrersResolver) error {
 		p, err := ParsePlatform(platform)
@@ -249,30 +249,30 @@ func (r *ReferrersResolver) resolveAttestations(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("failed to get image digest: %w", err)
 		}
-		var refRef name.Digest
+		var referrersRef name.Digest
 		if r.referrersRepo != "" {
-			refRef, err = name.NewDigest(fmt.Sprintf("%s@%s", r.referrersRepo, subjectDigest.String()))
+			referrersRef, err = name.NewDigest(fmt.Sprintf("%s@%s", r.referrersRepo, subjectDigest.String()))
 			if err != nil {
 				return fmt.Errorf("failed to create referrers reference: %w", err)
 			}
 		} else {
-			refRef = subjectRef.Context().Digest(subjectDigest.String())
+			referrersRef = subjectRef.Context().Digest(subjectDigest.String())
 		}
-		index, err := remote.Referrers(refRef)
+		referrersIndex, err := remote.Referrers(referrersRef)
 		if err != nil {
 			return fmt.Errorf("failed to get referrers: %w", err)
 		}
-		ix, err := index.IndexManifest()
+		referersIndexManifest, err := referrersIndex.IndexManifest()
 		if err != nil {
 			return fmt.Errorf("failed to get index manifest: %w", err)
 		}
-		if len(ix.Manifests) == 0 {
+		if len(referersIndexManifest.Manifests) == 0 {
 			return errors.New("no referrers found")
 		}
 		aManifests := make([]*AttestationManifest, 0)
-		for _, m := range ix.Manifests {
+		for _, m := range referersIndexManifest.Manifests {
 
-			remoteRef := refRef.Context().Digest(m.Digest.String())
+			remoteRef := referrersRef.Context().Digest(m.Digest.String())
 			attestationImage, err := remote.Image(remoteRef)
 			if err != nil {
 				return fmt.Errorf("failed to get referred image: %w", err)

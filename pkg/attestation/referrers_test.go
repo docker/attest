@@ -82,10 +82,10 @@ func TestAttestationReferenceTypes(t *testing.T) {
 
 			if !tc.skipSubject {
 				// can evaluate policy using referrers
-				rresolver, err := oci.NewReferrersAttestationResolver(indexName, oci.WithPlatform("linux/amd64"))
+				referrersResolver, err := oci.NewReferrersAttestationResolver(indexName, oci.WithPlatform("linux/amd64"))
 				require.NoError(t, err)
 
-				results, err = attest.Verify(ctx, policyOpts, rresolver)
+				results, err = attest.Verify(ctx, policyOpts, referrersResolver)
 				require.NoError(t, err)
 				assert.Equal(t, attest.OutcomeSuccess, results.Outcome)
 			}
@@ -95,6 +95,7 @@ func TestAttestationReferenceTypes(t *testing.T) {
 
 func TestReferencesInDifferentRepo(t *testing.T) {
 	ctx, signer := test.Setup(t)
+	repoName := "repo"
 	for _, tc := range []struct {
 		server    *httptest.Server
 		refServer *httptest.Server
@@ -125,7 +126,7 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 		attIdx, err := oci.AttestationIndexFromPath(UnsignedTestImage)
 		require.NoError(t, err)
 
-		indexName := fmt.Sprintf("%s/repo:latest", serverUrl.Host)
+		indexName := fmt.Sprintf("%s/%s:latest", serverUrl.Host, repoName)
 		err = mirror.PushToRegistry(attIdx.Index, indexName)
 		require.NoError(t, err)
 
@@ -135,7 +136,7 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 		// push signed attestation image to the ref server
 		for _, img := range signedImages {
 			// push references using subject-digest.att convention
-			err = mirror.PushToRegistry(&img.Image, fmt.Sprintf("%s/repo:%s-%s.att", refServerUrl.Host, img.AttestationManifest.SubjectDescriptor.Digest.Algorithm, img.AttestationManifest.SubjectDescriptor.Digest.Hex))
+			err = mirror.PushToRegistry(&img.Image, fmt.Sprintf("%s/%s:%s-%s.att", refServerUrl.Host, repoName, img.AttestationManifest.SubjectDescriptor.Digest.Algorithm, img.AttestationManifest.SubjectDescriptor.Digest.Hex))
 			require.NoError(t, err)
 		}
 		mfs2, err := attIdx.Index.IndexManifest()
@@ -146,14 +147,14 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 				continue
 			}
 			// can evaluate policy using referrers in a different repo
-			repo := fmt.Sprintf("%s/repo", refServerUrl.Host)
+			repo := fmt.Sprintf("%s/%s", refServerUrl.Host, repoName)
 			referencedImage := fmt.Sprintf("%s@%s", indexName, mf.Digest.String())
-			rresolver, err := oci.NewReferrersAttestationResolver(referencedImage, oci.WithReferrersRepo(repo))
+			referrersResolver, err := oci.NewReferrersAttestationResolver(referencedImage, oci.WithReferrersRepo(repo))
 			require.NoError(t, err)
 			policyOpts := &policy.PolicyOptions{
 				LocalPolicyDir: PassPolicyDir,
 			}
-			results, err := attest.Verify(ctx, policyOpts, rresolver)
+			results, err := attest.Verify(ctx, policyOpts, referrersResolver)
 			require.NoError(t, err)
 			assert.Equal(t, attest.OutcomeSuccess, results.Outcome)
 		}

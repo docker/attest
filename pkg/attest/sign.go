@@ -24,7 +24,7 @@ func Sign(ctx context.Context, idx v1.ImageIndex, signer dsse.SignerVerifier, op
 		return nil, fmt.Errorf("failed to sign attestation images: %w", err)
 	}
 	for _, image := range images {
-		idx, err = addImageToIndex(ctx, idx, image.Image, image.Desc, image.AttestationManifest)
+		idx, err = addImageToIndex(ctx, idx, image.Image, image.Descriptor, image.AttestationManifest)
 		if err != nil {
 			return nil, fmt.Errorf("failed to add signed layers to index: %w", err)
 		}
@@ -44,13 +44,13 @@ func SignedAttestationImages(ctx context.Context, idx v1.ImageIndex, signer dsse
 	images := []*attestation.SignedAttestationImage{}
 	// sign every attestation layer in each manifest
 	for _, manifest := range attestationManifests {
-		newImg, newDec, err := ImageWithAttestations(ctx, manifest.Attestation.Layers, manifest, signer, opts)
+		newImg, newDescriptor, err := ImageWithAttestations(ctx, manifest.Attestation.Layers, manifest, signer, opts)
 		if err != nil {
 			return nil, fmt.Errorf("failed to add signed layers to image: %w", err)
 		}
 		images = append(images, &attestation.SignedAttestationImage{
 			Image:               newImg,
-			Desc:                newDec,
+			Descriptor:          newDescriptor,
 			AttestationManifest: manifest,
 		})
 	}

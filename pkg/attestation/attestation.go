@@ -40,7 +40,7 @@ func GetAttestationManifestsFromIndex(index v1.ImageIndex) ([]AttestationManifes
 			}
 			attestationManifests = append(attestationManifests,
 				AttestationManifest{
-					Manifest:          manifest,
+					Descriptor:        manifest,
 					SubjectDescriptor: subject,
 					Attestation: AttestationImage{
 						Layers: attestationLayers,

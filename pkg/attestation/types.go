@@ -36,12 +36,12 @@ type AttestationImage struct {
 
 type SignedAttestationImage struct {
 	Image               v1.Image
-	Desc                *v1.Descriptor
+	Descriptor          *v1.Descriptor
 	AttestationManifest AttestationManifest
 }
 
 type AttestationManifest struct {
-	Manifest          v1.Descriptor
+	Descriptor        v1.Descriptor
 	Attestation       AttestationImage
 	MediaType         types.MediaType
 	Annotations       map[string]string

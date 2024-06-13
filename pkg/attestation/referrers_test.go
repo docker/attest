@@ -29,6 +29,7 @@ var (
 
 func TestAttestationReferenceTypes(t *testing.T) {
 	ctx, signer := test.Setup(t)
+	platforms := []string{"linux/amd64", "linux/arm64"}
 	for _, tc := range []struct {
 		server      *httptest.Server
 		skipSubject bool
@@ -59,18 +60,12 @@ func TestAttestationReferenceTypes(t *testing.T) {
 		require.NoError(t, err)
 
 		indexName := fmt.Sprintf("%s/repo:root", u.Host)
-		imfs, err := signedIndex.IndexManifest()
 		require.NoError(t, err)
 		err = mirror.PushToRegistry(signedIndex, indexName)
 
-		for _, mf := range imfs.Manifests {
-			// we are looking up via the images themselves
-			if mf.Annotations[attestation.DockerReferenceType] == "attestation-manifest" {
-				continue
-			}
-
+		for _, platform := range platforms {
 			// can eval policy in the normal way
-			resolver, err := oci.NewRegistryAttestationResolver(indexName, "linux/amd64")
+			resolver, err := oci.NewRegistryAttestationResolver(indexName, platform)
 			require.NoError(t, err)
 
 			policyOpts := &policy.PolicyOptions{
@@ -79,10 +74,9 @@ func TestAttestationReferenceTypes(t *testing.T) {
 			results, err := attest.Verify(ctx, policyOpts, resolver)
 			require.NoError(t, err)
 			assert.Equal(t, attest.OutcomeSuccess, results.Outcome)
-
 			if !tc.skipSubject {
 				// can evaluate policy using referrers
-				referrersResolver, err := oci.NewReferrersAttestationResolver(indexName, oci.WithPlatform("linux/amd64"))
+				referrersResolver, err := oci.NewReferrersAttestationResolver(indexName, oci.WithPlatform(platform))
 				require.NoError(t, err)
 
 				results, err = attest.Verify(ctx, policyOpts, referrersResolver)
@@ -136,7 +130,7 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 		// push signed attestation image to the ref server
 		for _, img := range signedImages {
 			// push references using subject-digest.att convention
-			err = mirror.PushToRegistry(&img.Image, fmt.Sprintf("%s/%s:%s-%s.att", refServerUrl.Host, repoName, img.AttestationManifest.SubjectDescriptor.Digest.Algorithm, img.AttestationManifest.SubjectDescriptor.Digest.Hex))
+			err = mirror.PushToRegistry(&img.Image, fmt.Sprintf("%s/%s:tag-does-not-matter", refServerUrl.Host, repoName))
 			require.NoError(t, err)
 		}
 		mfs2, err := attIdx.Index.IndexManifest()

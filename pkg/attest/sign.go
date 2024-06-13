@@ -44,7 +44,7 @@ func SignedAttestationImages(ctx context.Context, idx v1.ImageIndex, signer dsse
 	images := []*attestation.SignedAttestationImage{}
 	// sign every attestation layer in each manifest
 	for _, manifest := range attestationManifests {
-		newImg, newDescriptor, err := ImageWithAttestations(ctx, manifest.Attestation.Layers, manifest, signer, opts)
+		newImg, newDescriptor, err := SignLayersAndAddToImage(ctx, manifest.Attestation.Layers, manifest, signer, opts)
 		if err != nil {
 			return nil, fmt.Errorf("failed to add signed layers to image: %w", err)
 		}
@@ -85,7 +85,7 @@ func AddAttestation(ctx context.Context, idx v1.ImageIndex, statement *intoto.St
 				},
 			}
 			// hard-coding replace to false here, because if it's true we will remove any unsigned statements, even unrelated ones
-			newImg, newDec, err := ImageWithAttestations(ctx, attestationLayers, manifest, signer, &attestation.SigningOptions{Replace: false})
+			newImg, newDec, err := SignLayersAndAddToImage(ctx, attestationLayers, manifest, signer, &attestation.SigningOptions{Replace: false})
 			if err != nil {
 				return nil, fmt.Errorf("failed to add signed layers to image: %w", err)
 			}
@@ -102,7 +102,7 @@ func AddAttestation(ctx context.Context, idx v1.ImageIndex, statement *intoto.St
 	return idx, nil
 }
 
-func ImageWithAttestations(
+func SignLayersAndAddToImage(
 	ctx context.Context,
 	attestationLayers []attestation.AttestationLayer,
 	manifest attestation.AttestationManifest,

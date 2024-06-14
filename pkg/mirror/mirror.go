@@ -48,9 +48,7 @@ func PushToRegistry(image any, imageName string) error {
 			return fmt.Errorf("failed to push image index %s: %w", imageName, err)
 		}
 	default:
-		if err := remote.WriteIndex(ref, image.(v1.ImageIndex), remote.WithAuth(auth)); err != nil {
-			return fmt.Errorf("failed to push image index %s: %w", imageName, err)
-		}
+		return fmt.Errorf("unknown image type")
 	}
 	return nil
 }
@@ -78,10 +76,7 @@ func SaveAsOCILayout(image any, path string) error {
 			return fmt.Errorf("failed to create index: %w", err)
 		}
 	default:
-		_, err := layout.Write(path, image.(v1.ImageIndex))
-		if err != nil {
-			return fmt.Errorf("failed to create index: %w", err)
-		}
+		return fmt.Errorf("unknown image type")
 	}
 	return nil
 }

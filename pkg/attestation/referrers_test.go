@@ -130,7 +130,7 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 		// push signed attestation image to the ref server
 		for _, img := range signedImages {
 			// push references using subject-digest.att convention
-			err = mirror.PushToRegistry(&img.Image, fmt.Sprintf("%s/%s:tag-does-not-matter", refServerUrl.Host, repoName))
+			err = mirror.PushToRegistry(img.Image, fmt.Sprintf("%s/%s:tag-does-not-matter", refServerUrl.Host, repoName))
 			require.NoError(t, err)
 		}
 		mfs2, err := attIdx.Index.IndexManifest()

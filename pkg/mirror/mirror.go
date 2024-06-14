@@ -39,12 +39,12 @@ func PushToRegistry(image any, imageName string) error {
 	}
 	// Push the image to the registry
 	switch image := image.(type) {
-	case *v1.Image:
-		if err := remote.Write(ref, *image, remote.WithAuth(auth)); err != nil {
+	case v1.Image:
+		if err := remote.Write(ref, image, remote.WithAuth(auth)); err != nil {
 			return fmt.Errorf("failed to push image %s: %w", imageName, err)
 		}
-	case *v1.ImageIndex:
-		if err := remote.WriteIndex(ref, *image, remote.WithAuth(auth)); err != nil {
+	case v1.ImageIndex:
+		if err := remote.WriteIndex(ref, image, remote.WithAuth(auth)); err != nil {
 			return fmt.Errorf("failed to push image index %s: %w", imageName, err)
 		}
 	default:

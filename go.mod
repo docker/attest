@@ -9,7 +9,7 @@ require (
 	github.com/distribution/reference v0.6.0
 	github.com/go-openapi/runtime v0.28.0
 	github.com/go-openapi/strfmt v0.23.0
-	github.com/google/go-containerregistry v0.19.1
+	github.com/google/go-containerregistry v0.19.2
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/in-toto/in-toto-golang v0.9.0
 	github.com/open-policy-agent/opa v0.65.0

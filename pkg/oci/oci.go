@@ -326,17 +326,16 @@ func (r *ReferrersResolver) ImagePlatform() (*v1.Platform, error) {
 
 func (r *ReferrersResolver) ImageDigest(ctx context.Context) (string, error) {
 	if r.digest == "" {
-		if strings.Contains(r.image, "@") {
-			parts := strings.Split(r.image, "@")
-			r.digest = parts[1]
-		} else {
+		subjectRef, err := name.ParseReference(r.image)
+		if err != nil {
+			return "", fmt.Errorf("failed to parse reference: %w", err)
+		}
+		switch t := subjectRef.(type) {
+		case name.Digest:
+			r.digest = t.String()
+		case name.Tag:
 			options := WithOptions(ctx, r.platform)
-			subjectRef, err := name.ParseReference(r.image)
-			if err != nil {
-				return "", fmt.Errorf("failed to parse reference: %w", err)
-			}
-
-			desc, err := remote.Image(subjectRef, options...)
+			desc, err := remote.Image(t, options...)
 			if err != nil {
 				return "", fmt.Errorf("failed to get image manifest: %w", err)
 			}
@@ -345,6 +344,8 @@ func (r *ReferrersResolver) ImageDigest(ctx context.Context) (string, error) {
 				return "", fmt.Errorf("failed to get image digest: %w", err)
 			}
 			r.digest = subjectDigest.String()
+		default:
+			return "", fmt.Errorf("unsupported reference type: %T", t)
 		}
 	}
 	return r.digest, nil

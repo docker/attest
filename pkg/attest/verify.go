@@ -37,7 +37,7 @@ func ToPolicyResult(p *policy.Policy, input *policy.PolicyInput, result *policy.
 	}
 	subject := intoto.Subject{
 		Name:   input.Purl,
-		Digest: *dgst,
+		Digest: dgst,
 	}
 	resourceUri, err := attestation.ToVSAResourceURI(subject)
 	if err != nil {

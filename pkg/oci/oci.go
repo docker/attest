@@ -549,12 +549,12 @@ func RefToPURL(ref string, platform *v1.Platform) (string, bool, error) {
 	return p.ToString(), isCanonical, nil
 }
 
-func SplitDigest(digest string) (*common.DigestSet, error) {
+func SplitDigest(digest string) (common.DigestSet, error) {
 	parts := strings.SplitN(digest, ":", 2)
 	if len(parts) != 2 {
 		return nil, fmt.Errorf("invalid digest %q", digest)
 	}
-	return &common.DigestSet{
+	return common.DigestSet{
 		parts[0]: parts[1],
 	}, nil
 }

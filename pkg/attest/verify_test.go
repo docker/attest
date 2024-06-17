@@ -106,6 +106,11 @@ func TestVSA(t *testing.T) {
 	assert.Equal(t, OutcomeSuccess, results.Outcome)
 	assert.Empty(t, results.Violations)
 
+	if assert.NotNil(t, results.Input) {
+		assert.Equal(t, "sha256:da8b190665956ea07890a0273e2a9c96bfe291662f08e2860e868eef69c34620", results.Input.Digest)
+		assert.False(t, results.Input.IsCanonical)
+	}
+
 	assert.Equal(t, intoto.StatementInTotoV01, results.VSA.Type)
 	assert.Equal(t, attestation.VSAPredicateType, results.VSA.PredicateType)
 	assert.Len(t, results.VSA.Subject, 1)

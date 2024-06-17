@@ -60,6 +60,7 @@ func ToPolicyResult(p *policy.Policy, input *policy.PolicyInput, result *policy.
 		Policy:     p,
 		Outcome:    outcome,
 		Violations: result.Violations,
+		Input:      input,
 		VSA: &intoto.Statement{
 			StatementHeader: intoto.StatementHeader{
 				PredicateType: attestation.VSAPredicateType,

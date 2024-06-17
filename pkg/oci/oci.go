@@ -332,7 +332,7 @@ func (r *ReferrersResolver) ImageDigest(ctx context.Context) (string, error) {
 		}
 		switch t := subjectRef.(type) {
 		case name.Digest:
-			r.digest = t.String()
+			r.digest = t.DigestStr()
 		case name.Tag:
 			options := WithOptions(ctx, r.platform)
 			desc, err := remote.Image(t, options...)

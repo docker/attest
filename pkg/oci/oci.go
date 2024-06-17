@@ -198,6 +198,7 @@ func (r *OCILayoutResolver) ImageDigest(ctx context.Context) (string, error) {
 type ReferrersResolver struct {
 	image         string
 	platform      *v1.Platform
+	digest        string
 	referrersRepo string
 	manifests     []*AttestationManifest
 }
@@ -236,27 +237,20 @@ func WithPlatform(platform string) func(*ReferrersResolver) error {
 
 func (r *ReferrersResolver) resolveAttestations(ctx context.Context) error {
 	if r.manifests == nil {
-		options := withOptions(ctx, r.platform)
 		subjectRef, err := name.ParseReference(r.image)
 		if err != nil {
 			return fmt.Errorf("failed to parse reference: %w", err)
 		}
-		desc, err := remote.Image(subjectRef, options...)
-		if err != nil {
-			return fmt.Errorf("failed to get image manifest: %w", err)
-		}
-		subjectDigest, err := desc.Digest()
-		if err != nil {
-			return fmt.Errorf("failed to get image digest: %w", err)
-		}
+		subjectDigest, err := r.ImageDigest(ctx)
+
 		var referrersSubjectRef name.Digest
 		if r.referrersRepo != "" {
-			referrersSubjectRef, err = name.NewDigest(fmt.Sprintf("%s@%s", r.referrersRepo, subjectDigest.String()))
+			referrersSubjectRef, err = name.NewDigest(fmt.Sprintf("%s@%s", r.referrersRepo, subjectDigest))
 			if err != nil {
 				return fmt.Errorf("failed to create referrers reference: %w", err)
 			}
 		} else {
-			referrersSubjectRef = subjectRef.Context().Digest(subjectDigest.String())
+			referrersSubjectRef = subjectRef.Context().Digest(subjectDigest)
 		}
 		referrersIndex, err := remote.Referrers(referrersSubjectRef)
 		if err != nil {
@@ -284,7 +278,7 @@ func (r *ReferrersResolver) resolveAttestations(ctx context.Context) error {
 			if manifest.Annotations[att.DockerReferenceType] != AttestationManifestType {
 				continue
 			}
-			if manifest.Annotations[att.DockerReferenceDigest] != subjectDigest.String() {
+			if manifest.Annotations[att.DockerReferenceDigest] != subjectDigest {
 				continue
 			}
 			attest := &AttestationManifest{
@@ -292,7 +286,7 @@ func (r *ReferrersResolver) resolveAttestations(ctx context.Context) error {
 				Image:      attestationImage,
 				Manifest:   manifest,
 				Descriptor: &m,
-				Digest:     subjectDigest.String(),
+				Digest:     subjectDigest,
 				Platform:   r.platform,
 			}
 			aManifests = append(aManifests, attest)
@@ -331,14 +325,29 @@ func (r *ReferrersResolver) ImagePlatform() (*v1.Platform, error) {
 }
 
 func (r *ReferrersResolver) ImageDigest(ctx context.Context) (string, error) {
-	err := r.resolveAttestations(ctx)
-	if err != nil {
-		return "", fmt.Errorf("failed to resolve attestations: %w", err)
+	if r.digest == "" {
+		if strings.Contains(r.image, "@") {
+			parts := strings.Split(r.image, "@")
+			r.digest = parts[1]
+		} else {
+			options := WithOptions(ctx, r.platform)
+			subjectRef, err := name.ParseReference(r.image)
+			if err != nil {
+				return "", fmt.Errorf("failed to parse reference: %w", err)
+			}
+
+			desc, err := remote.Image(subjectRef, options...)
+			if err != nil {
+				return "", fmt.Errorf("failed to get image manifest: %w", err)
+			}
+			subjectDigest, err := desc.Digest()
+			if err != nil {
+				return "", fmt.Errorf("failed to get image digest: %w", err)
+			}
+			r.digest = subjectDigest.String()
+		}
 	}
-	if len(r.manifests) == 0 {
-		return "", errors.New("no attestation manifests found")
-	}
-	return r.manifests[0].Digest, nil
+	return r.digest, nil
 }
 
 type RegistryResolver struct {
@@ -390,20 +399,20 @@ func (r *RegistryResolver) Attestations(ctx context.Context, predicateType strin
 
 func FetchAttestationManifest(ctx context.Context, image string, platform *v1.Platform) (*AttestationManifest, error) {
 	// we want to get to the image index, so ignoring platform for now
-	options := withOptions(ctx, nil)
+	options := WithOptions(ctx, nil)
 	ref, err := name.ParseReference(image)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse reference: %w", err)
 	}
-	desc, err := remote.Index(ref, options...)
+	index, err := remote.Index(ref, options...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to obtain index manifest: %w", err)
+		return nil, fmt.Errorf("failed to get index: %w", err)
 	}
-	ix, err := desc.IndexManifest()
+	indexManifest, err := index.IndexManifest()
 	if err != nil {
-		return nil, fmt.Errorf("failed to obtain index manifest: %w", err)
+		return nil, fmt.Errorf("failed to get index manifest: %w", err)
 	}
-	digest, err := imageDigestForPlatform(ix, platform)
+	digest, err := imageDigestForPlatform(indexManifest, platform)
 	if err != nil {
 		return nil, fmt.Errorf("failed to obtain image for platform: %w", err)
 	}
@@ -412,7 +421,7 @@ func FetchAttestationManifest(ctx context.Context, image string, platform *v1.Pl
 		return nil, fmt.Errorf("failed to parse attestation reference: %w", err)
 	}
 
-	attestationDigest, err := attestationDigestForDigest(ix, digest, "attestation-manifest")
+	attestationDigest, err := attestationDigestForDigest(indexManifest, digest, "attestation-manifest")
 	if err != nil {
 		return nil, fmt.Errorf("failed to obtain attestation for image: %w", err)
 	}
@@ -444,7 +453,7 @@ func FetchAttestationManifest(ctx context.Context, image string, platform *v1.Pl
 	return attest, nil
 }
 
-func withOptions(ctx context.Context, platform *v1.Platform) []remote.Option {
+func WithOptions(ctx context.Context, platform *v1.Platform) []remote.Option {
 	// prepare options
 	options := []remote.Option{remote.WithAuthFromKeychain(authn.DefaultKeychain), remote.WithTransport(HttpTransport()), remote.WithContext(ctx)}
 

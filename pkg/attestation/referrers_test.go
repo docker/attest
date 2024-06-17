@@ -13,7 +13,9 @@ import (
 	"github.com/docker/attest/pkg/mirror"
 	"github.com/docker/attest/pkg/oci"
 	"github.com/docker/attest/pkg/policy"
+	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/registry"
+	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -33,6 +35,7 @@ func TestAttestationReferenceTypes(t *testing.T) {
 	for _, tc := range []struct {
 		server      *httptest.Server
 		skipSubject bool
+		useDigest   bool
 	}{
 		{
 			server: httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
@@ -43,6 +46,10 @@ func TestAttestationReferenceTypes(t *testing.T) {
 		{
 			server:      httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
 			skipSubject: true,
+		},
+		{
+			server:    httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
+			useDigest: true,
 		},
 	} {
 		s := tc.server
@@ -65,7 +72,18 @@ func TestAttestationReferenceTypes(t *testing.T) {
 
 		for _, platform := range platforms {
 			// can eval policy in the normal way
-			resolver, err := oci.NewRegistryAttestationResolver(indexName, platform)
+			ref := indexName
+			if tc.useDigest {
+				options := oci.WithOptions(ctx, nil)
+				subjectRef, err := name.ParseReference(indexName)
+				require.NoError(t, err)
+				desc, err := remote.Index(subjectRef, options...)
+				require.NoError(t, err)
+				idxDigest, err := desc.Digest()
+				require.NoError(t, err)
+				ref = fmt.Sprintf("%s/repo@%s", u.Host, idxDigest.String())
+			}
+			resolver, err := oci.NewRegistryAttestationResolver(ref, platform)
 			require.NoError(t, err)
 
 			policyOpts := &policy.PolicyOptions{
@@ -74,9 +92,22 @@ func TestAttestationReferenceTypes(t *testing.T) {
 			results, err := attest.Verify(ctx, policyOpts, resolver)
 			require.NoError(t, err)
 			assert.Equal(t, attest.OutcomeSuccess, results.Outcome)
+
 			if !tc.skipSubject {
 				// can evaluate policy using referrers
-				referrersResolver, err := oci.NewReferrersAttestationResolver(indexName, oci.WithPlatform(platform))
+				if tc.useDigest {
+					p, err := oci.ParsePlatform(platform)
+					require.NoError(t, err)
+					options := oci.WithOptions(ctx, p)
+					subjectRef, err := name.ParseReference(indexName)
+					require.NoError(t, err)
+					desc, err := remote.Image(subjectRef, options...)
+					require.NoError(t, err)
+					subjectDigest, err := desc.Digest()
+					require.NoError(t, err)
+					ref = fmt.Sprintf("%s/repo@%s", u.Host, subjectDigest.String())
+				}
+				referrersResolver, err := oci.NewReferrersAttestationResolver(ref, oci.WithPlatform(platform))
 				require.NoError(t, err)
 
 				results, err = attest.Verify(ctx, policyOpts, referrersResolver)
@@ -137,7 +168,7 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 		require.NoError(t, err)
 		for _, mf := range mfs2.Manifests {
 			//skip signed/unsigned attestations
-			if mf.Annotations[attestation.DockerReferenceType] == "attestation-manifest" {
+			if mf.Annotations[attestation.DockerReferenceType] == attestation.AttestationManifestType {
 				continue
 			}
 			// can evaluate policy using referrers in a different repo

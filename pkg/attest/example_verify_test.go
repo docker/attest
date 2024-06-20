@@ -39,19 +39,6 @@ func ExampleVerify_remote() {
 	// create a resolver for remote attestations
 	image := "registry-1.docker.io/library/notary:server"
 	platform := "linux/amd64"
-	resolver, err := oci.NewRegistryAttestationResolver(
-		image,    // path to image index in OCI registry containing image attestations
-		platform) // platform of subject image (image that attestations are being verified against)
-	if err != nil {
-		panic(err)
-	}
-	// example using a local resolver
-	// path := "/myimage"
-	// platform := "linux/amd64"
-	// resolver := &oci.OCILayoutResolver{
-	// 	Path:     path,     // file path to OCI layout containing image attestations
-	// 	Platform: platform, // platform of subject image (image that attestations are being verified against)
-	// }
 
 	// configure policy options
 	opts := &policy.PolicyOptions{
@@ -62,7 +49,11 @@ func ExampleVerify_remote() {
 	}
 
 	// verify attestations
-	result, err := attest.Verify(context.Background(), opts, resolver)
+	src, err := oci.ParseImageSpec(image, oci.WithPlatform(platform))
+	if err != nil {
+		panic(err)
+	}
+	result, err := attest.Verify(context.Background(), src, opts)
 	if err != nil {
 		panic(err)
 	}

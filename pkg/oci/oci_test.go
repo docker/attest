@@ -85,3 +85,24 @@ func TestImageDigestForPlatform(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "sha256:7a76cec943853f9f7105b1976afa1bf7cd5bb6afc4e9d5852dd8da7cf81ae86e", digest)
 }
+
+func TestWithoutTag(t *testing.T) {
+	tc := []struct {
+		name     string
+		expected string
+	}{
+		{name: "image:tag", expected: "index.docker.io/library/image"},
+		{name: "image", expected: "index.docker.io/library/image"},
+		{name: "image:sha256-digest.att", expected: "index.docker.io/library/image"},
+		{name: "docker://image:tag", expected: "docker://index.docker.io/library/image"},
+		{name: "image@sha256:166710df254975d4a6c4c407c315951c22753dcaa829e020a3fd5d18fff70dd2", expected: "index.docker.io/library/image"},
+		{name: "docker://image@sha256:166710df254975d4a6c4c407c315951c22753dcaa829e020a3fd5d18fff70dd2", expected: "docker://index.docker.io/library/image"},
+		{name: "docker://127.0.0.1:36555/repo:latest", expected: "docker://127.0.0.1:36555/repo"},
+	}
+	for _, c := range tc {
+		t.Run(c.name, func(t *testing.T) {
+			notag, _ := WithoutTag(c.name)
+			assert.Equal(t, c.expected, notag)
+		})
+	}
+}

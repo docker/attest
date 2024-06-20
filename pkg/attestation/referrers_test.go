@@ -83,13 +83,13 @@ func TestAttestationReferenceTypes(t *testing.T) {
 				require.NoError(t, err)
 				ref = fmt.Sprintf("%s/repo@%s", u.Host, idxDigest.String())
 			}
-			resolver, err := oci.NewRegistryAttestationResolver(ref, platform)
-			require.NoError(t, err)
 
 			policyOpts := &policy.PolicyOptions{
 				LocalPolicyDir: PassPolicyDir,
 			}
-			results, err := attest.Verify(ctx, policyOpts, resolver)
+			src, err := oci.ParseImageSpec(ref, oci.WithPlatform(platform))
+			require.NoError(t, err)
+			results, err := attest.Verify(ctx, src, policyOpts)
 			require.NoError(t, err)
 			assert.Equal(t, attest.OutcomeSuccess, results.Outcome)
 
@@ -107,10 +107,9 @@ func TestAttestationReferenceTypes(t *testing.T) {
 					require.NoError(t, err)
 					ref = fmt.Sprintf("%s/repo@%s", u.Host, subjectDigest.String())
 				}
-				referrersResolver, err := oci.NewReferrersAttestationResolver(ref, oci.WithPlatform(platform))
+				src, err := oci.ParseImageSpec(ref, oci.WithPlatform(platform))
 				require.NoError(t, err)
-
-				results, err = attest.Verify(ctx, policyOpts, referrersResolver)
+				results, err = attest.Verify(ctx, src, policyOpts)
 				require.NoError(t, err)
 				assert.Equal(t, attest.OutcomeSuccess, results.Outcome)
 			}
@@ -172,14 +171,13 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 				continue
 			}
 			// can evaluate policy using referrers in a different repo
-			repo := fmt.Sprintf("%s/%s", refServerUrl.Host, repoName)
 			referencedImage := fmt.Sprintf("%s@%s", indexName, mf.Digest.String())
-			referrersResolver, err := oci.NewReferrersAttestationResolver(referencedImage, oci.WithReferrersRepo(repo))
-			require.NoError(t, err)
 			policyOpts := &policy.PolicyOptions{
 				LocalPolicyDir: PassPolicyDir,
 			}
-			results, err := attest.Verify(ctx, policyOpts, referrersResolver)
+			src, err := oci.ParseImageSpec(referencedImage)
+			require.NoError(t, err)
+			results, err := attest.Verify(ctx, src, policyOpts)
 			require.NoError(t, err)
 			assert.Equal(t, attest.OutcomeSuccess, results.Outcome)
 		}

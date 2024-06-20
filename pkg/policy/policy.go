@@ -10,95 +10,11 @@ import (
 	"strings"
 
 	"github.com/distribution/reference"
+	"github.com/docker/attest/pkg/config"
 	"github.com/docker/attest/pkg/oci"
-	"github.com/docker/attest/pkg/tuf"
-	intoto "github.com/in-toto/in-toto-golang/in_toto"
-
-	goyaml "gopkg.in/yaml.v3"
 )
 
-const (
-	PolicyMappingFileName = "mapping.yaml"
-)
-
-type Summary struct {
-	Subjects   []intoto.Subject `json:"subjects"`
-	SLSALevels []string         `json:"slsa_levels"`
-	Verifier   string           `json:"verifier"`
-	PolicyURI  string           `json:"policy_uri"`
-}
-
-type Violation struct {
-	Type        string            `json:"type"`
-	Description string            `json:"description"`
-	Attestation *intoto.Statement `json:"attestation"`
-	Details     map[string]any    `json:"details"`
-}
-
-type Result struct {
-	Success    bool        `json:"success"`
-	Violations []Violation `json:"violations"`
-	Summary    Summary     `json:"summary"`
-}
-
-type PolicyMappings struct {
-	Version  string          `json:"version"`
-	Kind     string          `json:"kind"`
-	Policies []PolicyMapping `json:"policies"`
-	Mirrors  []PolicyMirror  `json:"mirrors"`
-}
-
-type PolicyMapping struct {
-	Id          string              `json:"id"`
-	Description string              `json:"description"`
-	Origin      PolicyOrigin        `json:"origin"`
-	Files       []PolicyMappingFile `json:"files"`
-}
-
-type PolicyMappingFile struct {
-	Path string `json:"path"`
-}
-
-type PolicyMirror struct {
-	PolicyId string     `yaml:"policy-id"`
-	Mirror   MirrorSpec `json:"mirror"`
-}
-
-type MirrorSpec struct {
-	Domains []string `json:"domains"`
-	Prefix  string   `json:"prefix"`
-}
-
-type PolicyOrigin struct {
-	Name   string `json:"name"`
-	Prefix string `json:"prefix"`
-	Domain string `json:"domain"`
-}
-
-type PolicyOptions struct {
-	TufClient       tuf.TUFClient
-	LocalTargetsDir string
-	LocalPolicyDir  string
-	PolicyId        string
-}
-
-type Policy struct {
-	InputFiles []*PolicyFile
-	Query      string
-}
-
-type PolicyInput struct {
-	Digest      string `json:"digest"`
-	Purl        string `json:"purl"`
-	IsCanonical bool   `json:"isCanonical"`
-}
-
-type PolicyFile struct {
-	Path    string
-	Content []byte
-}
-
-func resolveLocalPolicy(opts *PolicyOptions, mapping *PolicyMapping) (*Policy, error) {
+func resolveLocalPolicy(opts *PolicyOptions, mapping *config.PolicyMapping) (*Policy, error) {
 	if opts.LocalPolicyDir == "" {
 		return nil, fmt.Errorf("local policy dir not set")
 	}
@@ -117,28 +33,12 @@ func resolveLocalPolicy(opts *PolicyOptions, mapping *PolicyMapping) (*Policy, e
 	}
 	policy := &Policy{
 		InputFiles: files,
+		Mapping:    mapping,
 	}
 	return policy, nil
 }
 
-func LoadLocalMappings(opts *PolicyOptions) (*PolicyMappings, error) {
-	if opts.LocalPolicyDir == "" {
-		return nil, nil
-	}
-	mappings := &PolicyMappings{}
-	path := path.Join(opts.LocalPolicyDir, PolicyMappingFileName)
-	mappingFile, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read policy mapping file %s: %w", path, err)
-	}
-	err = goyaml.Unmarshal(mappingFile, mappings)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal policy mapping file %s: %w", path, err)
-	}
-	return mappings, nil
-}
-
-func resolveTufPolicy(opts *PolicyOptions, mapping *PolicyMapping) (*Policy, error) {
+func resolveTufPolicy(opts *PolicyOptions, mapping *config.PolicyMapping) (*Policy, error) {
 	files := make([]*PolicyFile, 0, len(mapping.Files))
 	for _, f := range mapping.Files {
 		filename := f.Path
@@ -153,29 +53,12 @@ func resolveTufPolicy(opts *PolicyOptions, mapping *PolicyMapping) (*Policy, err
 	}
 	policy := &Policy{
 		InputFiles: files,
+		Mapping:    mapping,
 	}
 	return policy, nil
 }
 
-func loadTufMappings(tufClient tuf.TUFClient, localTargetsDir string) (*PolicyMappings, error) {
-	if tufClient == nil {
-		return nil, fmt.Errorf("tuf client not set")
-	}
-	filename := PolicyMappingFileName
-	_, fileContents, err := tufClient.DownloadTarget(filename, filepath.Join(localTargetsDir, filename))
-	if err != nil {
-		return nil, fmt.Errorf("failed to download policy file %s: %w", filename, err)
-	}
-	mappings := &PolicyMappings{}
-
-	err = goyaml.Unmarshal(fileContents, mappings)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal policy mapping file %s: %w", filename, err)
-	}
-	return mappings, nil
-}
-
-func findPolicyMatch(named reference.Named, mappings *PolicyMappings) (*PolicyMapping, *PolicyMirror) {
+func findPolicyMatch(named reference.Named, mappings *config.PolicyMappings) (*config.PolicyMapping, *config.PolicyMirror) {
 	if mappings != nil {
 		for _, mapping := range mappings.Policies {
 			if mapping.Origin.Domain == reference.Domain(named) &&
@@ -202,7 +85,7 @@ func findPolicyMatch(named reference.Named, mappings *PolicyMappings) (*PolicyMa
 
 func resolvePolicyById(opts *PolicyOptions) (*Policy, error) {
 	if opts.PolicyId != "" {
-		localMappings, err := LoadLocalMappings(opts)
+		localMappings, err := config.LoadLocalMappings(opts.LocalPolicyDir)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load local policy mappings: %w", err)
 		}
@@ -215,9 +98,9 @@ func resolvePolicyById(opts *PolicyOptions) (*Policy, error) {
 		}
 
 		// must check tuf
-		tufMappings, err := loadTufMappings(opts.TufClient, opts.LocalTargetsDir)
+		tufMappings, err := config.LoadTufMappings(opts.TufClient, opts.LocalTargetsDir)
 		if err != nil {
-			return nil, fmt.Errorf("failed to load tuf policy mappings: %w", err)
+			return nil, fmt.Errorf("failed to load tuf policy mappings by id: %w", err)
 		}
 		for _, mapping := range tufMappings.Policies {
 			if mapping.Id == opts.PolicyId {
@@ -229,7 +112,7 @@ func resolvePolicyById(opts *PolicyOptions) (*Policy, error) {
 	return nil, nil
 }
 
-func ResolvePolicy(ctx context.Context, resolver oci.AttestationResolver, opts *PolicyOptions) (*Policy, error) {
+func ResolvePolicy(ctx context.Context, detailsResolver oci.ImageDetailsResolver, opts *PolicyOptions) (*Policy, error) {
 	p, err := resolvePolicyById(opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve policy by id: %w", err)
@@ -237,8 +120,7 @@ func ResolvePolicy(ctx context.Context, resolver oci.AttestationResolver, opts *
 	if p != nil {
 		return p, nil
 	}
-
-	imageName, err := resolver.ImageName(ctx)
+	imageName, err := detailsResolver.ImageName(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get image name: %w", err)
 	}
@@ -246,7 +128,7 @@ func ResolvePolicy(ctx context.Context, resolver oci.AttestationResolver, opts *
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse image name: %w", err)
 	}
-	localMappings, err := LoadLocalMappings(opts)
+	localMappings, err := config.LoadLocalMappings(opts.LocalPolicyDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load local policy mappings: %w", err)
 	}
@@ -255,9 +137,9 @@ func ResolvePolicy(ctx context.Context, resolver oci.AttestationResolver, opts *
 		return resolveLocalPolicy(opts, mapping)
 	}
 	// must check tuf
-	tufMappings, err := loadTufMappings(opts.TufClient, opts.LocalTargetsDir)
+	tufMappings, err := config.LoadTufMappings(opts.TufClient, opts.LocalTargetsDir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load tuf policy mappings: %w", err)
+		return nil, fmt.Errorf("failed to load tuf policy mappings as fallback: %w", err)
 	}
 
 	// it's a mirror of a tuf policy
@@ -275,4 +157,31 @@ func ResolvePolicy(ctx context.Context, resolver oci.AttestationResolver, opts *
 		return nil, nil
 	}
 	return resolveTufPolicy(opts, mapping)
+}
+
+func CreateImageDetailsResolver(imageSource *oci.ImageSpec) (oci.ImageDetailsResolver, error) {
+	if imageSource.Type == oci.OCI {
+		return oci.NewOCILayoutAttestationResolver(imageSource)
+	} else {
+		return oci.NewRegistryImageDetailsResolver(imageSource)
+	}
+}
+
+func CreateAttestationResolver(resolver oci.ImageDetailsResolver, mapping *config.PolicyMapping) (oci.AttestationResolver, error) {
+	switch resolver := resolver.(type) {
+	case *oci.RegistryImageDetailsResolver:
+		if mapping.Attestations != nil && mapping.Attestations.Style == config.AttestationSourceAttached {
+			return oci.NewRegistryAttestationResolver(resolver)
+		} else {
+			if mapping.Attestations != nil && mapping.Attestations.Repo != "" {
+				return oci.NewReferrersAttestationResolver(resolver, oci.WithReferrersRepo(mapping.Attestations.Repo))
+			} else {
+				return oci.NewReferrersAttestationResolver(resolver)
+			}
+		}
+	case *oci.OCILayoutResolver:
+		return resolver, nil
+	default:
+		return nil, fmt.Errorf("unsupported image details resolver type: %T", resolver)
+	}
 }

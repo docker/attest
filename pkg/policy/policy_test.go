@@ -8,6 +8,7 @@ import (
 
 	"github.com/docker/attest/internal/test"
 	"github.com/docker/attest/pkg/attestation"
+	"github.com/docker/attest/pkg/config"
 	"github.com/docker/attest/pkg/oci"
 	"github.com/docker/attest/pkg/policy"
 	"github.com/docker/attest/pkg/tuf"
@@ -76,8 +77,14 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 					PolicyId:        tc.policyId,
 				}
 			}
-
-			policy, err := policy.ResolvePolicy(ctx, tc.resolver, tc.policy)
+			imageName, err := tc.resolver.ImageName(ctx)
+			require.NoError(t, err)
+			platform, err := tc.resolver.ImagePlatform(ctx)
+			require.NoError(t, err)
+			src, err := oci.ParseImageSpec(imageName, oci.WithPlatform(platform.String()))
+			require.NoError(t, err)
+			resolver, err := policy.CreateImageDetailsResolver(src)
+			policy, err := policy.ResolvePolicy(ctx, resolver, tc.policy)
 			if tc.errorStr != "" {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tc.errorStr)
@@ -98,10 +105,7 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 }
 
 func TestLoadingMappings(t *testing.T) {
-	opts := &policy.PolicyOptions{
-		LocalPolicyDir: filepath.Join("testdata", "mock-tuf-allow"),
-	}
-	policyMappings, err := policy.LoadLocalMappings(opts)
+	policyMappings, err := config.LoadLocalMappings(filepath.Join("testdata", "mock-tuf-allow"))
 	require.NoError(t, err)
 	assert.Equal(t, len(policyMappings.Mirrors), 1)
 	for _, mirror := range policyMappings.Mirrors {

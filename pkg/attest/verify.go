@@ -6,13 +6,20 @@ import (
 	"time"
 
 	"github.com/docker/attest/pkg/attestation"
+	"github.com/docker/attest/pkg/config"
 	"github.com/docker/attest/pkg/oci"
 	"github.com/docker/attest/pkg/policy"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 )
 
-func Verify(ctx context.Context, opts *policy.PolicyOptions, resolver oci.AttestationResolver) (result *VerificationResult, err error) {
-	pctx, err := policy.ResolvePolicy(ctx, resolver, opts)
+func Verify(ctx context.Context, src *oci.ImageSpec, opts *policy.PolicyOptions) (result *VerificationResult, err error) {
+	// so that we can resolve mapping from the image name earlier
+	detailsResolver, err := policy.CreateImageDetailsResolver(src)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create image details resolver: %w", err)
+	}
+
+	pctx, err := policy.ResolvePolicy(ctx, detailsResolver, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve policy: %w", err)
 	}
@@ -22,7 +29,18 @@ func Verify(ctx context.Context, opts *policy.PolicyOptions, resolver oci.Attest
 			Outcome: OutcomeNoPolicy,
 		}, nil
 	}
-
+	// this is overriding the mapping with a referrers config. Useful for testing if nothing else
+	if opts.ReferrersRepo != "" {
+		pctx.Mapping.Attestations = &config.ReferrersConfig{
+			Repo:  opts.ReferrersRepo,
+			Style: config.AttestationSourceReferrers,
+		}
+	}
+	// because we have a mapping now, we can select a resolver based on its contents (ie. referrers or attached)
+	resolver, err := policy.CreateAttestationResolver(detailsResolver, pctx.Mapping)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create attestation resolver: %w", err)
+	}
 	result, err = VerifyAttestations(ctx, resolver, pctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to evaluate policy: %w", err)
@@ -90,7 +108,7 @@ func VerifyAttestations(ctx context.Context, resolver oci.AttestationResolver, p
 	if err != nil {
 		return nil, fmt.Errorf("failed to get image name: %w", err)
 	}
-	platform, err := resolver.ImagePlatform()
+	platform, err := resolver.ImagePlatform(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -48,7 +48,7 @@ func TestSignVerifyOCILayout(t *testing.T) {
 		{"no provenance (replace)", NoProvenanceImage, 0, 2, true},
 		{"no provenance (no replace)", NoProvenanceImage, 2, 2, false},
 	}
-	policyResolver := &policy.PolicyOptions{
+	policyOpts := &policy.PolicyOptions{
 		LocalPolicyDir: PassPolicyDir,
 	}
 	for _, tc := range testCases {
@@ -74,9 +74,9 @@ func TestSignVerifyOCILayout(t *testing.T) {
 			})
 			_, err = layout.Write(outputLayout, idx)
 			require.NoError(t, err)
-			resolver, err := oci.NewOCILayoutAttestationResolver(outputLayout, "")
+			src, err := oci.ParseImageSpec("oci://" + outputLayout)
 			require.NoError(t, err)
-			policy, err := Verify(ctx, policyResolver, resolver)
+			policy, err := Verify(ctx, src, policyOpts)
 			require.NoError(t, err)
 			assert.Equalf(t, OutcomeSuccess, policy.Outcome, "Policy should have been found")
 

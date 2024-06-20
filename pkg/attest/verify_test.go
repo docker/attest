@@ -25,6 +25,10 @@ var (
 	ExampleAttestation = filepath.Join("..", "..", "test", "testdata", "example_attestation.json")
 )
 
+const (
+	LinuxAMD64 = "linux/amd64"
+)
+
 func TestVerifyAttestations(t *testing.T) {
 	ex, err := os.ReadFile(ExampleAttestation)
 	assert.NoError(t, err)
@@ -94,14 +98,13 @@ func TestVSA(t *testing.T) {
 	_, err = layout.Write(outputLayout, idx)
 	assert.NoError(t, err)
 
-	resolver, err := oci.NewOCILayoutAttestationResolver(outputLayout, "linux/amd64")
-	require.NoError(t, err)
-
 	// mocked vsa query should pass
 	policyOpts := &policy.PolicyOptions{
 		LocalPolicyDir: PassPolicyDir,
 	}
-	results, err := Verify(ctx, policyOpts, resolver)
+	src, err := oci.ParseImageSpec("oci://"+outputLayout, oci.WithPlatform(LinuxAMD64))
+	require.NoError(t, err)
+	results, err := Verify(ctx, src, policyOpts)
 	require.NoError(t, err)
 	assert.Equal(t, OutcomeSuccess, results.Outcome)
 	assert.Empty(t, results.Violations)
@@ -151,14 +154,13 @@ func TestVerificationFailure(t *testing.T) {
 	_, err = layout.Write(outputLayout, idx)
 	assert.NoError(t, err)
 
-	resolver, err := oci.NewOCILayoutAttestationResolver(outputLayout, "linux/amd64")
-	require.NoError(t, err)
-
 	// mocked vsa query should fail
 	policyOpts := &policy.PolicyOptions{
 		LocalPolicyDir: FailPolicyDir,
 	}
-	results, err := Verify(ctx, policyOpts, resolver)
+	src, err := oci.ParseImageSpec("oci://"+outputLayout, oci.WithPlatform(LinuxAMD64))
+	require.NoError(t, err)
+	results, err := Verify(ctx, src, policyOpts)
 	require.NoError(t, err)
 	assert.Equal(t, OutcomeFailure, results.Outcome)
 	assert.Len(t, results.Violations, 1)
@@ -225,13 +227,12 @@ func TestSignVerifyNoTL(t *testing.T) {
 			_, err = layout.Write(outputLayout, idx)
 			assert.NoError(t, err)
 
-			resolver, err := oci.NewOCILayoutAttestationResolver(outputLayout, "linux/amd64")
-			require.NoError(t, err)
-
 			policyOpts := &policy.PolicyOptions{
 				LocalPolicyDir: tc.policyDir,
 			}
-			results, err := Verify(ctx, policyOpts, resolver)
+			src, err := oci.ParseImageSpec("oci://"+outputLayout, oci.WithPlatform(LinuxAMD64))
+			require.NoError(t, err)
+			results, err := Verify(ctx, src, policyOpts)
 			require.NoError(t, err)
 			assert.Equal(t, OutcomeSuccess, results.Outcome)
 		})

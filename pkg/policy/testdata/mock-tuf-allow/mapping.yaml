@@ -7,6 +7,8 @@ policies:
       prefix: library/
     id: docker-official-images
     description: Docker Official Images
+    attestations:
+      repo: "localhost:5001/library-refs"
     files:
       - path: doi/policy.rego
 mirrors:

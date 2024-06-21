@@ -42,7 +42,7 @@ func TestAttestationReferenceTypes(t *testing.T) {
 		skipSubject       bool
 		useDigest         bool
 		referrersRepo     string
-		attestationSource config.AttestationSource
+		attestationSource config.AttestationStyle
 		expectFailure     bool
 		policyDir         string
 	}{
@@ -55,7 +55,7 @@ func TestAttestationReferenceTypes(t *testing.T) {
 		{
 			server:            httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
 			skipSubject:       true,
-			attestationSource: config.AttestationSourceAttached,
+			attestationSource: config.AttestationStyleAttached,
 		},
 		{
 			server:    httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
@@ -64,22 +64,22 @@ func TestAttestationReferenceTypes(t *testing.T) {
 		{
 			server:            httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
 			expectFailure:     true, //mismatched args
-			attestationSource: config.AttestationSourceAttached,
+			attestationSource: config.AttestationStyleAttached,
 			referrersRepo:     "referrers",
 		},
 		{
 			server:            httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
 			expectFailure:     true, // no policy
-			attestationSource: config.AttestationSourceReferrers,
+			attestationSource: config.AttestationStyleReferrers,
 			referrersRepo:     "referrers",
 		},
 		{
 			server:            httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
-			attestationSource: config.AttestationSourceReferrers,
+			attestationSource: config.AttestationStyleReferrers,
 		},
 		{
 			server:            httptest.NewServer(registry.New(registry.WithReferrersSupport(false))),
-			attestationSource: config.AttestationSourceReferrers,
+			attestationSource: config.AttestationStyleReferrers,
 			referrersServer:   httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
 		},
 	} {
@@ -148,7 +148,7 @@ func TestAttestationReferenceTypes(t *testing.T) {
 				}
 
 				if tc.attestationSource != "" {
-					policyOpts.AttestationSource = tc.attestationSource
+					policyOpts.AttestationStyle = tc.attestationSource
 				}
 				src, err := oci.ParseImageSpec(ref, oci.WithPlatform(platform))
 				require.NoError(t, err)

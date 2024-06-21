@@ -172,7 +172,7 @@ func CreateImageDetailsResolver(imageSource *oci.ImageSpec) (oci.ImageDetailsRes
 func CreateAttestationResolver(resolver oci.ImageDetailsResolver, mapping *config.PolicyMapping) (oci.AttestationResolver, error) {
 	switch resolver := resolver.(type) {
 	case *oci.RegistryImageDetailsResolver:
-		if mapping.Attestations != nil && mapping.Attestations.Style == config.AttestationSourceAttached {
+		if mapping.Attestations != nil && mapping.Attestations.Style == config.AttestationStyleAttached {
 			return oci.NewRegistryAttestationResolver(resolver)
 		} else {
 			if mapping.Attestations != nil && mapping.Attestations.Repo != "" {

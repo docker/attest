@@ -1,10 +1,10 @@
 package config
 
 type PolicyMappings struct {
-	Version  string          `json:"version"`
-	Kind     string          `json:"kind"`
-	Policies []PolicyMapping `json:"policies"`
-	Mirrors  []PolicyMirror  `json:"mirrors"`
+	Version  string           `json:"version"`
+	Kind     string           `json:"kind"`
+	Policies []*PolicyMapping `json:"policies"`
+	Mirrors  []*PolicyMirror  `json:"mirrors"`
 }
 
 type AttestationStyle string

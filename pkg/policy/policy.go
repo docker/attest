@@ -63,7 +63,7 @@ func findPolicyMatch(named reference.Named, mappings *config.PolicyMappings) (*c
 		for _, mapping := range mappings.Policies {
 			if mapping.Origin.Domain == reference.Domain(named) &&
 				strings.HasPrefix(reference.Path(named), mapping.Origin.Prefix) {
-				return &mapping, nil
+				return mapping, nil
 			}
 		}
 		// now search mirrors
@@ -73,10 +73,10 @@ func findPolicyMatch(named reference.Named, mappings *config.PolicyMappings) (*c
 				strings.HasPrefix(reference.Path(named), mirror.Mirror.Prefix) {
 				for _, mapping := range mappings.Policies {
 					if mapping.Id == mirror.PolicyId {
-						return &mapping, nil
+						return mapping, nil
 					}
 				}
-				return nil, &mirror
+				return nil, mirror
 			}
 		}
 	}
@@ -92,7 +92,7 @@ func resolvePolicyById(opts *PolicyOptions) (*Policy, error) {
 		if localMappings != nil {
 			for _, mapping := range localMappings.Policies {
 				if mapping.Id == opts.PolicyId {
-					return resolveLocalPolicy(opts, &mapping)
+					return resolveLocalPolicy(opts, mapping)
 				}
 			}
 		}
@@ -104,7 +104,7 @@ func resolvePolicyById(opts *PolicyOptions) (*Policy, error) {
 		}
 		for _, mapping := range tufMappings.Policies {
 			if mapping.Id == opts.PolicyId {
-				return resolveTufPolicy(opts, &mapping)
+				return resolveTufPolicy(opts, mapping)
 			}
 		}
 		return nil, fmt.Errorf("policy with id %s not found", opts.PolicyId)
@@ -146,7 +146,7 @@ func ResolvePolicy(ctx context.Context, detailsResolver oci.ImageDetailsResolver
 	if mirror != nil {
 		for _, mapping := range tufMappings.Policies {
 			if mapping.Id == mirror.PolicyId {
-				return resolveTufPolicy(opts, &mapping)
+				return resolveTufPolicy(opts, mapping)
 			}
 		}
 	}

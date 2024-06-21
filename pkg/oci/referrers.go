@@ -39,7 +39,7 @@ func WithReferrersRepo(repo string) func(*ReferrersResolver) error {
 
 func (r *ReferrersResolver) resolveAttestations(ctx context.Context) error {
 	if r.manifests == nil {
-		subjectRef, err := name.ParseReference(r.WithoutPrefix)
+		subjectRef, err := name.ParseReference(r.Identifier)
 		if err != nil {
 			return fmt.Errorf("failed to parse reference: %w", err)
 		}
@@ -86,7 +86,7 @@ func (r *ReferrersResolver) resolveAttestations(ctx context.Context) error {
 				continue
 			}
 			attest := &AttestationManifest{
-				Name:       r.WithoutPrefix,
+				Name:       r.Identifier,
 				Image:      attestationImage,
 				Manifest:   manifest,
 				Descriptor: &m,

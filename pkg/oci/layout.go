@@ -19,29 +19,29 @@ type OCILayoutResolver struct {
 }
 
 func NewOCILayoutAttestationResolver(src *ImageSpec) (*OCILayoutResolver, error) {
-	return &OCILayoutResolver{
+	r := &OCILayoutResolver{
 		ImageSpec: src,
-	}, nil
+	}
+	_, err := r.fetchAttestationManifest()
+	if err != nil {
+		return nil, err
+	}
+	return r, nil
 }
 
 func (r *OCILayoutResolver) fetchAttestationManifest() (*AttestationManifest, error) {
 	if r.AttestationManifest == nil {
-		m, err := attestationManifestFromOCILayout(r.WithoutPrefix, r.ImageSpec.Platform)
+		m, err := attestationManifestFromOCILayout(r.Identifier, r.ImageSpec.Platform)
 		if err != nil {
 			return nil, err
 		}
 		r.AttestationManifest = m
 	}
+
 	return r.AttestationManifest, nil
 }
 
 func (r *OCILayoutResolver) Attestations(ctx context.Context, predicateType string) ([]*att.Envelope, error) {
-	if r.AttestationManifest == nil {
-		_, err := r.fetchAttestationManifest()
-		if err != nil {
-			return nil, err
-		}
-	}
 	attestationImage := r.AttestationManifest.Image
 	layers, err := attestationImage.Layers()
 	if err != nil {
@@ -80,23 +80,10 @@ func (r *OCILayoutResolver) Attestations(ctx context.Context, predicateType stri
 }
 
 func (r *OCILayoutResolver) ImageName(ctx context.Context) (string, error) {
-	if r.AttestationManifest == nil {
-		_, err := r.fetchAttestationManifest()
-		if err != nil {
-			return "", err
-		}
-	}
-
 	return r.Name, nil
 }
 
 func (r *OCILayoutResolver) ImageDigest(ctx context.Context) (string, error) {
-	if r.AttestationManifest == nil {
-		_, err := r.fetchAttestationManifest()
-		if err != nil {
-			return "", err
-		}
-	}
 	return r.Digest, nil
 }
 

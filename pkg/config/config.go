@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 
 	"github.com/docker/attest/pkg/tuf"
@@ -19,7 +18,7 @@ func LoadLocalMappings(configDir string) (*PolicyMappings, error) {
 		return nil, nil
 	}
 	mappings := &PolicyMappings{}
-	path := path.Join(configDir, MappingFilename)
+	path := filepath.Join(configDir, MappingFilename)
 	mappingFile, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read local policy mapping file %s: %w", path, err)

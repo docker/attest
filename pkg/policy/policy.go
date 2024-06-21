@@ -160,9 +160,10 @@ func ResolvePolicy(ctx context.Context, detailsResolver oci.ImageDetailsResolver
 }
 
 func CreateImageDetailsResolver(imageSource *oci.ImageSpec) (oci.ImageDetailsResolver, error) {
-	if imageSource.Type == oci.OCI {
+	switch imageSource.Type {
+	case oci.OCI:
 		return oci.NewOCILayoutAttestationResolver(imageSource)
-	} else {
+	default:
 		return oci.NewRegistryImageDetailsResolver(imageSource)
 	}
 }

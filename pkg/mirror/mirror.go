@@ -29,12 +29,12 @@ func PushImageToRegistry(image v1.Image, imageName string) error {
 	// Parse the image name
 	ref, err := name.ParseReference(imageName)
 	if err != nil {
-		return fmt.Errorf("Failed to parse image name '%s': %v", imageName, err)
+		return fmt.Errorf("Failed to parse image name '%s': %w", imageName, err)
 	}
 	// Get the authenticator from the default Docker keychain
 	auth, err := authn.DefaultKeychain.Resolve(ref.Context())
 	if err != nil {
-		return fmt.Errorf("Failed to get authenticator: %v", err)
+		return fmt.Errorf("Failed to get authenticator: %w", err)
 	}
 	// Push the image to the registry
 	return remote.Write(ref, image, remote.WithAuth(auth))
@@ -44,12 +44,12 @@ func PushIndexToRegistry(image v1.ImageIndex, imageName string) error {
 	// Parse the index name
 	ref, err := name.ParseReference(imageName)
 	if err != nil {
-		return fmt.Errorf("Failed to parse image name: %v", err)
+		return fmt.Errorf("Failed to parse image name: %w", err)
 	}
 	// Get the authenticator from the default Docker keychain
 	auth, err := authn.DefaultKeychain.Resolve(ref.Context())
 	if err != nil {
-		return fmt.Errorf("Failed to get authenticator: %v", err)
+		return fmt.Errorf("Failed to get authenticator: %w", err)
 	}
 	// Push the index to the registry
 	return remote.WriteIndex(ref, image, remote.WithAuth(auth))

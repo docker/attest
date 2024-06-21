@@ -34,7 +34,7 @@ func NewRegistryAttestationResolver(src *RegistryImageDetailsResolver) (*Registr
 }
 
 func (r *RegistryImageDetailsResolver) ImageName(ctx context.Context) (string, error) {
-	return r.WithoutPrefix, nil
+	return r.Identifier, nil
 }
 
 func (r *RegistryImageDetailsResolver) ImagePlatform(ctx context.Context) (*v1.Platform, error) {
@@ -43,7 +43,7 @@ func (r *RegistryImageDetailsResolver) ImagePlatform(ctx context.Context) (*v1.P
 
 func (r *RegistryImageDetailsResolver) ImageDigest(ctx context.Context) (string, error) {
 	if r.digest == "" {
-		subjectRef, err := name.ParseReference(r.WithoutPrefix)
+		subjectRef, err := name.ParseReference(r.Identifier)
 		if err != nil {
 			return "", fmt.Errorf("failed to parse reference: %w", err)
 		}
@@ -71,7 +71,7 @@ func (r *RegistryImageDetailsResolver) ImageDigest(ctx context.Context) (string,
 
 func (r *RegistryResolver) Attestations(ctx context.Context, predicateType string) ([]*att.Envelope, error) {
 	if r.AttestationManifest == nil {
-		attest, err := FetchAttestationManifest(ctx, r.WithoutPrefix, r.ImageSpec.Platform)
+		attest, err := FetchAttestationManifest(ctx, r.Identifier, r.ImageSpec.Platform)
 		if err != nil {
 			return nil, err
 		}

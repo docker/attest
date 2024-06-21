@@ -163,9 +163,10 @@ func CreateImageDetailsResolver(imageSource *oci.ImageSpec) (oci.ImageDetailsRes
 	switch imageSource.Type {
 	case oci.OCI:
 		return oci.NewOCILayoutAttestationResolver(imageSource)
-	default:
+	case oci.Docker:
 		return oci.NewRegistryImageDetailsResolver(imageSource)
 	}
+	return nil, fmt.Errorf("unsupported image source type: %s", imageSource.Type)
 }
 
 func CreateAttestationResolver(resolver oci.ImageDetailsResolver, mapping *config.PolicyMapping) (oci.AttestationResolver, error) {

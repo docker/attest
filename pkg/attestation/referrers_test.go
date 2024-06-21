@@ -10,6 +10,7 @@ import (
 	"github.com/docker/attest/internal/test"
 	"github.com/docker/attest/pkg/attest"
 	"github.com/docker/attest/pkg/attestation"
+	"github.com/docker/attest/pkg/config"
 	"github.com/docker/attest/pkg/mirror"
 	"github.com/docker/attest/pkg/oci"
 	"github.com/docker/attest/pkg/policy"
@@ -21,21 +22,29 @@ import (
 )
 
 var (
-	UnsignedTestImage = filepath.Join("..", "..", "test", "testdata", "unsigned-test-image")
-	NoProvenanceImage = filepath.Join("..", "..", "test", "testdata", "no-provenance-image")
-	PassPolicyDir     = filepath.Join("..", "..", "test", "testdata", "local-policy-pass")
-	PassNoTLPolicyDir = filepath.Join("..", "..", "test", "testdata", "local-policy-no-tl")
-	FailPolicyDir     = filepath.Join("..", "..", "test", "testdata", "local-policy-fail")
-	TestTempDir       = "attest-sign-test"
+	UnsignedTestImage   = filepath.Join("..", "..", "test", "testdata", "unsigned-test-image")
+	NoProvenanceImage   = filepath.Join("..", "..", "test", "testdata", "no-provenance-image")
+	PassPolicyDir       = filepath.Join("..", "..", "test", "testdata", "local-policy-pass")
+	LocalPolicy         = filepath.Join("..", "..", "test", "testdata", "local-policy")
+	LocalPolicyAttached = filepath.Join("..", "..", "test", "testdata", "local-policy-attached")
+	PassNoTLPolicyDir   = filepath.Join("..", "..", "test", "testdata", "local-policy-no-tl")
+	FailPolicyDir       = filepath.Join("..", "..", "test", "testdata", "local-policy-fail")
+	TestTempDir         = "attest-sign-test"
 )
 
 func TestAttestationReferenceTypes(t *testing.T) {
 	ctx, signer := test.Setup(t)
+	ctx = policy.WithPolicyEvaluator(ctx, policy.NewRegoEvaluator(true))
 	platforms := []string{"linux/amd64", "linux/arm64"}
 	for _, tc := range []struct {
-		server      *httptest.Server
-		skipSubject bool
-		useDigest   bool
+		server            *httptest.Server
+		referrersServer   *httptest.Server
+		skipSubject       bool
+		useDigest         bool
+		referrersRepo     string
+		attestationSource config.AttestationSource
+		expectFailure     bool
+		policyDir         string
 	}{
 		{
 			server: httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
@@ -44,76 +53,135 @@ func TestAttestationReferenceTypes(t *testing.T) {
 			server: httptest.NewServer(registry.New()),
 		},
 		{
-			server:      httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
-			skipSubject: true,
+			server:            httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
+			skipSubject:       true,
+			attestationSource: config.AttestationSourceAttached,
 		},
 		{
 			server:    httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
 			useDigest: true,
 		},
+		{
+			server:            httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
+			expectFailure:     true, //mismatched args
+			attestationSource: config.AttestationSourceAttached,
+			referrersRepo:     "referrers",
+		},
+		{
+			server:            httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
+			expectFailure:     true, // no policy
+			attestationSource: config.AttestationSourceReferrers,
+			referrersRepo:     "referrers",
+		},
+		{
+			server:            httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
+			attestationSource: config.AttestationSourceReferrers,
+		},
+		{
+			server:            httptest.NewServer(registry.New(registry.WithReferrersSupport(false))),
+			attestationSource: config.AttestationSourceReferrers,
+			referrersServer:   httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
+		},
 	} {
-		s := tc.server
-		defer s.Close()
-		u, err := url.Parse(s.URL)
-		require.NoError(t, err)
+		t.Run(fmt.Sprint(tc), func(t *testing.T) {
+			s := tc.server
+			defer s.Close()
 
-		opts := &attestation.SigningOptions{
-			Replace:     true,
-			SkipSubject: tc.skipSubject,
-		}
-		attIdx, err := oci.SubjectIndexFromPath(UnsignedTestImage)
-		require.NoError(t, err)
-		signedIndex, err := attest.Sign(ctx, attIdx.Index, signer, opts)
-		require.NoError(t, err)
-
-		indexName := fmt.Sprintf("%s/repo:root", u.Host)
-		require.NoError(t, err)
-		err = mirror.PushIndexToRegistry(signedIndex, indexName)
-
-		for _, platform := range platforms {
-			// can eval policy in the normal way
-			ref := indexName
-			if tc.useDigest {
-				options := oci.WithOptions(ctx, nil)
-				subjectRef, err := name.ParseReference(indexName)
-				require.NoError(t, err)
-				desc, err := remote.Index(subjectRef, options...)
-				require.NoError(t, err)
-				idxDigest, err := desc.Digest()
-				require.NoError(t, err)
-				ref = fmt.Sprintf("%s/repo@%s", u.Host, idxDigest.String())
+			if tc.referrersServer != nil {
+				defer tc.referrersServer.Close()
 			}
+			u, err := url.Parse(s.URL)
+			require.NoError(t, err)
 
-			policyOpts := &policy.PolicyOptions{
-				LocalPolicyDir: PassPolicyDir,
+			opts := &attestation.SigningOptions{
+				Replace:     true,
+				SkipSubject: tc.skipSubject,
 			}
-			src, err := oci.ParseImageSpec(ref, oci.WithPlatform(platform))
+			attIdx, err := oci.SubjectIndexFromPath(UnsignedTestImage)
 			require.NoError(t, err)
-			results, err := attest.Verify(ctx, src, policyOpts)
-			require.NoError(t, err)
-			assert.Equal(t, attest.OutcomeSuccess, results.Outcome)
 
-			if !tc.skipSubject {
-				// can evaluate policy using referrers
-				if tc.useDigest {
-					p, err := oci.ParsePlatform(platform)
+			indexName := fmt.Sprintf("%s/repo:root", u.Host)
+			require.NoError(t, err)
+
+			if tc.referrersServer != nil {
+				ru, err := url.Parse(s.URL)
+				require.NoError(t, err)
+				repo := fmt.Sprintf("%s/referrers", ru.Host)
+				tc.referrersRepo = repo
+				images, err := attest.SignedAttestationImages(ctx, attIdx.Index, signer, opts)
+				require.NoError(t, err)
+				err = mirror.PushIndexToRegistry(attIdx.Index, indexName)
+				for _, img := range images {
+					err = mirror.PushImageToRegistry(img.Image, fmt.Sprintf("%s:tag-does-not-matter", repo))
 					require.NoError(t, err)
-					options := oci.WithOptions(ctx, p)
+				}
+			} else {
+				signedIndex, err := attest.Sign(ctx, attIdx.Index, signer, opts)
+				require.NoError(t, err)
+				err = mirror.PushIndexToRegistry(signedIndex, indexName)
+				require.NoError(t, err)
+			}
+
+			for _, platform := range platforms {
+				// can eval policy in the normal way
+				ref := indexName
+				if tc.useDigest {
+					options := oci.WithOptions(ctx, nil)
 					subjectRef, err := name.ParseReference(indexName)
 					require.NoError(t, err)
-					desc, err := remote.Image(subjectRef, options...)
+					desc, err := remote.Index(subjectRef, options...)
 					require.NoError(t, err)
-					subjectDigest, err := desc.Digest()
+					idxDigest, err := desc.Digest()
 					require.NoError(t, err)
-					ref = fmt.Sprintf("%s/repo@%s", u.Host, subjectDigest.String())
+					ref = fmt.Sprintf("%s/repo@%s", u.Host, idxDigest.String())
+				}
+
+				policyOpts := &policy.PolicyOptions{
+					LocalPolicyDir: LocalPolicy,
+				}
+				if tc.policyDir != "" {
+					policyOpts.LocalPolicyDir = tc.policyDir
+				}
+
+				if tc.referrersRepo != "" {
+					policyOpts.ReferrersRepo = tc.referrersRepo
+				}
+
+				if tc.attestationSource != "" {
+					policyOpts.AttestationSource = tc.attestationSource
 				}
 				src, err := oci.ParseImageSpec(ref, oci.WithPlatform(platform))
 				require.NoError(t, err)
-				results, err = attest.Verify(ctx, src, policyOpts)
+				results, err := attest.Verify(ctx, src, policyOpts)
+				if tc.expectFailure {
+					require.Error(t, err)
+					continue
+				}
 				require.NoError(t, err)
 				assert.Equal(t, attest.OutcomeSuccess, results.Outcome)
+
+				if !tc.skipSubject {
+					// can evaluate policy using referrers
+					if tc.useDigest {
+						p, err := oci.ParsePlatform(platform)
+						require.NoError(t, err)
+						options := oci.WithOptions(ctx, p)
+						subjectRef, err := name.ParseReference(indexName)
+						require.NoError(t, err)
+						desc, err := remote.Image(subjectRef, options...)
+						require.NoError(t, err)
+						subjectDigest, err := desc.Digest()
+						require.NoError(t, err)
+						ref = fmt.Sprintf("%s/repo@%s", u.Host, subjectDigest.String())
+					}
+					src, err := oci.ParseImageSpec(ref, oci.WithPlatform(platform))
+					require.NoError(t, err)
+					results, err = attest.Verify(ctx, src, policyOpts)
+					require.NoError(t, err)
+					assert.Equal(t, attest.OutcomeSuccess, results.Outcome)
+				}
 			}
-		}
+		})
 	}
 }
 

@@ -18,7 +18,12 @@ func Verify(ctx context.Context, src *oci.ImageSpec, opts *policy.PolicyOptions)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create image details resolver: %w", err)
 	}
-
+	if opts.AttestationSource == "" {
+		opts.AttestationSource = config.AttestationSourceReferrers
+	}
+	if opts.ReferrersRepo != "" && opts.AttestationSource != config.AttestationSourceReferrers {
+		return nil, fmt.Errorf("referrers repo specified but attestation source not set to referrers")
+	}
 	pctx, err := policy.ResolvePolicy(ctx, detailsResolver, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve policy: %w", err)
@@ -34,6 +39,11 @@ func Verify(ctx context.Context, src *oci.ImageSpec, opts *policy.PolicyOptions)
 		pctx.Mapping.Attestations = &config.ReferrersConfig{
 			Repo:  opts.ReferrersRepo,
 			Style: config.AttestationSourceReferrers,
+		}
+	} else if opts.AttestationSource == config.AttestationSourceAttached {
+		pctx.Mapping.Attestations = &config.ReferrersConfig{
+			Repo:  opts.ReferrersRepo,
+			Style: config.AttestationSourceAttached,
 		}
 	}
 	// because we have a mapping now, we can select a resolver based on its contents (ie. referrers or attached)

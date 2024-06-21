@@ -27,11 +27,12 @@ type Result struct {
 }
 
 type PolicyOptions struct {
-	TufClient       tuf.TUFClient
-	LocalTargetsDir string
-	LocalPolicyDir  string
-	PolicyId        string
-	ReferrersRepo   string
+	TufClient         tuf.TUFClient
+	LocalTargetsDir   string
+	LocalPolicyDir    string
+	PolicyId          string
+	ReferrersRepo     string
+	AttestationSource config.AttestationSource
 }
 
 type Policy struct {

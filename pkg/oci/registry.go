@@ -47,24 +47,16 @@ func (r *RegistryImageDetailsResolver) ImageDigest(ctx context.Context) (string,
 		if err != nil {
 			return "", fmt.Errorf("failed to parse reference: %w", err)
 		}
-		switch t := subjectRef.(type) {
-		case name.Digest:
-			// TODO should check if this is an index or an image
-			r.digest = t.DigestStr()
-		case name.Tag:
-			options := WithOptions(ctx, r.Platform)
-			desc, err := remote.Image(t, options...)
-			if err != nil {
-				return "", fmt.Errorf("failed to get image manifest: %w", err)
-			}
-			subjectDigest, err := desc.Digest()
-			if err != nil {
-				return "", fmt.Errorf("failed to get image digest: %w", err)
-			}
-			r.digest = subjectDigest.String()
-		default:
-			return "", fmt.Errorf("unsupported reference type: %T", t)
+		options := WithOptions(ctx, r.Platform)
+		desc, err := remote.Image(subjectRef, options...)
+		if err != nil {
+			return "", fmt.Errorf("failed to get image manifest: %w", err)
 		}
+		subjectDigest, err := desc.Digest()
+		if err != nil {
+			return "", fmt.Errorf("failed to get image digest: %w", err)
+		}
+		r.digest = subjectDigest.String()
 	}
 	return r.digest, nil
 }

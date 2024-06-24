@@ -26,6 +26,11 @@ jobs:
         with:
           token: ${{ secrets.TC_CLOUD_TOKEN }}
       - name: go test
-        run: go test -v ./... -coverprofile=coverage.out -covermode=atomic -coverpkg=./...
-      - name: html coverage
-        run: go tool cover -html=coverage.out -o coverage.html
+        run: go test -v ./... -coverprofile=coverage.out
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          file: ./coverage.out
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: true

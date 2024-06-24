@@ -7,8 +7,6 @@ on:
   workflow_dispatch:
 jobs:
   golang:
-    permissions:
-      contents: read
     strategy:
       matrix:
         go-version: [1.21.x]
@@ -36,4 +34,4 @@ jobs:
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: true
-          use_oidc: true
+          token: ${{ secrets.CODECOV_TOKEN }}

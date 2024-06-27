@@ -1,4 +1,4 @@
-// go:build e2e
+//go:build e2e
 
 package mirror_test
 
@@ -20,8 +20,8 @@ func TestRegistryAuth(t *testing.T) {
 	testCases := []struct {
 		Image string
 	}{
-		{Image: "docker://175142243308.dkr.ecr.us-east-1.amazonaws.com/e2e-test-image:latest"},
-		{Image: "docker://docker/image-signer-verifier-test:latest"},
+		{Image: "175142243308.dkr.ecr.us-east-1.amazonaws.com/e2e-test-image:latest"},
+		{Image: "docker/image-signer-verifier-test:latest"},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Image, func(t *testing.T) {

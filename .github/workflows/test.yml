@@ -39,7 +39,7 @@ jobs:
         with:
           token: ${{ secrets.TC_CLOUD_TOKEN }}
       - name: go test
-        run: go test --flags=e2e -v ./... -coverprofile=coverage.out -covermode=atomic
+        run: go test -tags=e2e -v ./... -coverprofile=coverage.out -covermode=atomic
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:

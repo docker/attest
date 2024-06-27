@@ -38,21 +38,13 @@ jobs:
         uses: atomicjar/testcontainers-cloud-setup-action@v1
         with:
           token: ${{ secrets.TC_CLOUD_TOKEN }}
-      - name: go test
-        run: go test -v ./... -coverprofile=coverage.out -covermode=atomic
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          file: ./coverage.out
-          flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: true
-          token: ${{ secrets.CODECOV_TOKEN }}
-      - name: go test e2e
+      - name: go test ubuntu
         if: matrix.os == 'ubuntu-latest'
         run: go test -tags=e2e -v ./... -coverprofile=coverage.out -covermode=atomic
+      - name: go test osx
+        if: matrix.os == 'macos-latest'
+        run: go test -v ./... -coverprofile=coverage.out -covermode=atomic
       - name: Upload coverage to Codecov
-        if: matrix.os == 'ubuntu-latest'
         uses: codecov/codecov-action@v4
         with:
           file: ./coverage.out

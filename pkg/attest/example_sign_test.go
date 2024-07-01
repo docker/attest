@@ -3,7 +3,7 @@ package attest_test
 import (
 	"context"
 
-	"github.com/docker/attest/pkg/attest"
+	"github.com/docker/attest/internal/test"
 	"github.com/docker/attest/pkg/attestation"
 	"github.com/docker/attest/pkg/mirror"
 	"github.com/docker/attest/pkg/oci"
@@ -32,7 +32,7 @@ func ExampleSign_remote() {
 
 	// load image index with unsigned attestation-manifests
 	ref := "docker/image-signer-verifier:latest"
-	att, err := oci.SubjectIndexFromRemote(ref)
+	att, err := oci.IndexFromRemote(ref)
 	if err != nil {
 		panic(err)
 	}
@@ -41,7 +41,7 @@ func ExampleSign_remote() {
 	// att, err := oci.AttestationIndexFromLocal(path)
 
 	// sign attestations
-	signedImageIndex, err := attest.Sign(context.Background(), att.Index, signer, opts)
+	signedImageIndex, err := test.SignStatements(context.Background(), att.Index, signer, opts)
 	if err != nil {
 		panic(err)
 	}

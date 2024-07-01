@@ -1,6 +1,7 @@
 package attestation_test
 
 import (
+	"context"
 	"fmt"
 	"net/http/httptest"
 	"net/url"
@@ -16,7 +17,9 @@ import (
 	"github.com/docker/attest/pkg/policy"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/registry"
+	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
+	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -97,7 +100,7 @@ func TestAttestationReferenceTypes(t *testing.T) {
 				Replace:     true,
 				SkipSubject: tc.skipSubject,
 			}
-			attIdx, err := oci.SubjectIndexFromPath(UnsignedTestImage)
+			attIdx, err := oci.IndexFromPath(UnsignedTestImage)
 			require.NoError(t, err)
 
 			indexName := fmt.Sprintf("%s/repo:root", u.Host)
@@ -108,15 +111,15 @@ func TestAttestationReferenceTypes(t *testing.T) {
 				require.NoError(t, err)
 				repo := fmt.Sprintf("%s/referrers", ru.Host)
 				tc.referrersRepo = repo
-				images, err := attest.SignedAttestationImages(ctx, attIdx.Index, signer, opts)
+				images, err := signedAttestationImages(ctx, attIdx.Index, signer, opts)
 				require.NoError(t, err)
 				err = mirror.PushIndexToRegistry(attIdx.Index, indexName)
 				for _, img := range images {
-					err = mirror.PushImageToRegistry(img.Image, fmt.Sprintf("%s:tag-does-not-matter", repo))
+					err = mirror.PushImageToRegistry(img.Attestation.Image, fmt.Sprintf("%s:tag-does-not-matter", repo))
 					require.NoError(t, err)
 				}
 			} else {
-				signedIndex, err := attest.Sign(ctx, attIdx.Index, signer, opts)
+				signedIndex, err := test.SignStatements(ctx, attIdx.Index, signer, opts)
 				require.NoError(t, err)
 				err = mirror.PushIndexToRegistry(signedIndex, indexName)
 				require.NoError(t, err)
@@ -215,20 +218,20 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 			Replace: true,
 			SkipTL:  true,
 		}
-		attIdx, err := oci.SubjectIndexFromPath(UnsignedTestImage)
+		attIdx, err := oci.IndexFromPath(UnsignedTestImage)
 		require.NoError(t, err)
 
 		indexName := fmt.Sprintf("%s/%s:latest", serverUrl.Host, repoName)
 		err = mirror.PushIndexToRegistry(attIdx.Index, indexName)
 		require.NoError(t, err)
 
-		signedImages, err := attest.SignedAttestationImages(ctx, attIdx.Index, signer, opts)
+		signedImages, err := signedAttestationImages(ctx, attIdx.Index, signer, opts)
 		require.NoError(t, err)
 
 		// push signed attestation image to the ref server
 		for _, img := range signedImages {
 			// push references using subject-digest.att convention
-			err = mirror.PushImageToRegistry(img.Image, fmt.Sprintf("%s/%s:tag-does-not-matter", refServerUrl.Host, repoName))
+			err = mirror.PushImageToRegistry(img.Attestation.Image, fmt.Sprintf("%s/%s:tag-does-not-matter", refServerUrl.Host, repoName))
 			require.NoError(t, err)
 		}
 		mfs2, err := attIdx.Index.IndexManifest()
@@ -250,4 +253,32 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 			assert.Equal(t, attest.OutcomeSuccess, results.Outcome)
 		}
 	}
+}
+
+func signedAttestationImages(ctx context.Context, idx v1.ImageIndex, signer dsse.SignerVerifier, opts *attestation.SigningOptions) ([]*attestation.AttestationManifest, error) {
+	// extract attestation manifests from index
+	attestationManifests, err := attestation.GetAttestationManifestsFromIndex(idx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get attestation manifests: %w", err)
+	}
+	if len(attestationManifests) == 0 {
+		return nil, fmt.Errorf("no attestation manifests found")
+	}
+	// sign every attestation layer in each manifest
+	images := make([]v1.Image, 0)
+
+	for _, manifest := range attestationManifests {
+		for _, layer := range manifest.Attestation.Layers {
+			signedLayer, err := attest.CreateSignedImageLayer(ctx, layer.Statement, signer, opts)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create signed layer attestation: %w", err)
+			}
+			err = attest.AddAttestationToImage(ctx, manifest, signedLayer, opts)
+			if err != nil {
+				return nil, fmt.Errorf("failed to add attestation to image: %w", err)
+			}
+		}
+		images = append(images, manifest.Attestation.Image)
+	}
+	return attestationManifests, nil
 }

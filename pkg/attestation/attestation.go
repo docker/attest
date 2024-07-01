@@ -12,7 +12,7 @@ import (
 )
 
 // GetAttestationManifestsFromIndex extracts all attestation manifests from an index
-func GetAttestationManifestsFromIndex(index v1.ImageIndex) ([]AttestationManifest, error) {
+func GetAttestationManifestsFromIndex(index v1.ImageIndex) ([]*AttestationManifest, error) {
 	idx, err := index.IndexManifest()
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract IndexManifest from ImageIndex: %w", err)
@@ -22,9 +22,8 @@ func GetAttestationManifestsFromIndex(index v1.ImageIndex) ([]AttestationManifes
 		subjects[subject.Digest.String()] = &subject
 	}
 
-	var attestationManifests []AttestationManifest
+	var attestationManifests []*AttestationManifest
 	for _, manifest := range idx.Manifests {
-
 		if manifest.Annotations[DockerReferenceType] == AttestationManifestType {
 			subject := subjects[manifest.Annotations[DockerReferenceDigest]]
 			if subject == nil {
@@ -39,10 +38,10 @@ func GetAttestationManifestsFromIndex(index v1.ImageIndex) ([]AttestationManifes
 				return nil, fmt.Errorf("failed to get attestations from image: %w", err)
 			}
 			attestationManifests = append(attestationManifests,
-				AttestationManifest{
-					Descriptor:        manifest,
+				&AttestationManifest{
+					Descriptor:        &manifest,
 					SubjectDescriptor: subject,
-					Attestation: AttestationImage{
+					Attestation: &AttestationImage{
 						Layers: attestationLayers,
 						Image:  attestationImage},
 					MediaType:   manifest.MediaType,
@@ -54,12 +53,12 @@ func GetAttestationManifestsFromIndex(index v1.ImageIndex) ([]AttestationManifes
 }
 
 // GetAttestationsFromImage extracts all attestation layers from an image
-func GetAttestationsFromImage(image v1.Image) ([]AttestationLayer, error) {
+func GetAttestationsFromImage(image v1.Image) ([]*AttestationLayer, error) {
 	layers, err := image.Layers()
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract layers from image: %w", err)
 	}
-	var attestationLayers []AttestationLayer
+	var attestationLayers []*AttestationLayer
 	for _, layer := range layers {
 		// parse layer blob as json
 		r, err := layer.Uncompressed()
@@ -85,7 +84,7 @@ func GetAttestationsFromImage(image v1.Image) ([]AttestationLayer, error) {
 				return nil, fmt.Errorf("failed to decode statement layer contents: %w", err)
 			}
 		}
-		attestationLayers = append(attestationLayers, AttestationLayer{Layer: layer, MediaType: mt, Statement: stmt, Annotations: ann})
+		attestationLayers = append(attestationLayers, &AttestationLayer{Layer: layer, MediaType: mt, Statement: stmt, Annotations: ann})
 	}
 	return attestationLayers, nil
 }

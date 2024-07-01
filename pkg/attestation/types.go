@@ -30,19 +30,13 @@ type AttestationLayer struct {
 }
 
 type AttestationImage struct {
-	Layers []AttestationLayer
+	Layers []*AttestationLayer
 	Image  v1.Image
 }
 
-type SignedAttestationImage struct {
-	Image               v1.Image
-	Descriptor          *v1.Descriptor
-	AttestationManifest AttestationManifest
-}
-
 type AttestationManifest struct {
-	Descriptor        v1.Descriptor
-	Attestation       AttestationImage
+	Descriptor        *v1.Descriptor
+	Attestation       *AttestationImage
 	MediaType         types.MediaType
 	Annotations       map[string]string
 	Digest            v1.Hash

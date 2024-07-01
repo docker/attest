@@ -21,7 +21,7 @@ const (
 )
 
 type SourceType string
-type SubjectIndex struct {
+type NamedIndex struct {
 	Index v1.ImageIndex
 	Name  string
 }
@@ -42,7 +42,7 @@ type ImageSpec struct {
 	Platform   *v1.Platform
 }
 
-func SubjectIndexFromPath(path string) (*SubjectIndex, error) {
+func IndexFromPath(path string) (*NamedIndex, error) {
 	wrapperIdx, err := layout.ImageIndexFromPath(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load image index: %w", err)
@@ -59,13 +59,13 @@ func SubjectIndexFromPath(path string) (*SubjectIndex, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract ImageIndex for digest %s: %w", idxDigest.String(), err)
 	}
-	return &SubjectIndex{
+	return &NamedIndex{
 		Index: idx,
 		Name:  imageName,
 	}, nil
 }
 
-func SubjectIndexFromRemote(image string) (*SubjectIndex, error) {
+func IndexFromRemote(image string) (*NamedIndex, error) {
 	ref, err := name.ParseReference(image)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse image reference %s: %w", image, err)
@@ -76,17 +76,17 @@ func SubjectIndexFromRemote(image string) (*SubjectIndex, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to pull image %s: %w", image, err)
 	}
-	return &SubjectIndex{
+	return &NamedIndex{
 		Index: idx,
 		Name:  image,
 	}, nil
 }
 
-func LoadSubjectIndex(input *ImageSpec) (*SubjectIndex, error) {
+func LoadIndex(input *ImageSpec) (*NamedIndex, error) {
 	if input.Type == OCI {
-		return SubjectIndexFromPath(input.Identifier)
+		return IndexFromPath(input.Identifier)
 	} else {
-		return SubjectIndexFromRemote(input.Identifier)
+		return IndexFromRemote(input.Identifier)
 	}
 }
 

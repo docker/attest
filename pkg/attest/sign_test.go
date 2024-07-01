@@ -111,14 +111,6 @@ func TestAddSignedLayerAnnotations(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			data := []byte("signed")
-			// signedLayer := static.NewLayer(data, types.MediaType(intoto.PayloadType))
-			// signedLayers := []mutate.Addendum{
-			// 	{
-			// 		Layer:       signedLayer,
-			// 		Annotations: map[string]string{"test": "test"},
-			// 	},
-			// }
-			// data = []byte("test")
 			testLayer := static.NewLayer(data, types.MediaType(intoto.PayloadType))
 			mediaType := types.OCIManifestSchema1
 			opts := &attestation.SigningOptions{

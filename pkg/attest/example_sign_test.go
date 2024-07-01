@@ -40,7 +40,7 @@ func ExampleSign_remote() {
 	// path := "/myimage"
 	// att, err := oci.AttestationIndexFromLocal(path)
 
-	// sign attestations
+	// sign all attestations in an image index
 	signedImageIndex, err := test.SignStatements(context.Background(), att.Index, signer, opts)
 	if err != nil {
 		panic(err)

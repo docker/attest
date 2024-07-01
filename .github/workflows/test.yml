@@ -25,13 +25,13 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
       - name: Login to Docker Hub
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest' && github.actor != 'dependabot[bot]'
         uses: docker/login-action@v3
         with:
           username: dockerpublicbot
           password: ${{ secrets.DOCKERPUBLICBOT_WRITE_PAT }}
       - name: Authenticate to AWS
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest' && github.actor != 'dependabot[bot]'
         uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502 #v4.0.2
         with:
           aws-region: "us-east-1"
@@ -40,11 +40,11 @@ jobs:
         uses: atomicjar/testcontainers-cloud-setup-action@v1
         with:
           token: ${{ secrets.TC_CLOUD_TOKEN }}
-      - name: go test ubuntu
-        if: matrix.os == 'ubuntu-latest'
+      - name: go test ubuntu e2e
+        if: matrix.os == 'ubuntu-latest' && github.actor != 'dependabot[bot]'
         run: go test -tags=e2e -v ./... -coverprofile=coverage.out -covermode=atomic
       - name: go test osx
-        if: matrix.os == 'macos-latest'
+        if: matrix.os == 'macos-latest' || github.actor == 'dependabot[bot]'
         run: go test -v ./... -coverprofile=coverage.out -covermode=atomic
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

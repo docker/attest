@@ -14,7 +14,7 @@ import (
 func TestRegistryAuth(t *testing.T) {
 	UnsignedTestImage := filepath.Join("..", "..", "test", "testdata", "unsigned-test-image")
 
-	attIdx, err := oci.SubjectIndexFromPath(UnsignedTestImage)
+	attIdx, err := oci.IndexFromPath(UnsignedTestImage)
 	require.NoError(t, err)
 	// test cases for ecr, gcr and dockerhub
 	testCases := []struct {
@@ -27,7 +27,7 @@ func TestRegistryAuth(t *testing.T) {
 		t.Run(tc.Image, func(t *testing.T) {
 			err := mirror.PushIndexToRegistry(attIdx.Index, tc.Image)
 			require.NoError(t, err)
-			_, err = oci.SubjectIndexFromRemote(tc.Image)
+			_, err = oci.IndexFromRemote(tc.Image)
 			require.NoError(t, err)
 		})
 	}

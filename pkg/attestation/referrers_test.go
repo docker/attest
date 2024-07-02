@@ -273,7 +273,7 @@ func signedAttestationImages(ctx context.Context, idx v1.ImageIndex, signer dsse
 			if err != nil {
 				return nil, fmt.Errorf("failed to create signed layer attestation: %w", err)
 			}
-			err = attest.AddAttestationToImage(ctx, manifest, signedLayer, opts)
+			err = attest.AddAttestationToImage(manifest, signedLayer, opts)
 			if err != nil {
 				return nil, fmt.Errorf("failed to add attestation to image: %w", err)
 			}

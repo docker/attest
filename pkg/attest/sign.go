@@ -18,8 +18,8 @@ import (
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 )
 
-func AddAttestationToImage(ctx context.Context, manifest *attestation.AttestationManifest, layer *attestation.AttestationLayer, opts *attestation.SigningOptions) error {
-	newImg, newDesc, err := addLayerToImage(ctx, manifest, layer, opts)
+func AddAttestationToImage(manifest *attestation.AttestationManifest, layer *attestation.AttestationLayer, opts *attestation.SigningOptions) error {
+	newImg, newDesc, err := addLayerToImage(manifest, layer, opts)
 	if err != nil {
 		return fmt.Errorf("failed to add signed layers to image: %w", err)
 	}
@@ -29,7 +29,6 @@ func AddAttestationToImage(ctx context.Context, manifest *attestation.Attestatio
 }
 
 func addLayerToImage(
-	ctx context.Context,
 	manifest *attestation.AttestationManifest,
 	layer *attestation.AttestationLayer,
 	opts *attestation.SigningOptions) (v1.Image, *v1.Descriptor, error) {

@@ -114,6 +114,8 @@ func signInTotoStatement(ctx context.Context, statement *intoto.Statement, signe
 }
 
 // AddOrReplaceLayer adds signed layers to a new or existing attestation image
+// NOTE: the pointers attestation.AttestationLayer.Statement are compared when replacing,
+// so make sure you are signing a layer extracted from the original attestation-manifest image!
 func AddOrReplaceLayer(signedLayer *attestation.AttestationLayer, manifest *attestation.AttestationManifest, opts *attestation.SigningOptions) (v1.Image, error) {
 	withAnnotations := func(img v1.Image) v1.Image {
 		// this is handy when dealing with referrers

@@ -34,7 +34,8 @@ func addLayerToImage(
 	layer *attestation.AttestationLayer,
 	opts *attestation.SigningOptions) (v1.Image, *v1.Descriptor, error) {
 
-	newImg, err := AddOrReplaceLayer(layer, manifest, opts)
+	err := AddOrReplaceLayer(layer, manifest, opts)
+	newImg := manifest.Attestation.Image
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to add signed layers: %w", err)
 	}
@@ -116,17 +117,16 @@ func signInTotoStatement(ctx context.Context, statement *intoto.Statement, signe
 // AddOrReplaceLayer adds signed layers to a new or existing attestation image
 // NOTE: the pointers attestation.AttestationLayer.Statement are compared when replacing,
 // so make sure you are signing a layer extracted from the original attestation-manifest image!
-func AddOrReplaceLayer(signedLayer *attestation.AttestationLayer, manifest *attestation.AttestationManifest, opts *attestation.SigningOptions) (v1.Image, error) {
-	withAnnotations := func(img v1.Image) v1.Image {
-		// this is handy when dealing with referrers
-		return mutate.Annotations(img, map[string]string{
-			attestation.DockerReferenceType:   attestation.AttestationManifestType,
-			attestation.DockerReferenceDigest: manifest.SubjectDescriptor.Digest.String(),
-		}).(v1.Image)
-	}
+func AddOrReplaceLayer(signedLayer *attestation.AttestationLayer, manifest *attestation.AttestationManifest, opts *attestation.SigningOptions) error {
+
 	var err error
 	// always create a new image from all the layers
 	newImg := empty.Image
+	newImg = mutate.Annotations(newImg, map[string]string{
+		attestation.DockerReferenceType:   attestation.AttestationManifestType,
+		attestation.DockerReferenceDigest: manifest.SubjectDescriptor.Digest.String(),
+	}).(v1.Image)
+
 	newImg = mutate.MediaType(newImg, manifest.MediaType)
 	newImg = mutate.ConfigMediaType(newImg, "application/vnd.oci.image.config.v1+json")
 	add := mutate.Addendum{
@@ -135,7 +135,7 @@ func AddOrReplaceLayer(signedLayer *attestation.AttestationLayer, manifest *atte
 	}
 	newImg, err = mutate.Append(newImg, add)
 	if err != nil {
-		return nil, fmt.Errorf("failed to add signed layer to image: %w", err)
+		return fmt.Errorf("failed to add signed layer to image: %w", err)
 	}
 	layers := make([]*attestation.AttestationLayer, 0)
 	for _, layer := range manifest.Attestation.Layers {
@@ -149,10 +149,10 @@ func AddOrReplaceLayer(signedLayer *attestation.AttestationLayer, manifest *atte
 		newImg, err = mutate.Append(newImg, add)
 		layers = append(layers, layer)
 		if err != nil {
-			return nil, fmt.Errorf("failed to add layer to image: %w", err)
+			return fmt.Errorf("failed to add layer to image: %w", err)
 		}
 	}
 	manifest.Attestation.Layers = append(layers, signedLayer)
 	manifest.Attestation.Image = newImg
-	return withAnnotations(manifest.Attestation.Image), nil
+	return nil
 }

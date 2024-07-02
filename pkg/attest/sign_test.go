@@ -133,7 +133,8 @@ func TestAddSignedLayerAnnotations(t *testing.T) {
 				SubjectDescriptor: &v1.Descriptor{},
 			}
 
-			newImg, err := attest.AddOrReplaceLayer(originalLayer, manifest, opts)
+			err := attest.AddOrReplaceLayer(originalLayer, manifest, opts)
+			newImg := manifest.Attestation.Image
 			require.NoError(t, err)
 			mf, _ := newImg.RawManifest()
 			type Annotations struct {

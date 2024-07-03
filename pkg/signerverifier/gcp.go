@@ -10,6 +10,7 @@ import (
 )
 
 // using GCP KMS
+// kms specification should be in the format gcpkms://projects/[PROJECT_ID]/locations/[LOCATION]/keyRings/[KEY_RING]/cryptoKeys/[KEY]/cryptoKeyVersions/[VERSION]"
 func GetGCPSigner(ctx context.Context, reference string, opts ...option.ClientOption) (dsse.SignerVerifier, error) {
 	reference = fmt.Sprintf("gcpkms://%s", reference)
 	sv, err := gcpsigner.LoadSignerVerifier(ctx, reference, opts...)

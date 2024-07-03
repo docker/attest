@@ -17,6 +17,9 @@ MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEuMswW3iu7PR/rWTQjlhVmUsPK7rF
 k2s4SO3XbQ2GG2alm289SUUpmBAuVxvT8muYQ8HC/QzixzyTACTXsBDjQg==
 -----END PUBLIC KEY-----`
 
+// to run locally, we need to impersonate the GCP service account
+// gcloud auth application-default login --impersonate-service-account attest-kms-test@attest-kms-test.iam.gserviceaccount.com
+
 func TestGCPKMS_Signer(t *testing.T) {
 	// create a new signer
 	ctx := context.Background()

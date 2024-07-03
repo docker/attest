@@ -17,7 +17,7 @@ func GetGCPSigner(ctx context.Context, reference string, opts ...option.ClientOp
 	if err != nil {
 		return nil, fmt.Errorf("error loading gcp signer verifier: %w", err)
 	}
-	cs, _, err := sv.CryptoSigner(context.Background(), func(err error) {})
+	cs, _, err := sv.CryptoSigner(ctx, func(err error) {})
 	if err != nil {
 		return nil, fmt.Errorf("error getting gcp crypto signer: %w", err)
 	}

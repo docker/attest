@@ -42,7 +42,7 @@ jobs:
         with:
           project_id: 'attest-kms-test'
           workload_identity_provider: 'projects/385966116051/locations/global/workloadIdentityPools/attest-kms-test/providers/attest-kms-test'
-          # service_account: 'attest-kms-test@attest-kms-test.iam.gserviceaccount.com'
+          service_account: 'attest-kms-test@attest-kms-test.iam.gserviceaccount.com'
       - name: Setup Testcontainers Cloud Client
         uses: atomicjar/testcontainers-cloud-setup-action@v1
         with:

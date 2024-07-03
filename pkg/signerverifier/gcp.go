@@ -11,7 +11,7 @@ import (
 
 // using GCP KMS
 func GetGCPSigner(ctx context.Context, reference string, opts ...option.ClientOption) (dsse.SignerVerifier, error) {
-	reference = fmt.Sprintf("gcpkms:///%s", reference)
+	reference = fmt.Sprintf("gcpkms://%s", reference)
 	sv, err := gcpsigner.LoadSignerVerifier(ctx, reference, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("error loading gcp signer verifier: %w", err)

@@ -36,12 +36,12 @@ func Verify(ctx context.Context, src *oci.ImageSpec, opts *policy.PolicyOptions)
 	}
 	// this is overriding the mapping with a referrers config. Useful for testing if nothing else
 	if opts.ReferrersRepo != "" {
-		pctx.Mapping.Attestations = &config.ReferrersConfig{
+		pctx.Mapping.Attestations = &config.AttestationConfig{
 			Repo:  opts.ReferrersRepo,
 			Style: config.AttestationStyleReferrers,
 		}
 	} else if opts.AttestationStyle == config.AttestationStyleAttached {
-		pctx.Mapping.Attestations = &config.ReferrersConfig{
+		pctx.Mapping.Attestations = &config.AttestationConfig{
 			Repo:  opts.ReferrersRepo,
 			Style: config.AttestationStyleAttached,
 		}

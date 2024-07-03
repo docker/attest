@@ -37,6 +37,7 @@ func TestAttestationReferenceTypes(t *testing.T) {
 	ctx = policy.WithPolicyEvaluator(ctx, policy.NewRegoEvaluator(true))
 	platforms := []string{"linux/amd64", "linux/arm64"}
 	for _, tc := range []struct {
+		name              string
 		server            *httptest.Server
 		referrersServer   *httptest.Server
 		skipSubject       bool
@@ -44,46 +45,53 @@ func TestAttestationReferenceTypes(t *testing.T) {
 		referrersRepo     string
 		attestationSource config.AttestationStyle
 		expectFailure     bool
-		policyDir         string
 	}{
 		{
+			name:   "referrers support, defaults",
 			server: httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
 		},
 		{
+			name:   "no referrers support",
 			server: httptest.NewServer(registry.New()),
 		},
 		{
+			name:              "attached attestations",
 			server:            httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
 			skipSubject:       true,
 			attestationSource: config.AttestationStyleAttached,
 		},
 		{
+			name:      "use digest",
 			server:    httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
 			useDigest: true,
 		},
 		{
+			name:              "attached attestations, referrers repo (mismatched args)",
 			server:            httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
 			expectFailure:     true, //mismatched args
 			attestationSource: config.AttestationStyleAttached,
 			referrersRepo:     "referrers",
 		},
 		{
+			name:              "referrers attestations, referrers repo (no policy)",
 			server:            httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
 			expectFailure:     true, // no policy
 			attestationSource: config.AttestationStyleReferrers,
 			referrersRepo:     "referrers",
 		},
 		{
+			name:              "referrers attestations",
 			server:            httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
 			attestationSource: config.AttestationStyleReferrers,
 		},
 		{
+			name:              "referrers attestations, no referrers support on server",
 			server:            httptest.NewServer(registry.New(registry.WithReferrersSupport(false))),
 			attestationSource: config.AttestationStyleReferrers,
 			referrersServer:   httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
 		},
 	} {
-		t.Run(fmt.Sprint(tc), func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			s := tc.server
 			defer s.Close()
 
@@ -111,6 +119,7 @@ func TestAttestationReferenceTypes(t *testing.T) {
 				signedManifests, err := attest.SignStatements(ctx, attIdx.Index, signer, opts)
 				require.NoError(t, err)
 				err = mirror.PushIndexToRegistry(attIdx.Index, indexName)
+				require.NoError(t, err)
 				for _, img := range signedManifests {
 					err = mirror.PushImageToRegistry(img.Attestation.Image, fmt.Sprintf("%s:tag-does-not-matter", repo))
 					require.NoError(t, err)
@@ -141,9 +150,6 @@ func TestAttestationReferenceTypes(t *testing.T) {
 
 				policyOpts := &policy.PolicyOptions{
 					LocalPolicyDir: LocalPolicy,
-				}
-				if tc.policyDir != "" {
-					policyOpts.LocalPolicyDir = tc.policyDir
 				}
 
 				if tc.referrersRepo != "" {
@@ -192,65 +198,70 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 	ctx, signer := test.Setup(t)
 	repoName := "repo"
 	for _, tc := range []struct {
+		name      string
 		server    *httptest.Server
 		refServer *httptest.Server
 	}{
 		{
+			name:      "referrers support",
 			server:    httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
 			refServer: httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
 		},
 		{
+			name:      "no referrers support",
 			server:    httptest.NewServer(registry.New()),
 			refServer: httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
 		},
 	} {
-		server := tc.server
-		defer server.Close()
-		serverUrl, err := url.Parse(server.URL)
-		require.NoError(t, err)
-
-		refServer := tc.refServer
-		defer refServer.Close()
-		refServerUrl, err := url.Parse(refServer.URL)
-		require.NoError(t, err)
-
-		opts := &attestation.SigningOptions{
-			Replace: true,
-			SkipTL:  true,
-		}
-		attIdx, err := oci.IndexFromPath(UnsignedTestImage)
-		require.NoError(t, err)
-
-		indexName := fmt.Sprintf("%s/%s:latest", serverUrl.Host, repoName)
-		err = mirror.PushIndexToRegistry(attIdx.Index, indexName)
-		require.NoError(t, err)
-
-		signedManifests, err := attest.SignStatements(ctx, attIdx.Index, signer, opts)
-		require.NoError(t, err)
-
-		// push signed attestation image to the ref server
-		for _, img := range signedManifests {
-			// push references using subject-digest.att convention
-			err = mirror.PushImageToRegistry(img.Attestation.Image, fmt.Sprintf("%s/%s:tag-does-not-matter", refServerUrl.Host, repoName))
+		t.Run(tc.name, func(t *testing.T) {
+			server := tc.server
+			defer server.Close()
+			serverUrl, err := url.Parse(server.URL)
 			require.NoError(t, err)
-		}
-		mfs2, err := attIdx.Index.IndexManifest()
-		require.NoError(t, err)
-		for _, mf := range mfs2.Manifests {
-			//skip signed/unsigned attestations
-			if mf.Annotations[attestation.DockerReferenceType] == attestation.AttestationManifestType {
-				continue
+
+			refServer := tc.refServer
+			defer refServer.Close()
+			refServerUrl, err := url.Parse(refServer.URL)
+			require.NoError(t, err)
+
+			opts := &attestation.SigningOptions{
+				Replace: true,
+				SkipTL:  true,
 			}
-			// can evaluate policy using referrers in a different repo
-			referencedImage := fmt.Sprintf("%s@%s", indexName, mf.Digest.String())
-			policyOpts := &policy.PolicyOptions{
-				LocalPolicyDir: PassPolicyDir,
+			attIdx, err := oci.IndexFromPath(UnsignedTestImage)
+			require.NoError(t, err)
+
+			indexName := fmt.Sprintf("%s/%s:latest", serverUrl.Host, repoName)
+			err = mirror.PushIndexToRegistry(attIdx.Index, indexName)
+			require.NoError(t, err)
+
+			signedManifests, err := attest.SignStatements(ctx, attIdx.Index, signer, opts)
+			require.NoError(t, err)
+
+			// push signed attestation image to the ref server
+			for _, img := range signedManifests {
+				// push references using subject-digest.att convention
+				err = mirror.PushImageToRegistry(img.Attestation.Image, fmt.Sprintf("%s/%s:tag-does-not-matter", refServerUrl.Host, repoName))
+				require.NoError(t, err)
 			}
-			src, err := oci.ParseImageSpec(referencedImage)
+			mfs2, err := attIdx.Index.IndexManifest()
 			require.NoError(t, err)
-			results, err := attest.Verify(ctx, src, policyOpts)
-			require.NoError(t, err)
-			assert.Equal(t, attest.OutcomeSuccess, results.Outcome)
-		}
+			for _, mf := range mfs2.Manifests {
+				//skip signed/unsigned attestations
+				if mf.Annotations[attestation.DockerReferenceType] == attestation.AttestationManifestType {
+					continue
+				}
+				// can evaluate policy using referrers in a different repo
+				referencedImage := fmt.Sprintf("%s@%s", indexName, mf.Digest.String())
+				policyOpts := &policy.PolicyOptions{
+					LocalPolicyDir: PassPolicyDir,
+				}
+				src, err := oci.ParseImageSpec(referencedImage)
+				require.NoError(t, err)
+				results, err := attest.Verify(ctx, src, policyOpts)
+				require.NoError(t, err)
+				assert.Equal(t, attest.OutcomeSuccess, results.Outcome)
+			}
+		})
 	}
 }

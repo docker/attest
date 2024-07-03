@@ -84,6 +84,7 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 			src, err := oci.ParseImageSpec(imageName, oci.WithPlatform(platform.String()))
 			require.NoError(t, err)
 			resolver, err := policy.CreateImageDetailsResolver(src)
+			require.NoError(t, err)
 			policy, err := policy.ResolvePolicy(ctx, resolver, tc.policy)
 			if tc.errorStr != "" {
 				require.Error(t, err)
@@ -91,6 +92,7 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 				return
 			}
 			require.NoErrorf(t, err, "failed to resolve policy")
+			require.NotNil(t, policy, "policy should not be nil")
 			result, err := re.Evaluate(ctx, tc.resolver, policy, input)
 			require.NoErrorf(t, err, "Evaluate failed")
 
@@ -107,8 +109,10 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 func TestLoadingMappings(t *testing.T) {
 	policyMappings, err := config.LoadLocalMappings(filepath.Join("testdata", "mock-tuf-allow"))
 	require.NoError(t, err)
-	assert.Equal(t, len(policyMappings.Mirrors), 1)
-	for _, mirror := range policyMappings.Mirrors {
-		assert.Equal(t, "docker-official-images", mirror.PolicyId)
+	assert.Equal(t, len(policyMappings.Rules), 3)
+	for _, mirror := range policyMappings.Rules {
+		if mirror.PolicyId != "" {
+			assert.Equal(t, "docker-official-images", mirror.PolicyId)
+		}
 	}
 }

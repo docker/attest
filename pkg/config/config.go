@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 
 	"github.com/docker/attest/pkg/tuf"
 	goyaml "gopkg.in/yaml.v3"
@@ -17,7 +18,7 @@ func LoadLocalMappings(configDir string) (*PolicyMappings, error) {
 	if configDir == "" {
 		return nil, nil
 	}
-	mappings := &PolicyMappings{}
+	mappings := &policyMappingsFile{}
 	path := filepath.Join(configDir, MappingFilename)
 	mappingFile, err := os.ReadFile(path)
 	if err != nil {
@@ -27,7 +28,7 @@ func LoadLocalMappings(configDir string) (*PolicyMappings, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal policy mapping file %s: %w", path, err)
 	}
-	return mappings, nil
+	return expandMappingFile(mappings)
 }
 
 func LoadTufMappings(tufClient tuf.TUFClient, localTargetsDir string) (*PolicyMappings, error) {
@@ -39,11 +40,38 @@ func LoadTufMappings(tufClient tuf.TUFClient, localTargetsDir string) (*PolicyMa
 	if err != nil {
 		return nil, fmt.Errorf("failed to download policy mapping file %s: %w", filename, err)
 	}
-	mappings := &PolicyMappings{}
+	mappings := &policyMappingsFile{}
 
 	err = goyaml.Unmarshal(fileContents, mappings)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal policy mapping file %s: %w", filename, err)
 	}
-	return mappings, nil
+	return expandMappingFile(mappings)
+}
+
+func expandMappingFile(mappingFile *policyMappingsFile) (*PolicyMappings, error) {
+	policies := make(map[string]*PolicyMapping)
+	for _, policy := range mappingFile.Policies {
+		policies[policy.Id] = policy
+	}
+
+	var rules []*PolicyRule
+	for _, rule := range mappingFile.Rules {
+		r, err := regexp.Compile(rule.Pattern)
+		if err != nil {
+			return nil, err
+		}
+		rules = append(rules, &PolicyRule{
+			Pattern:  r,
+			PolicyId: rule.PolicyId,
+			Rewrite:  rule.Rewrite,
+		})
+	}
+
+	return &PolicyMappings{
+		Version:  mappingFile.Version,
+		Kind:     mappingFile.Kind,
+		Policies: policies,
+		Rules:    rules,
+	}, nil
 }

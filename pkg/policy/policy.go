@@ -6,7 +6,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"regexp"
 
 	"github.com/distribution/reference"
 	"github.com/docker/attest/pkg/config"
@@ -78,36 +77,26 @@ func findPolicyMatch(imageName string, mappings *config.PolicyMappings) (*policy
 	if mappings == nil {
 		return &policyMatch{matchType: matchTypeNoMatch, imageName: imageName}, nil
 	}
-	return findPolicyMatchImpl(imageName, mappings, make(map[*config.PolicyRule]bool), make(map[string]*regexp.Regexp))
+	return findPolicyMatchImpl(imageName, mappings, make(map[*config.PolicyRule]bool))
 }
 
-func findPolicyMatchImpl(imageName string, mappings *config.PolicyMappings, matched map[*config.PolicyRule]bool, regex map[string]*regexp.Regexp) (*policyMatch, error) {
+func findPolicyMatchImpl(imageName string, mappings *config.PolicyMappings, matched map[*config.PolicyRule]bool) (*policyMatch, error) {
 	for _, rule := range mappings.Rules {
-		r := regex[rule.Pattern]
-		if r == nil {
-			var err error
-			r, err = regexp.Compile(rule.Pattern)
-			if err != nil {
-				return nil, err
-			}
-			regex[rule.Pattern] = r
-		}
-		if r.MatchString(imageName) {
+		if rule.Pattern.MatchString(imageName) {
 			switch {
 			case rule.PolicyId == "" && rule.Rewrite == "":
 				return nil, fmt.Errorf("rule %s has neither policy-id nor rewrite", rule.Pattern)
 			case rule.PolicyId != "" && rule.Rewrite != "":
 				return nil, fmt.Errorf("rule %s has both policy-id and rewrite", rule.Pattern)
 			case rule.PolicyId != "":
-				for _, policy := range mappings.Policies {
-					if policy.Id == rule.PolicyId {
-						return &policyMatch{
-							matchType: matchTypePolicy,
-							policy:    policy,
-							rule:      rule,
-							imageName: imageName,
-						}, nil
-					}
+				policy := mappings.Policies[rule.PolicyId]
+				if policy != nil {
+					return &policyMatch{
+						matchType: matchTypePolicy,
+						policy:    policy,
+						rule:      rule,
+						imageName: imageName,
+					}, nil
 				}
 				return &policyMatch{
 					matchType: matchTypeMatchNoPolicy,
@@ -119,8 +108,8 @@ func findPolicyMatchImpl(imageName string, mappings *config.PolicyMappings, matc
 					return nil, fmt.Errorf("rewrite loop detected")
 				}
 				matched[rule] = true
-				imageName = r.ReplaceAllString(imageName, rule.Rewrite)
-				return findPolicyMatchImpl(imageName, mappings, matched, regex)
+				imageName = rule.Pattern.ReplaceAllString(imageName, rule.Rewrite)
+				return findPolicyMatchImpl(imageName, mappings, matched)
 			}
 		}
 	}
@@ -134,10 +123,9 @@ func resolvePolicyById(opts *PolicyOptions) (*Policy, error) {
 			return nil, fmt.Errorf("failed to load local policy mappings: %w", err)
 		}
 		if localMappings != nil {
-			for _, mapping := range localMappings.Policies {
-				if mapping.Id == opts.PolicyId {
-					return resolveLocalPolicy(opts, mapping, "")
-				}
+			policy := localMappings.Policies[opts.PolicyId]
+			if policy != nil {
+				return resolveLocalPolicy(opts, policy, "")
 			}
 		}
 
@@ -146,10 +134,9 @@ func resolvePolicyById(opts *PolicyOptions) (*Policy, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to load tuf policy mappings by id: %w", err)
 		}
-		for _, mapping := range tufMappings.Policies {
-			if mapping.Id == opts.PolicyId {
-				return resolveTufPolicy(opts, mapping, "")
-			}
+		policy := tufMappings.Policies[opts.PolicyId]
+		if policy != nil {
+			return resolveTufPolicy(opts, policy, "")
 		}
 		return nil, fmt.Errorf("policy with id %s not found", opts.PolicyId)
 	}

@@ -1,10 +1,25 @@
 package config
 
+import "regexp"
+
+type policyMappingsFile struct {
+	Version  string            `yaml:"version"`
+	Kind     string            `yaml:"kind"`
+	Policies []*PolicyMapping  `yaml:"policies"`
+	Rules    []*policyRuleFile `yaml:"rules"`
+}
+
+type policyRuleFile struct {
+	Pattern  string `yaml:"pattern"`
+	PolicyId string `yaml:"policy-id"`
+	Rewrite  string `yaml:"rewrite"`
+}
+
 type PolicyMappings struct {
-	Version  string           `json:"version"`
-	Kind     string           `json:"kind"`
-	Policies []*PolicyMapping `json:"policies"`
-	Rules    []*PolicyRule    `json:"rules"`
+	Version  string
+	Kind     string
+	Policies map[string]*PolicyMapping
+	Rules    []*PolicyRule
 }
 
 type AttestationStyle string
@@ -15,23 +30,23 @@ const (
 )
 
 type PolicyMapping struct {
-	Id           string              `json:"id"`
-	Description  string              `json:"description"`
-	Files        []PolicyMappingFile `json:"files"`
-	Attestations *AttestationConfig  `json:"attestations"`
+	Id           string              `yaml:"id"`
+	Description  string              `yaml:"description"`
+	Files        []PolicyMappingFile `yaml:"files"`
+	Attestations *AttestationConfig  `yaml:"attestations"`
 }
 
 type AttestationConfig struct {
-	Style AttestationStyle `json:"style"`
-	Repo  string           `json:"repo"`
+	Style AttestationStyle `yaml:"style"`
+	Repo  string           `yaml:"repo"`
 }
 
 type PolicyMappingFile struct {
-	Path string `json:"path"`
+	Path string `yaml:"path"`
 }
 
 type PolicyRule struct {
-	Pattern  string `json:"pattern"`
-	PolicyId string `yaml:"policy-id"`
-	Rewrite  string `json:"rewrite"`
+	Pattern  *regexp.Regexp
+	PolicyId string
+	Rewrite  string
 }

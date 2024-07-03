@@ -1,21 +1,19 @@
 package policy
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/docker/attest/pkg/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v3"
 )
 
 func TestFindPolicyMatch(t *testing.T) {
 	testCases := []struct {
-		name        string
-		imageName   string
-		mappingFile string
+		name       string
+		imageName  string
+		mappingDir string
 
 		expectError       bool
 		expectedMatchType matchType
@@ -23,68 +21,68 @@ func TestFindPolicyMatch(t *testing.T) {
 		expectedImageName string
 	}{
 		{
-			name:        "alpine",
-			mappingFile: "doi.yaml",
-			imageName:   "docker.io/library/alpine",
+			name:       "alpine",
+			mappingDir: "doi",
+			imageName:  "docker.io/library/alpine",
 
 			expectedMatchType: matchTypePolicy,
 			expectedPolicyID:  "docker-official-images",
 			expectedImageName: "docker.io/library/alpine",
 		},
 		{
-			name:        "no match",
-			mappingFile: "doi.yaml",
-			imageName:   "docker.io/something/else",
+			name:       "no match",
+			mappingDir: "doi",
+			imageName:  "docker.io/something/else",
 
 			expectedMatchType: matchTypeNoMatch,
 			expectedImageName: "docker.io/something/else",
 		},
 		{
-			name:        "match, no policy",
-			mappingFile: "local.yaml",
-			imageName:   "docker.io/library/alpine",
+			name:       "match, no policy",
+			mappingDir: "local",
+			imageName:  "docker.io/library/alpine",
 
 			expectedMatchType: matchTypeMatchNoPolicy,
 			expectedImageName: "docker.io/library/alpine",
 		},
 		{
-			name:        "simple rewrite",
-			mappingFile: "simple-rewrite.yaml",
-			imageName:   "mycoolmirror.org/library/alpine",
+			name:       "simple rewrite",
+			mappingDir: "simple-rewrite",
+			imageName:  "mycoolmirror.org/library/alpine",
 
 			expectedMatchType: matchTypePolicy,
 			expectedPolicyID:  "docker-official-images",
 			expectedImageName: "docker.io/library/alpine",
 		},
 		{
-			name:        "rewrite no match",
-			mappingFile: "rewrite-to-no-match.yaml",
-			imageName:   "mycoolmirror.org/library/alpine",
+			name:       "rewrite no match",
+			mappingDir: "rewrite-to-no-match",
+			imageName:  "mycoolmirror.org/library/alpine",
 
 			expectedMatchType: matchTypeNoMatch,
 			expectedImageName: "badredirect.org/alpine",
 		},
 		{
-			name:        "rewrite to match, no policy",
-			mappingFile: "rewrite-to-local.yaml",
-			imageName:   "mycoolmirror.org/library/alpine",
+			name:       "rewrite to match, no policy",
+			mappingDir: "rewrite-to-local",
+			imageName:  "mycoolmirror.org/library/alpine",
 
 			expectedMatchType: matchTypeMatchNoPolicy,
 			expectedImageName: "docker.io/library/alpine",
 		},
 		{
-			name:        "multiple rewrites",
-			mappingFile: "rewrite-multiple.yaml",
-			imageName:   "myevencoolermirror.org/library/alpine",
+			name:       "multiple rewrites",
+			mappingDir: "rewrite-multiple",
+			imageName:  "myevencoolermirror.org/library/alpine",
 
 			expectedMatchType: matchTypePolicy,
 			expectedPolicyID:  "docker-official-images",
 			expectedImageName: "docker.io/library/alpine",
 		},
 		{
-			name:        "invalid rewrites",
-			mappingFile: "rewrite-invalid.yaml",
-			imageName:   "mycoolmirror.org/library/alpine",
+			name:       "invalid rewrites",
+			mappingDir: "rewrite-invalid",
+			imageName:  "mycoolmirror.org/library/alpine",
 
 			expectError:       true,
 			expectedMatchType: matchTypePolicy,
@@ -92,9 +90,9 @@ func TestFindPolicyMatch(t *testing.T) {
 			expectedImageName: "docker.io/library/alpine",
 		},
 		{
-			name:        "rewrite loop",
-			mappingFile: "rewrite-loop.yaml",
-			imageName:   "yin/alpine",
+			name:       "rewrite loop",
+			mappingDir: "rewrite-loop",
+			imageName:  "yin/alpine",
 
 			expectError: true,
 		},
@@ -102,10 +100,7 @@ func TestFindPolicyMatch(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mappings := new(config.PolicyMappings)
-			fileBytes, err := os.ReadFile(filepath.Join("testdata", "mappings", tc.mappingFile))
-			require.NoError(t, err)
-			err = yaml.Unmarshal(fileBytes, mappings)
+			mappings, err := config.LoadLocalMappings(filepath.Join("testdata", "mappings", tc.mappingDir))
 			require.NoError(t, err)
 			match, err := findPolicyMatch(tc.imageName, mappings)
 			if tc.expectError {

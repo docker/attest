@@ -13,7 +13,7 @@ import (
 	"github.com/docker/attest/pkg/oci"
 )
 
-func resolveLocalPolicy(opts *PolicyOptions, mapping *config.PolicyMapping) (*Policy, error) {
+func resolveLocalPolicy(opts *PolicyOptions, mapping *config.PolicyMapping, imageName string) (*Policy, error) {
 	if opts.LocalPolicyDir == "" {
 		return nil, fmt.Errorf("local policy dir not set")
 	}
@@ -33,11 +33,12 @@ func resolveLocalPolicy(opts *PolicyOptions, mapping *config.PolicyMapping) (*Po
 	policy := &Policy{
 		InputFiles: files,
 		Mapping:    mapping,
+		ImageName:  imageName,
 	}
 	return policy, nil
 }
 
-func resolveTufPolicy(opts *PolicyOptions, mapping *config.PolicyMapping) (*Policy, error) {
+func resolveTufPolicy(opts *PolicyOptions, mapping *config.PolicyMapping, imageName string) (*Policy, error) {
 	files := make([]*PolicyFile, 0, len(mapping.Files))
 	for _, f := range mapping.Files {
 		filename := f.Path
@@ -53,6 +54,7 @@ func resolveTufPolicy(opts *PolicyOptions, mapping *config.PolicyMapping) (*Poli
 	policy := &Policy{
 		InputFiles: files,
 		Mapping:    mapping,
+		ImageName:  imageName,
 	}
 	return policy, nil
 }
@@ -76,14 +78,27 @@ func findPolicyMatch(imageName string, mappings *config.PolicyMappings) (*policy
 	if mappings == nil {
 		return &policyMatch{matchType: matchTypeNoMatch, imageName: imageName}, nil
 	}
+	return findPolicyMatchImpl(imageName, mappings, make(map[*config.PolicyRule]bool), make(map[string]*regexp.Regexp))
+}
+
+func findPolicyMatchImpl(imageName string, mappings *config.PolicyMappings, matched map[*config.PolicyRule]bool, regex map[string]*regexp.Regexp) (*policyMatch, error) {
 	for _, rule := range mappings.Rules {
-		// TODO: cache compiled regex in case we recurse
-		r, err := regexp.Compile(rule.Pattern)
-		if err != nil {
-			return nil, err
+		r := regex[rule.Pattern]
+		if r == nil {
+			var err error
+			r, err = regexp.Compile(rule.Pattern)
+			if err != nil {
+				return nil, err
+			}
+			regex[rule.Pattern] = r
 		}
 		if r.MatchString(imageName) {
-			if rule.PolicyId != "" {
+			switch {
+			case rule.PolicyId == "" && rule.Rewrite == "":
+				return nil, fmt.Errorf("rule %s has neither policy-id nor rewrite", rule.Pattern)
+			case rule.PolicyId != "" && rule.Rewrite != "":
+				return nil, fmt.Errorf("rule %s has both policy-id and rewrite", rule.Pattern)
+			case rule.PolicyId != "":
 				for _, policy := range mappings.Policies {
 					if policy.Id == rule.PolicyId {
 						return &policyMatch{
@@ -99,10 +114,13 @@ func findPolicyMatch(imageName string, mappings *config.PolicyMappings) (*policy
 					rule:      rule,
 					imageName: imageName,
 				}, nil
-			}
-			if rule.Rewrite != "" {
+			case rule.Rewrite != "":
+				if matched[rule] {
+					return nil, fmt.Errorf("rewrite loop detected")
+				}
+				matched[rule] = true
 				imageName = r.ReplaceAllString(imageName, rule.Rewrite)
-				return findPolicyMatch(imageName, mappings)
+				return findPolicyMatchImpl(imageName, mappings, matched, regex)
 			}
 		}
 	}
@@ -118,7 +136,7 @@ func resolvePolicyById(opts *PolicyOptions) (*Policy, error) {
 		if localMappings != nil {
 			for _, mapping := range localMappings.Policies {
 				if mapping.Id == opts.PolicyId {
-					return resolveLocalPolicy(opts, mapping)
+					return resolveLocalPolicy(opts, mapping, "")
 				}
 			}
 		}
@@ -130,7 +148,7 @@ func resolvePolicyById(opts *PolicyOptions) (*Policy, error) {
 		}
 		for _, mapping := range tufMappings.Policies {
 			if mapping.Id == opts.PolicyId {
-				return resolveTufPolicy(opts, mapping)
+				return resolveTufPolicy(opts, mapping, "")
 			}
 		}
 		return nil, fmt.Errorf("policy with id %s not found", opts.PolicyId)
@@ -150,11 +168,10 @@ func ResolvePolicy(ctx context.Context, detailsResolver oci.ImageDetailsResolver
 	if err != nil {
 		return nil, fmt.Errorf("failed to get image name: %w", err)
 	}
-	named, err := reference.ParseNormalizedNamed(imageName)
+	imageName, err = normalizeImageName(imageName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse image name: %w", err)
 	}
-	imageName = named.Name()
 	localMappings, err := config.LoadLocalMappings(opts.LocalPolicyDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load local policy mappings: %w", err)
@@ -164,7 +181,7 @@ func ResolvePolicy(ctx context.Context, detailsResolver oci.ImageDetailsResolver
 		return nil, err
 	}
 	if match.matchType == matchTypePolicy {
-		return resolveLocalPolicy(opts, match.policy)
+		return resolveLocalPolicy(opts, match.policy, match.imageName)
 	}
 	// must check tuf
 	tufMappings, err := config.LoadTufMappings(opts.TufClient, opts.LocalTargetsDir)
@@ -176,7 +193,7 @@ func ResolvePolicy(ctx context.Context, detailsResolver oci.ImageDetailsResolver
 	if match.matchType == matchTypeMatchNoPolicy {
 		for _, mapping := range tufMappings.Policies {
 			if mapping.Id == match.rule.PolicyId {
-				return resolveTufPolicy(opts, mapping)
+				return resolveTufPolicy(opts, mapping, match.imageName)
 			}
 		}
 	}
@@ -187,9 +204,17 @@ func ResolvePolicy(ctx context.Context, detailsResolver oci.ImageDetailsResolver
 		return nil, err
 	}
 	if match.matchType == matchTypePolicy {
-		return resolveTufPolicy(opts, match.policy)
+		return resolveTufPolicy(opts, match.policy, match.imageName)
 	}
 	return nil, nil
+}
+
+func normalizeImageName(imageName string) (string, error) {
+	named, err := reference.ParseNormalizedNamed(imageName)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse image name: %w", err)
+	}
+	return named.Name(), nil
 }
 
 func CreateImageDetailsResolver(imageSource *oci.ImageSpec) (oci.ImageDetailsResolver, error) {

@@ -1,0 +1,13 @@
+version: v1
+kind: policy-mapping
+policies:
+  - id: docker-official-images
+    description: Docker Official Images
+    files:
+      - path: doi/policy.rego
+rules:
+  - pattern: "^docker[.]io/library/(.*)$"
+    policy-id: docker-official-images
+  - pattern: "^mycoolmirror[.]org/library/(.*)$"
+    rewrite: "docker.io/library/$1"
+    policy-id: docker-official-images # invalid to specify both rewrite and policy-id

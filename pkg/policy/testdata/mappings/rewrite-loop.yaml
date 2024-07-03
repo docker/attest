@@ -1,0 +1,14 @@
+version: v1
+kind: policy-mapping
+policies:
+  - id: docker-official-images
+    description: Docker Official Images
+    files:
+      - path: doi/policy.rego
+rules:
+  - pattern: "^docker[.]io/library/(.*)$"
+    policy-id: docker-official-images
+  - pattern: "^yin/(.*)$"
+    rewrite: "yang/$1"
+  - pattern: "^yang/(.*)$"
+    rewrite: "yin/$1"

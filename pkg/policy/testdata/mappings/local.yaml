@@ -1,0 +1,10 @@
+version: v1
+kind: policy-mapping
+policies:
+  - id: local-policy
+    description: Local Policy
+    files:
+      - path: local-policy.rego
+rules:
+  - pattern: "^docker[.]io/library/(.*)$"
+    policy-id: docker-official-images # note this policy does not exist in this file

@@ -39,6 +39,7 @@ type Policy struct {
 	InputFiles []*PolicyFile
 	Query      string
 	Mapping    *config.PolicyMapping
+	ImageName  string
 }
 
 type PolicyInput struct {

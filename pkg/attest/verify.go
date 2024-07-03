@@ -3,8 +3,10 @@ package attest
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/distribution/reference"
 	"github.com/docker/attest/pkg/attestation"
 	"github.com/docker/attest/pkg/config"
 	"github.com/docker/attest/pkg/oci"
@@ -122,6 +124,16 @@ func VerifyAttestations(ctx context.Context, resolver oci.AttestationResolver, p
 	if err != nil {
 		return nil, err
 	}
+
+	if pctx.ImageName == "" {
+		ref, err := reference.ParseNormalizedNamed(name)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse image name: %w", err)
+		}
+		oldName := ref.Name()
+		name = strings.Replace(name, oldName, pctx.ImageName, 1)
+	}
+
 	purl, canonical, err := oci.RefToPURL(name, platform)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert ref to purl: %w", err)

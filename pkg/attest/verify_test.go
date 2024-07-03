@@ -189,22 +189,24 @@ func TestVerificationFailure(t *testing.T) {
 	assert.Equal(t, "https://docker.com/official/policy/v0.1", attestationPredicate.Policy.URI)
 }
 
-// test signing without a TL entry
-func TestSignVerifyNoTL(t *testing.T) {
+func TestSignVerify(t *testing.T) {
 	ctx, signer := test.Setup(t)
 	ctx = policy.WithPolicyEvaluator(ctx, policy.NewRegoEvaluator(true))
 	// setup an image with signed attestations
 	outputLayout := test.CreateTempDir(t, "", TestTempDir)
 
 	testCases := []struct {
-		name      string
-		signTL    bool
-		policyDir string
-		success   bool
+		name        string
+		signTL      bool
+		policyDir   string
+		imageName   string
+		expectError bool
 	}{
-		{name: "happy path", signTL: true, policyDir: PassNoTLPolicyDir, success: true},
-		{name: "sign tl, verify no tl", signTL: true, policyDir: PassPolicyDir, success: false},
-		{name: "no tl", signTL: false, policyDir: PassPolicyDir, success: false},
+		{name: "happy path", signTL: true, policyDir: PassNoTLPolicyDir},
+		{name: "sign tl, verify no tl", signTL: true, policyDir: PassPolicyDir},
+		{name: "no tl", signTL: false, policyDir: PassPolicyDir},
+		{name: "mirror", signTL: true, policyDir: PassMirrorPolicyDir, imageName: "mirror.org/library/test-image:test"},
+		{name: "mirror no match", signTL: true, policyDir: PassMirrorPolicyDir, imageName: "incorrect.org/library/test-image:test", expectError: true},
 	}
 
 	attIdx, err := oci.IndexFromPath(UnsignedTestImage)
@@ -222,13 +224,18 @@ func TestSignVerifyNoTL(t *testing.T) {
 			signedIndex := attIdx.Index
 			signedIndex, err = attestation.AddImagesToIndex(signedIndex, signedManifests)
 			require.NoError(t, err)
+
+			imageName := tc.imageName
+			if imageName == "" {
+				imageName = attIdx.Name
+			}
 			// output signed attestations
 			idx := v1.ImageIndex(empty.Index)
 			idx = mutate.AppendManifests(idx, mutate.IndexAddendum{
 				Add: signedIndex,
 				Descriptor: v1.Descriptor{
 					Annotations: map[string]string{
-						oci.OciReferenceTarget: attIdx.Name,
+						oci.OciReferenceTarget: imageName,
 					},
 				},
 			})
@@ -241,8 +248,17 @@ func TestSignVerifyNoTL(t *testing.T) {
 			src, err := oci.ParseImageSpec("oci://"+outputLayout, oci.WithPlatform(LinuxAMD64))
 			require.NoError(t, err)
 			results, err := Verify(ctx, src, policyOpts)
+			if tc.expectError {
+				require.Error(t, err)
+				return
+			}
 			require.NoError(t, err)
 			assert.Equal(t, OutcomeSuccess, results.Outcome)
+			platform, err := oci.ParsePlatform(LinuxAMD64)
+			require.NoError(t, err)
+			expectedPURL, _, err := oci.RefToPURL(attIdx.Name, platform)
+			require.NoError(t, err)
+			assert.Equal(t, expectedPURL, results.Input.Purl)
 		})
 	}
 }

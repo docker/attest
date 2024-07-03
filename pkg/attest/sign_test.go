@@ -22,12 +22,13 @@ import (
 )
 
 var (
-	UnsignedTestImage = filepath.Join("..", "..", "test", "testdata", "unsigned-test-image")
-	NoProvenanceImage = filepath.Join("..", "..", "test", "testdata", "no-provenance-image")
-	PassPolicyDir     = filepath.Join("..", "..", "test", "testdata", "local-policy-pass")
-	PassNoTLPolicyDir = filepath.Join("..", "..", "test", "testdata", "local-policy-no-tl")
-	FailPolicyDir     = filepath.Join("..", "..", "test", "testdata", "local-policy-fail")
-	TestTempDir       = "attest-sign-test"
+	UnsignedTestImage   = filepath.Join("..", "..", "test", "testdata", "unsigned-test-image")
+	NoProvenanceImage   = filepath.Join("..", "..", "test", "testdata", "no-provenance-image")
+	PassPolicyDir       = filepath.Join("..", "..", "test", "testdata", "local-policy-pass")
+	PassMirrorPolicyDir = filepath.Join("..", "..", "test", "testdata", "local-policy-mirror")
+	PassNoTLPolicyDir   = filepath.Join("..", "..", "test", "testdata", "local-policy-no-tl")
+	FailPolicyDir       = filepath.Join("..", "..", "test", "testdata", "local-policy-fail")
+	TestTempDir         = "attest-sign-test"
 )
 
 func TestSignVerifyOCILayout(t *testing.T) {

@@ -125,7 +125,7 @@ func VerifyAttestations(ctx context.Context, resolver oci.AttestationResolver, p
 		return nil, err
 	}
 
-	if pctx.ImageName == "" {
+	if pctx.ImageName != "" {
 		ref, err := reference.ParseNormalizedNamed(name)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse image name: %w", err)

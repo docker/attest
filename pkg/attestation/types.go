@@ -12,12 +12,15 @@ import (
 )
 
 const (
-	DockerReferenceType        = "vnd.docker.reference.type"
-	AttestationManifestType    = "attestation-manifest"
-	DockerReferenceDigest      = "vnd.docker.reference.digest"
-	DockerDsseExtKind          = "application/vnd.docker.attestation-verification.v1+json"
-	RekorTlExtKind             = "Rekor"
-	OCIDescriptorDSSEMediaType = ociv1.MediaTypeDescriptor + "+dsse"
+	DockerReferenceType           = "vnd.docker.reference.type"
+	AttestationManifestType       = "attestation-manifest"
+	InTotoPredicateType           = "in-toto.io/predicate-type"
+	DockerReferenceDigest         = "vnd.docker.reference.digest"
+	DockerDsseExtKind             = "application/vnd.docker.attestation-verification.v1+json"
+	RekorTlExtKind                = "Rekor"
+	OCIDescriptorDSSEMediaType    = ociv1.MediaTypeDescriptor + "+dsse"
+	InTotoReferenceLifecycleStage = "vnd.docker.lifecycle-stage"
+	LifecycleStageExperimental    = "experimental"
 )
 
 var base64Encoding = base64.StdEncoding.Strict()
@@ -32,6 +35,12 @@ type AttestationLayer struct {
 type AttestationImage struct {
 	Layers []*AttestationLayer
 	Image  v1.Image
+}
+
+type SignedAttestationImage struct {
+	Image               v1.Image
+	Descriptor          *v1.Descriptor
+	AttestationManifest *AttestationManifest
 }
 
 type AttestationManifest struct {

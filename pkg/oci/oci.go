@@ -57,7 +57,7 @@ func ExtractEnvelopes(ia *AttestationManifest, predicateType string) ([]*att.Env
 	for i, l := range manifest.Layers {
 		if (strings.HasPrefix(string(l.MediaType), "application/vnd.in-toto.")) &&
 			strings.HasSuffix(string(l.MediaType), "+dsse") &&
-			l.Annotations[InTotoPredicateType] == predicateType {
+			l.Annotations[att.InTotoPredicateType] == predicateType {
 			reader, err := layers[i].Uncompressed()
 			if err != nil {
 				return nil, fmt.Errorf("failed to get layer contents: %w", err)

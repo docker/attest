@@ -3,7 +3,7 @@ package attest_test
 import (
 	"context"
 
-	"github.com/docker/attest/internal/test"
+	"github.com/docker/attest/pkg/attest"
 	"github.com/docker/attest/pkg/attestation"
 	"github.com/docker/attest/pkg/mirror"
 	"github.com/docker/attest/pkg/oci"
@@ -32,22 +32,32 @@ func ExampleSign_remote() {
 
 	// load image index with unsigned attestation-manifests
 	ref := "docker/image-signer-verifier:latest"
-	att, err := oci.IndexFromRemote(ref)
+	attIdx, err := oci.IndexFromRemote(ref)
 	if err != nil {
 		panic(err)
 	}
 	// example for local image index
 	// path := "/myimage"
-	// att, err := oci.AttestationIndexFromLocal(path)
+	// attIdx, err = oci.IndexFromPath(path)
+	// if err != nil {
+	// 	panic(err)
+	// }
 
 	// sign all attestations in an image index
-	signedImageIndex, err := test.SignStatements(context.Background(), att.Index, signer, opts)
+	signedManifests, err := attest.SignStatements(context.Background(), attIdx.Index, signer, opts)
 	if err != nil {
 		panic(err)
 	}
+	signedIndex := attIdx.Index
+	for _, manifest := range signedManifests {
+		signedIndex, err = attestation.AddImageToIndex(signedIndex, manifest)
+		if err != nil {
+			panic(err)
+		}
+	}
 
 	// push image index with signed attestation-manifests
-	err = mirror.PushIndexToRegistry(signedImageIndex, ref)
+	err = mirror.PushIndexToRegistry(signedIndex, ref)
 	if err != nil {
 		panic(err)
 	}
@@ -55,10 +65,10 @@ func ExampleSign_remote() {
 	path := "/myimage"
 	idx := v1.ImageIndex(empty.Index)
 	idx = mutate.AppendManifests(idx, mutate.IndexAddendum{
-		Add: signedImageIndex,
+		Add: signedIndex,
 		Descriptor: v1.Descriptor{
 			Annotations: map[string]string{
-				oci.OciReferenceTarget: att.Name,
+				oci.OciReferenceTarget: attIdx.Name,
 			},
 		},
 	})

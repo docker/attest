@@ -79,7 +79,7 @@ func (r *ReferrersResolver) resolveAttestations(ctx context.Context) error {
 			if err != nil {
 				return fmt.Errorf("failed to get manifest: %w", err)
 			}
-			if manifest.Annotations[att.DockerReferenceType] != AttestationManifestType {
+			if manifest.Annotations[att.DockerReferenceType] != att.AttestationManifestType {
 				continue
 			}
 			if manifest.Annotations[att.DockerReferenceDigest] != subjectDigest {

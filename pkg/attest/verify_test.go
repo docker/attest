@@ -1,4 +1,4 @@
-package attest_test
+package attest
 
 import (
 	"context"
@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/docker/attest/internal/test"
-	"github.com/docker/attest/pkg/attest"
 	"github.com/docker/attest/pkg/attestation"
 	"github.com/docker/attest/pkg/oci"
 	"github.com/docker/attest/pkg/policy"
@@ -60,7 +59,7 @@ func TestVerifyAttestations(t *testing.T) {
 			}
 
 			ctx := policy.WithPolicyEvaluator(context.Background(), &mockPE)
-			_, err := attest.VerifyAttestations(ctx, resolver, nil)
+			_, err := VerifyAttestations(ctx, resolver, nil)
 			if tc.expectedError != nil {
 				if assert.Error(t, err) {
 					assert.Equal(t, tc.expectedError.Error(), err.Error())
@@ -83,8 +82,13 @@ func TestVSA(t *testing.T) {
 	}
 	attIdx, err := oci.IndexFromPath(UnsignedTestImage)
 	assert.NoError(t, err)
-	signedIndex, err := test.SignStatements(ctx, attIdx.Index, signer, opts)
-	assert.NoError(t, err)
+	signedManifests, err := SignStatements(ctx, attIdx.Index, signer, opts)
+	require.NoError(t, err)
+	signedIndex := attIdx.Index
+	for _, manifest := range signedManifests {
+		signedIndex, err = attestation.AddImageToIndex(signedIndex, manifest)
+		require.NoError(t, err)
+	}
 
 	// output signed attestations
 	idx := v1.ImageIndex(empty.Index)
@@ -105,9 +109,9 @@ func TestVSA(t *testing.T) {
 	}
 	src, err := oci.ParseImageSpec("oci://"+outputLayout, oci.WithPlatform(LinuxAMD64))
 	require.NoError(t, err)
-	results, err := attest.Verify(ctx, src, policyOpts)
+	results, err := Verify(ctx, src, policyOpts)
 	require.NoError(t, err)
-	assert.Equal(t, attest.OutcomeSuccess, results.Outcome)
+	assert.Equal(t, OutcomeSuccess, results.Outcome)
 	assert.Empty(t, results.Violations)
 
 	if assert.NotNil(t, results.Input) {
@@ -139,8 +143,13 @@ func TestVerificationFailure(t *testing.T) {
 	}
 	attIdx, err := oci.IndexFromPath(UnsignedTestImage)
 	assert.NoError(t, err)
-	signedIndex, err := test.SignStatements(ctx, attIdx.Index, signer, opts)
-	assert.NoError(t, err)
+	signedManifests, err := SignStatements(ctx, attIdx.Index, signer, opts)
+	require.NoError(t, err)
+	signedIndex := attIdx.Index
+	for _, manifest := range signedManifests {
+		signedIndex, err = attestation.AddImageToIndex(signedIndex, manifest)
+		require.NoError(t, err)
+	}
 
 	// output signed attestations
 	idx := v1.ImageIndex(empty.Index)
@@ -161,9 +170,9 @@ func TestVerificationFailure(t *testing.T) {
 	}
 	src, err := oci.ParseImageSpec("oci://"+outputLayout, oci.WithPlatform(LinuxAMD64))
 	require.NoError(t, err)
-	results, err := attest.Verify(ctx, src, policyOpts)
+	results, err := Verify(ctx, src, policyOpts)
 	require.NoError(t, err)
-	assert.Equal(t, attest.OutcomeFailure, results.Outcome)
+	assert.Equal(t, OutcomeFailure, results.Outcome)
 	assert.Len(t, results.Violations, 1)
 
 	violation := results.Violations[0]
@@ -212,8 +221,13 @@ func TestSignVerifyNoTL(t *testing.T) {
 				SkipTL:  tc.signTL,
 			}
 
-			signedIndex, err := test.SignStatements(ctx, attIdx.Index, signer, opts)
-			assert.NoError(t, err)
+			signedManifests, err := SignStatements(ctx, attIdx.Index, signer, opts)
+			require.NoError(t, err)
+			signedIndex := attIdx.Index
+			for _, manifest := range signedManifests {
+				signedIndex, err = attestation.AddImageToIndex(signedIndex, manifest)
+				require.NoError(t, err)
+			}
 
 			// output signed attestations
 			idx := v1.ImageIndex(empty.Index)
@@ -233,9 +247,9 @@ func TestSignVerifyNoTL(t *testing.T) {
 			}
 			src, err := oci.ParseImageSpec("oci://"+outputLayout, oci.WithPlatform(LinuxAMD64))
 			require.NoError(t, err)
-			results, err := attest.Verify(ctx, src, policyOpts)
+			results, err := Verify(ctx, src, policyOpts)
 			require.NoError(t, err)
-			assert.Equal(t, attest.OutcomeSuccess, results.Outcome)
+			assert.Equal(t, OutcomeSuccess, results.Outcome)
 		})
 	}
 }

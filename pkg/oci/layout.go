@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/docker/attest/pkg/attestation"
 	att "github.com/docker/attest/pkg/attestation"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/layout"
@@ -50,7 +51,7 @@ func (r *OCILayoutResolver) Attestations(ctx context.Context, predicateType stri
 	var envs []*att.Envelope
 	manifest := r.AttestationManifest.Manifest
 	for i, l := range manifest.Layers {
-		if l.Annotations[InTotoPredicateType] != predicateType {
+		if l.Annotations[attestation.InTotoPredicateType] != predicateType {
 			continue
 		}
 		layer := layers[i]
@@ -121,7 +122,7 @@ func attestationManifestFromOCILayout(path string, platform *v1.Platform) (*Atte
 		}
 	}
 	for _, mf := range mfs2.Manifests {
-		if mf.Annotations[att.DockerReferenceType] != AttestationManifestType {
+		if mf.Annotations[att.DockerReferenceType] != attestation.AttestationManifestType {
 			continue
 		}
 

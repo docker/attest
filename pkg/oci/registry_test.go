@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/docker/attest/internal/test"
+	"github.com/docker/attest/pkg/attest"
 	"github.com/docker/attest/pkg/attestation"
 	"github.com/docker/attest/pkg/mirror"
 	"github.com/docker/attest/pkg/oci"
@@ -30,9 +31,13 @@ func TestRegistry(t *testing.T) {
 	}
 	attIdx, err := oci.IndexFromPath(oci.UnsignedTestImage)
 	require.NoError(t, err)
-	signedIndex, err := test.SignStatements(ctx, attIdx.Index, signer, opts)
+	signedManifests, err := attest.SignStatements(ctx, attIdx.Index, signer, opts)
 	require.NoError(t, err)
-
+	signedIndex := attIdx.Index
+	for _, manifest := range signedManifests {
+		signedIndex, err = attestation.AddImageToIndex(signedIndex, manifest)
+		require.NoError(t, err)
+	}
 	indexName := fmt.Sprintf("%s/repo:root", u.Host)
 	require.NoError(t, err)
 	err = mirror.PushIndexToRegistry(signedIndex, indexName)

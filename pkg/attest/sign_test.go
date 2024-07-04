@@ -1,4 +1,4 @@
-package attest_test
+package attest
 
 import (
 	"encoding/json"
@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/docker/attest/internal/test"
-	"github.com/docker/attest/pkg/attest"
 	"github.com/docker/attest/pkg/attestation"
 	"github.com/docker/attest/pkg/oci"
 	"github.com/docker/attest/pkg/policy"
@@ -58,9 +57,13 @@ func TestSignVerifyOCILayout(t *testing.T) {
 			}
 			attIdx, err := oci.IndexFromPath(tc.TestImage)
 			require.NoError(t, err)
-			signedIndex, err := test.SignStatements(ctx, attIdx.Index, signer, opts)
+			signedManifests, err := SignStatements(ctx, attIdx.Index, signer, opts)
 			require.NoError(t, err)
-
+			signedIndex := attIdx.Index
+			for _, manifest := range signedManifests {
+				signedIndex, err = attestation.AddImageToIndex(signedIndex, manifest)
+				require.NoError(t, err)
+			}
 			// output signed attestations
 			idx := v1.ImageIndex(empty.Index)
 			idx = mutate.AppendManifests(idx, mutate.IndexAddendum{
@@ -75,9 +78,9 @@ func TestSignVerifyOCILayout(t *testing.T) {
 			require.NoError(t, err)
 			src, err := oci.ParseImageSpec("oci://" + outputLayout)
 			require.NoError(t, err)
-			policy, err := attest.Verify(ctx, src, policyOpts)
+			policy, err := Verify(ctx, src, policyOpts)
 			require.NoError(t, err)
-			assert.Equalf(t, attest.OutcomeSuccess, policy.Outcome, "Policy should have been found")
+			assert.Equalf(t, OutcomeSuccess, policy.Outcome, "Policy should have been found")
 
 			var allEnvelopes []*test.AnnotatedStatement
 			for _, predicate := range []string{intoto.PredicateSPDX, v02.PredicateSLSAProvenance, attestation.VSAPredicateType} {
@@ -87,8 +90,8 @@ func TestSignVerifyOCILayout(t *testing.T) {
 				allEnvelopes = append(allEnvelopes, statements...)
 
 				for _, stmt := range statements {
-					assert.Equalf(t, predicate, stmt.Annotations[oci.InTotoPredicateType], "expected predicate-type annotation to be set to %s, got %s", predicate, stmt.Annotations[oci.InTotoPredicateType])
-					assert.Equalf(t, attest.LifecycleStageExperimental, stmt.Annotations[attest.InTotoReferenceLifecycleStage], "expected reference lifecycle stage annotation to be set to %s, got %s", attest.LifecycleStageExperimental, stmt.Annotations[attest.InTotoReferenceLifecycleStage])
+					assert.Equalf(t, predicate, stmt.Annotations[attestation.InTotoPredicateType], "expected predicate-type annotation to be set to %s, got %s", predicate, stmt.Annotations[attestation.InTotoPredicateType])
+					assert.Equalf(t, attestation.LifecycleStageExperimental, stmt.Annotations[attestation.InTotoReferenceLifecycleStage], "expected reference lifecycle stage annotation to be set to %s, got %s", attestation.LifecycleStageExperimental, stmt.Annotations[attestation.InTotoReferenceLifecycleStage])
 				}
 			}
 			assert.Equalf(t, tc.expectedAttestations, len(allEnvelopes), "expected %d attestations, got %d", tc.expectedAttestations, len(allEnvelopes))
@@ -132,8 +135,7 @@ func TestAddSignedLayerAnnotations(t *testing.T) {
 				},
 				SubjectDescriptor: &v1.Descriptor{},
 			}
-
-			err := attest.AddOrReplaceLayer(originalLayer, manifest, opts)
+			err := manifest.AddOrReplaceLayer(originalLayer, opts)
 			newImg := manifest.Attestation.Image
 			require.NoError(t, err)
 			mf, _ := newImg.RawManifest()

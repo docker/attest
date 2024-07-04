@@ -11,13 +11,11 @@ import (
 )
 
 const (
-	AttestationManifestType            = "attestation-manifest"
-	InTotoPredicateType                = "in-toto.io/predicate-type"
-	OciReferenceTarget                 = "org.opencontainers.image.ref.name"
-	LocalPrefix                        = "oci://"
-	RegistryPrefix                     = "docker://"
-	OCI                     SourceType = "OCI"
-	Docker                  SourceType = "Docker"
+	OciReferenceTarget            = "org.opencontainers.image.ref.name"
+	LocalPrefix                   = "oci://"
+	RegistryPrefix                = "docker://"
+	OCI                SourceType = "OCI"
+	Docker             SourceType = "Docker"
 )
 
 type SourceType string

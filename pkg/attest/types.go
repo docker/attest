@@ -7,11 +7,6 @@ import (
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 )
 
-const (
-	InTotoReferenceLifecycleStage = "vnd.docker.lifecycle-stage"
-	LifecycleStageExperimental    = "experimental"
-)
-
 type Outcome string
 
 const (

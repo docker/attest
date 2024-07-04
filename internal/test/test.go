@@ -10,7 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/docker/attest/pkg/attest"
 	"github.com/docker/attest/pkg/attestation"
 	"github.com/docker/attest/pkg/policy"
 	"github.com/docker/attest/pkg/signerverifier"
@@ -193,34 +192,4 @@ func ExtractAnnotatedStatements(path string, mediaType string) ([]*AnnotatedStat
 		return nil, fmt.Errorf("failed to extract ImageIndex for digest %s: %w", idxDigest.String(), err)
 	}
 	return ExtractStatementsFromIndex(mfs, mediaType)
-}
-
-// this is only relevant if there are (unsigned) in-toto statements, and is really only an example of how to sign them all
-func SignStatements(ctx context.Context, idx v1.ImageIndex, signer dsse.SignerVerifier, opts *attestation.SigningOptions) (v1.ImageIndex, error) {
-	// extract attestation manifests from index
-	attestationManifests, err := attestation.GetAttestationManifestsFromIndex(idx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load attestation manifests from index: %w", err)
-	}
-	if len(attestationManifests) == 0 {
-		return nil, fmt.Errorf("no attestation manifests found in index")
-	}
-	// sign every attestation layer in each manifest
-	for _, manifest := range attestationManifests {
-		for _, layer := range manifest.Attestation.Layers {
-			signedLayer, err := attest.CreateSignedImageLayer(ctx, layer.Statement, signer, opts)
-			if err != nil {
-				return nil, fmt.Errorf("failed to create signed layer attestation: %w", err)
-			}
-			err = attest.AddAttestationToImage(manifest, signedLayer, opts)
-			if err != nil {
-				return nil, fmt.Errorf("failed to add attestation to image: %w", err)
-			}
-		}
-		idx, err = attest.AddImageToIndex(idx, manifest)
-		if err != nil {
-			return nil, fmt.Errorf("failed to add signed layers to index: %w", err)
-		}
-	}
-	return idx, nil
 }

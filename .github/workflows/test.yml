@@ -36,14 +36,6 @@ jobs:
         with:
           aws-region: "us-east-1"
           role-to-assume: arn:aws:iam::175142243308:role/doi-github-actions-signing
-      - name: auth-with-gcp
-        if: matrix.os == 'ubuntu-latest' && github.actor != 'dependabot[bot]'
-        uses: google-github-actions/auth@v2
-        with:
-          project_id: 'attest-kms-test'
-          export_environment_variables: true
-          workload_identity_provider: 'projects/385966116051/locations/global/workloadIdentityPools/attest-kms-test/providers/attest-kms-test'
-          service_account: 'attest-kms-test@attest-kms-test.iam.gserviceaccount.com'
       - name: Setup Testcontainers Cloud Client
         uses: atomicjar/testcontainers-cloud-setup-action@v1
         with:

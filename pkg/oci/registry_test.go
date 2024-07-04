@@ -34,10 +34,9 @@ func TestRegistry(t *testing.T) {
 	signedManifests, err := attest.SignStatements(ctx, attIdx.Index, signer, opts)
 	require.NoError(t, err)
 	signedIndex := attIdx.Index
-	for _, manifest := range signedManifests {
-		signedIndex, err = attestation.AddImageToIndex(signedIndex, manifest)
-		require.NoError(t, err)
-	}
+	signedIndex, err = attestation.AddImagesToIndex(signedIndex, signedManifests)
+	require.NoError(t, err)
+
 	indexName := fmt.Sprintf("%s/repo:root", u.Host)
 	require.NoError(t, err)
 	err = mirror.PushIndexToRegistry(signedIndex, indexName)

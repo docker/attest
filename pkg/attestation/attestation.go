@@ -235,3 +235,17 @@ func AddImageToIndex(
 	})
 	return idx, nil
 }
+
+func AddImagesToIndex(
+	idx v1.ImageIndex,
+	manifests []*AttestationManifest,
+) (v1.ImageIndex, error) {
+	for _, manifest := range manifests {
+		var err error
+		idx, err = AddImageToIndex(idx, manifest)
+		if err != nil {
+			return nil, fmt.Errorf("failed to add image to index: %w", err)
+		}
+	}
+	return idx, nil
+}

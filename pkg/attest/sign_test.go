@@ -60,10 +60,8 @@ func TestSignVerifyOCILayout(t *testing.T) {
 			signedManifests, err := SignStatements(ctx, attIdx.Index, signer, opts)
 			require.NoError(t, err)
 			signedIndex := attIdx.Index
-			for _, manifest := range signedManifests {
-				signedIndex, err = attestation.AddImageToIndex(signedIndex, manifest)
-				require.NoError(t, err)
-			}
+			signedIndex, err = attestation.AddImagesToIndex(signedIndex, signedManifests)
+			require.NoError(t, err)
 			// output signed attestations
 			idx := v1.ImageIndex(empty.Index)
 			idx = mutate.AppendManifests(idx, mutate.IndexAddendum{

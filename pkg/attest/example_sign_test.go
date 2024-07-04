@@ -49,11 +49,9 @@ func ExampleSign_remote() {
 		panic(err)
 	}
 	signedIndex := attIdx.Index
-	for _, manifest := range signedManifests {
-		signedIndex, err = attestation.AddImageToIndex(signedIndex, manifest)
-		if err != nil {
-			panic(err)
-		}
+	signedIndex, err = attestation.AddImagesToIndex(signedIndex, signedManifests)
+	if err != nil {
+		panic(err)
 	}
 
 	// push image index with signed attestation-manifests

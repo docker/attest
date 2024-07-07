@@ -8,6 +8,7 @@ import (
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/distribution/reference"
+	"github.com/docker/attest/pkg/attestation"
 	att "github.com/docker/attest/pkg/attestation"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
@@ -46,11 +47,13 @@ func WithOptions(ctx context.Context, platform *v1.Platform) []remote.Option {
 	return options
 }
 
-func ExtractEnvelopes(ia *AttestationManifest, predicateType string) ([]*att.Envelope, error) {
-	manifest := ia.Manifest
-	image := ia.Image
+func ExtractEnvelopes(ia *attestation.AttestationManifest, predicateType string) ([]*att.Envelope, error) {
+	manifest, err := ia.AttestationImage.Image.Manifest()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get manifest: %w", err)
+	}
 	var envs []*att.Envelope
-	layers, err := image.Layers()
+	layers, err := ia.AttestationImage.Image.Layers()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get layers: %w", err)
 	}
@@ -75,13 +78,13 @@ func ExtractEnvelopes(ia *AttestationManifest, predicateType string) ([]*att.Env
 	return envs, nil
 }
 
-func imageDigestForPlatform(ix *v1.IndexManifest, platform *v1.Platform) (string, error) {
+func imageDescriptor(ix *v1.IndexManifest, platform *v1.Platform) (*v1.Descriptor, error) {
 	for _, m := range ix.Manifests {
 		if (m.MediaType == ocispec.MediaTypeImageManifest || m.MediaType == "application/vnd.docker.distribution.manifest.v2+json") && m.Platform.Equals(*platform) {
-			return m.Digest.String(), nil
+			return &m, nil
 		}
 	}
-	return "", errors.New(fmt.Sprintf("no image found for platform %v", platform))
+	return nil, errors.New(fmt.Sprintf("no image found for platform %v", platform))
 }
 
 func attestationDigestForDigest(ix *v1.IndexManifest, imageDigest string, attestType string) (string, error) {
@@ -146,4 +149,28 @@ func SplitDigest(digest string) (common.DigestSet, error) {
 	return common.DigestSet{
 		parts[0]: parts[1],
 	}, nil
+}
+
+func ReplaceTagInSpec(src *ImageSpec, digest v1.Hash) (*ImageSpec, error) {
+	newName, err := replaceTag(src.Identifier, digest)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse repo name: %w", err)
+	}
+	return &ImageSpec{
+		Identifier: newName,
+		Type:       src.Type,
+		Platform:   src.Platform,
+	}, nil
+}
+
+// so that the index tag is replaced with a tag unique to the image digest and doesn't overwrite it
+func replaceTag(image string, digest v1.Hash) (string, error) {
+	if strings.HasPrefix(image, LocalPrefix) {
+		return image, nil
+	}
+	notag, err := WithoutTag(image)
+	if err != nil {
+		return "", nil
+	}
+	return fmt.Sprintf("%s:%s-%s.att", notag, digest.Algorithm, digest.Hex), nil
 }

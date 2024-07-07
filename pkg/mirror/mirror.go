@@ -5,12 +5,14 @@ import (
 	"os"
 
 	"github.com/docker/attest/internal/embed"
+	"github.com/docker/attest/pkg/attestation"
 	"github.com/docker/attest/pkg/oci"
 	"github.com/docker/attest/pkg/tuf"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/empty"
 	"github.com/google/go-containerregistry/pkg/v1/layout"
+	"github.com/google/go-containerregistry/pkg/v1/mutate"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 )
 
@@ -70,6 +72,93 @@ func SaveIndexAsOCILayout(image v1.ImageIndex, path string) error {
 	_, err = layout.Write(path, image)
 	if err != nil {
 		return fmt.Errorf("failed to create index: %w", err)
+	}
+	return nil
+}
+
+func SaveIndex(outputs []*oci.ImageSpec, index v1.ImageIndex, indexName string) error {
+	// split output by comma and write or push each one
+	for _, output := range outputs {
+		if output.Type == oci.OCI {
+			idx := v1.ImageIndex(empty.Index)
+			idx = mutate.AppendManifests(idx, mutate.IndexAddendum{
+				Add: index,
+				Descriptor: v1.Descriptor{
+					Annotations: map[string]string{
+						oci.OciReferenceTarget: indexName,
+					},
+				},
+			})
+			err := SaveIndexAsOCILayout(idx, output.Identifier)
+			if err != nil {
+				return fmt.Errorf("failed to write signed image: %w", err)
+			}
+		} else {
+			err := PushIndexToRegistry(index, output.Identifier)
+			if err != nil {
+				return fmt.Errorf("failed to push signed image: %w", err)
+			}
+		}
+	}
+	return nil
+}
+
+func SaveImage(output *oci.ImageSpec, image v1.Image, imageName string) error {
+	if output.Type == oci.OCI {
+		idx := v1.ImageIndex(empty.Index)
+		idx = mutate.AppendManifests(idx, mutate.IndexAddendum{
+			Add: image,
+			Descriptor: v1.Descriptor{
+				Annotations: map[string]string{
+					oci.OciReferenceTarget: imageName,
+				},
+			},
+		})
+		err := SaveIndexAsOCILayout(idx, output.Identifier)
+		if err != nil {
+			return fmt.Errorf("failed to write signed image: %w", err)
+		}
+	} else {
+		err := PushImageToRegistry(image, output.Identifier)
+		if err != nil {
+			return fmt.Errorf("failed to push signed image: %w", err)
+		}
+	}
+	return nil
+}
+
+func SaveReferrers(manifest *attestation.AttestationManifest, outputs []*oci.ImageSpec) error {
+	for _, output := range outputs {
+		if output.Type == oci.OCI {
+			continue
+		}
+		ociManifest, err := manifest.AttestationImage.Image.Manifest()
+		if err != nil {
+			return fmt.Errorf("failed to get manifest: %w", err)
+		}
+		refDigest := ociManifest.Annotations[attestation.DockerReferenceDigest]
+		if refDigest == "" {
+			return fmt.Errorf("no digest found in manifest")
+		}
+		hash, err := v1.NewHash(refDigest)
+		if err != nil {
+			return fmt.Errorf("failed to parse digest: %w", err)
+		}
+		// so that we use the same tag each time to reduce number of tags (tags aren't needed for referrers but we must push one)
+		attOut, err := oci.ReplaceTagInSpec(output, hash)
+		if err != nil {
+			return err
+		}
+		//otherwise we end up with the detected platform, though I'm not sure it matters
+		attOut.Platform = &v1.Platform{
+			OS:           "unknown",
+			Architecture: "unknown",
+		}
+
+		err = SaveImage(attOut, manifest.AttestationImage.Image, "")
+		if err != nil {
+			return fmt.Errorf("failed to push image: %w", err)
+		}
 	}
 	return nil
 }

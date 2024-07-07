@@ -47,7 +47,8 @@ func TestRegistry(t *testing.T) {
 
 	resolver, err := policy.CreateImageDetailsResolver(spec)
 	require.NoError(t, err)
-	digest, err := resolver.ImageDigest(ctx)
+	desc, err := resolver.ImageDescriptor(ctx)
 	require.NoError(t, err)
+	digest := desc.Digest.String()
 	assert.True(t, strings.Contains(digest, "sha256:"))
 }

@@ -7,21 +7,6 @@ import (
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 )
 
-type AttestationManifests struct {
-	Manifests []*AttestationManifest
-}
-
-type AttestationManifest struct {
-	// attestation image details
-	Image      v1.Image
-	Manifest   *v1.Manifest
-	Descriptor *v1.Descriptor
-	// details of subect image
-	Name     string
-	Digest   string
-	Platform *v1.Platform
-}
-
 type AttestationResolver interface {
 	ImageDetailsResolver
 	Attestations(ctx context.Context, mediaType string) ([]*att.Envelope, error)
@@ -30,7 +15,7 @@ type AttestationResolver interface {
 type ImageDetailsResolver interface {
 	ImageName(ctx context.Context) (string, error)
 	ImagePlatform(ctx context.Context) (*v1.Platform, error)
-	ImageDigest(ctx context.Context) (string, error)
+	ImageDescriptor(ctx context.Context) (*v1.Descriptor, error)
 }
 
 type MockResolver struct {
@@ -45,8 +30,17 @@ func (r MockResolver) ImageName(ctx context.Context) (string, error) {
 	return "library/alpine:latest", nil
 }
 
-func (r MockResolver) ImageDigest(ctx context.Context) (string, error) {
-	return "sha256:test-digest", nil
+func (r MockResolver) ImageDescriptor(ctx context.Context) (*v1.Descriptor, error) {
+	digest, err := v1.NewHash("sha256:da8b190665956ea07890a0273e2a9c96bfe291662f08e2860e868eef69c34620")
+	if err != nil {
+		return nil, err
+	}
+	return &v1.Descriptor{
+		Digest:    digest,
+		Size:      1234,
+		MediaType: "application/vnd.oci.image.manifest.v1+json",
+	}, nil
+
 }
 
 func (r MockResolver) ImagePlatform(ctx context.Context) (*v1.Platform, error) {

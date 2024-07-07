@@ -2,9 +2,9 @@ package oci
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
+	"github.com/docker/attest/pkg/attestation"
 	att "github.com/docker/attest/pkg/attestation"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
@@ -13,12 +13,12 @@ import (
 
 type RegistryResolver struct {
 	*RegistryImageDetailsResolver
-	*AttestationManifest
+	*attestation.AttestationManifest
 }
 
 type RegistryImageDetailsResolver struct {
 	*ImageSpec
-	digest string
+	descriptor *v1.Descriptor
 }
 
 func NewRegistryImageDetailsResolver(src *ImageSpec) (*RegistryImageDetailsResolver, error) {
@@ -41,24 +41,36 @@ func (r *RegistryImageDetailsResolver) ImagePlatform(ctx context.Context) (*v1.P
 	return r.Platform, nil
 }
 
-func (r *RegistryImageDetailsResolver) ImageDigest(ctx context.Context) (string, error) {
-	if r.digest == "" {
+func (r *RegistryImageDetailsResolver) ImageDescriptor(ctx context.Context) (*v1.Descriptor, error) {
+	if r.descriptor == nil {
 		subjectRef, err := name.ParseReference(r.Identifier)
 		if err != nil {
-			return "", fmt.Errorf("failed to parse reference: %w", err)
+			return nil, fmt.Errorf("failed to parse reference: %w", err)
 		}
 		options := WithOptions(ctx, r.Platform)
-		desc, err := remote.Image(subjectRef, options...)
+		image, err := remote.Image(subjectRef, options...)
 		if err != nil {
-			return "", fmt.Errorf("failed to get image manifest: %w", err)
+			return nil, fmt.Errorf("failed to get image manifest: %w", err)
 		}
-		subjectDigest, err := desc.Digest()
+		digest, err := image.Digest()
 		if err != nil {
-			return "", fmt.Errorf("failed to get image digest: %w", err)
+			return nil, fmt.Errorf("failed to get image digest: %w", err)
 		}
-		r.digest = subjectDigest.String()
+		size, err := image.Size()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get image size: %w", err)
+		}
+		mediaType, err := image.MediaType()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get image media type: %w", err)
+		}
+		r.descriptor = &v1.Descriptor{
+			Digest:    digest,
+			Size:      size,
+			MediaType: mediaType,
+		}
 	}
-	return r.digest, nil
+	return r.descriptor, nil
 }
 
 func (r *RegistryResolver) Attestations(ctx context.Context, predicateType string) ([]*att.Envelope, error) {
@@ -72,7 +84,7 @@ func (r *RegistryResolver) Attestations(ctx context.Context, predicateType strin
 	return ExtractEnvelopes(r.AttestationManifest, predicateType)
 }
 
-func FetchAttestationManifest(ctx context.Context, image string, platform *v1.Platform) (*AttestationManifest, error) {
+func FetchAttestationManifest(ctx context.Context, image string, platform *v1.Platform) (*attestation.AttestationManifest, error) {
 	// we want to get to the image index, so ignoring platform for now
 	options := WithOptions(ctx, nil)
 	ref, err := name.ParseReference(image)
@@ -87,10 +99,12 @@ func FetchAttestationManifest(ctx context.Context, image string, platform *v1.Pl
 	if err != nil {
 		return nil, fmt.Errorf("failed to get index manifest: %w", err)
 	}
-	digest, err := imageDigestForPlatform(indexManifest, platform)
+	subjectDescriptor, err := imageDescriptor(indexManifest, platform)
 	if err != nil {
 		return nil, fmt.Errorf("failed to obtain image for platform: %w", err)
 	}
+
+	digest := subjectDescriptor.Digest.String()
 	ref, err = name.ParseReference(fmt.Sprintf("%s@%s", ref.Context().Name(), digest))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse attestation reference: %w", err)
@@ -108,22 +122,16 @@ func FetchAttestationManifest(ctx context.Context, image string, platform *v1.Pl
 	if err != nil {
 		return nil, fmt.Errorf("failed to get attestation: %w", err)
 	}
-	manifest := new(v1.Manifest)
-	err = json.Unmarshal(remoteDescriptor.Manifest, manifest)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal attestation: %w", err)
-	}
 	attestationImage, err := remoteDescriptor.Image()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get attestation image: %w", err)
 	}
-	attest := &AttestationManifest{
-		Name:       image,
-		Image:      attestationImage,
-		Manifest:   manifest,
-		Descriptor: &remoteDescriptor.Descriptor,
-		Digest:     digest,
-		Platform:   platform,
+
+	attest := &attestation.AttestationManifest{
+		AttestationImage:   &att.AttestationImage{Image: attestationImage},
+		OriginalDescriptor: &remoteDescriptor.Descriptor,
+		SubjectName:        image,
+		SubjectDescriptor:  subjectDescriptor,
 	}
 	return attest, nil
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/docker/attest/pkg/config"
 	"github.com/docker/attest/pkg/oci"
 	"github.com/docker/attest/pkg/policy"
+	v1 "github.com/google/go-containerregistry/pkg/v1"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 )
 
@@ -60,7 +61,7 @@ func Verify(ctx context.Context, src *oci.ImageSpec, opts *policy.PolicyOptions)
 	return result, nil
 }
 
-func ToPolicyResult(p *policy.Policy, input *policy.PolicyInput, result *policy.Result) (*VerificationResult, error) {
+func toVerificationResult(p *policy.Policy, input *policy.PolicyInput, result *policy.Result) (*VerificationResult, error) {
 	dgst, err := oci.SplitDigest(input.Digest)
 	if err != nil {
 		return nil, fmt.Errorf("failed to split digest: %w", err)
@@ -112,10 +113,11 @@ func ToPolicyResult(p *policy.Policy, input *policy.PolicyInput, result *policy.
 }
 
 func VerifyAttestations(ctx context.Context, resolver oci.AttestationResolver, pctx *policy.Policy) (*VerificationResult, error) {
-	digest, err := resolver.ImageDigest(ctx)
+	desc, err := resolver.ImageDescriptor(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get image digest: %w", err)
+		return nil, fmt.Errorf("failed to get image descriptor: %w", err)
 	}
+	digest := desc.Digest.String()
 	name, err := resolver.ImageName(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get image name: %w", err)
@@ -155,5 +157,27 @@ func VerifyAttestations(ctx context.Context, resolver oci.AttestationResolver, p
 	if err != nil {
 		return nil, fmt.Errorf("policy evaluation failed: %w", err)
 	}
-	return ToPolicyResult(pctx, input, result)
+	verificationResult, err := toVerificationResult(pctx, input, result)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert to policy result: %w", err)
+	}
+	verificationResult.SubjectDescriptor = desc
+	return verificationResult, nil
+}
+
+func NewAttestationManifest(subject *v1.Descriptor) (*attestation.AttestationManifest, error) {
+	subjectDigest := subject.Digest.String()
+	subject.Annotations = map[string]string{
+		"vnd.docker.reference.digest": subjectDigest,
+		"vnd.docker.reference.type":   "attestation-manifest"}
+
+	return &attestation.AttestationManifest{
+		OriginalDescriptor: &v1.Descriptor{
+			MediaType: "application/vnd.oci.image.manifest.v1+json",
+		},
+		AttestationImage: &attestation.AttestationImage{
+			Layers: []*attestation.AttestationLayer{},
+		},
+		SubjectDescriptor: subject,
+	}, nil
 }

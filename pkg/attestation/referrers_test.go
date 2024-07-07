@@ -104,6 +104,7 @@ func TestAttestationReferenceTypes(t *testing.T) {
 			opts := &attestation.SigningOptions{
 				Replace:     true,
 				SkipSubject: tc.skipSubject,
+				SkipTL:      true,
 			}
 			attIdx, err := oci.IndexFromPath(UnsignedTestImage)
 			require.NoError(t, err)
@@ -121,7 +122,7 @@ func TestAttestationReferenceTypes(t *testing.T) {
 				err = mirror.PushIndexToRegistry(attIdx.Index, indexName)
 				require.NoError(t, err)
 				for _, img := range signedManifests {
-					err = mirror.PushImageToRegistry(img.Attestation.Image, fmt.Sprintf("%s:tag-does-not-matter", repo))
+					err = mirror.PushImageToRegistry(img.AttestationImage.Image, fmt.Sprintf("%s:tag-does-not-matter", repo))
 					require.NoError(t, err)
 				}
 			} else {
@@ -213,10 +214,34 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 			refServer: httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
 		},
 	} {
-		t.Run(tc.name, func(t *testing.T) {
-			server := tc.server
-			defer server.Close()
-			serverUrl, err := url.Parse(server.URL)
+		server := tc.server
+		defer server.Close()
+		serverUrl, err := url.Parse(server.URL)
+		require.NoError(t, err)
+
+		refServer := tc.refServer
+		defer refServer.Close()
+		refServerUrl, err := url.Parse(refServer.URL)
+		require.NoError(t, err)
+
+		opts := &attestation.SigningOptions{
+			Replace: true,
+			SkipTL:  true,
+		}
+		attIdx, err := oci.IndexFromPath(UnsignedTestImage)
+		require.NoError(t, err)
+
+		indexName := fmt.Sprintf("%s/%s:latest", serverUrl.Host, repoName)
+		err = mirror.PushIndexToRegistry(attIdx.Index, indexName)
+		require.NoError(t, err)
+
+		signedManifests, err := attest.SignStatements(ctx, attIdx.Index, signer, opts)
+		require.NoError(t, err)
+
+		// push signed attestation image to the ref server
+		for _, img := range signedManifests {
+			// push references using subject-digest.att convention
+			err = mirror.PushImageToRegistry(img.AttestationImage.Image, fmt.Sprintf("%s/%s:tag-does-not-matter", refServerUrl.Host, repoName))
 			require.NoError(t, err)
 
 			refServer := tc.refServer
@@ -241,7 +266,7 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 			// push signed attestation image to the ref server
 			for _, img := range signedManifests {
 				// push references using subject-digest.att convention
-				err = mirror.PushImageToRegistry(img.Attestation.Image, fmt.Sprintf("%s/%s:tag-does-not-matter", refServerUrl.Host, repoName))
+				err = mirror.PushImageToRegistry(img.AttestationImage.Image, fmt.Sprintf("%s/%s:tag-does-not-matter", refServerUrl.Host, repoName))
 				require.NoError(t, err)
 			}
 			mfs2, err := attIdx.Index.IndexManifest()
@@ -262,6 +287,6 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 				require.NoError(t, err)
 				assert.Equal(t, attest.OutcomeSuccess, results.Outcome)
 			}
-		})
+		}
 	}
 }

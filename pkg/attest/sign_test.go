@@ -125,8 +125,10 @@ func TestAddSignedLayerAnnotations(t *testing.T) {
 			}
 
 			manifest := &attestation.AttestationManifest{
-				MediaType: mediaType,
-				Attestation: &attestation.AttestationImage{
+				OriginalDescriptor: &v1.Descriptor{
+					MediaType: mediaType,
+				},
+				AttestationImage: &attestation.AttestationImage{
 					Image: empty.Image,
 					Layers: []*attestation.AttestationLayer{
 						originalLayer,
@@ -135,7 +137,7 @@ func TestAddSignedLayerAnnotations(t *testing.T) {
 				SubjectDescriptor: &v1.Descriptor{},
 			}
 			err := manifest.AddOrReplaceLayer(originalLayer, opts)
-			newImg := manifest.Attestation.Image
+			newImg := manifest.AttestationImage.Image
 			require.NoError(t, err)
 			mf, _ := newImg.RawManifest()
 			type Annotations struct {

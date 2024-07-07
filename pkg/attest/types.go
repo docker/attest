@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/docker/attest/pkg/policy"
+	v1 "github.com/google/go-containerregistry/pkg/v1"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 )
 
@@ -27,9 +28,10 @@ func (o Outcome) StringForVSA() (string, error) {
 }
 
 type VerificationResult struct {
-	Outcome    Outcome
-	Policy     *policy.Policy
-	Input      *policy.PolicyInput
-	VSA        *intoto.Statement
-	Violations []policy.Violation
+	Outcome           Outcome
+	Policy            *policy.Policy
+	Input             *policy.PolicyInput
+	VSA               *intoto.Statement
+	Violations        []policy.Violation
+	SubjectDescriptor *v1.Descriptor
 }

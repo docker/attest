@@ -38,7 +38,7 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 
 	re := policy.NewRegoEvaluator(true)
 
-	defaultResolver := oci.MockResolver{
+	defaultResolver := test.MockResolver{
 		Envs: []*attestation.Envelope{loadAttestation(t, ExampleAttestation)},
 	}
 

@@ -155,3 +155,63 @@ func TestAddSignedLayerAnnotations(t *testing.T) {
 		})
 	}
 }
+
+func TestSimpleStatementSigning(t *testing.T) {
+	ctx, signer := test.Setup(t)
+	empty := types.MediaType("application/vnd.oci.empty.v1+json")
+	testCases := []struct {
+		name    string
+		replace bool
+	}{
+		{"replaced", true},
+		{"not replaced", false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			opts := &attestation.SigningOptions{}
+			statement := &intoto.Statement{
+				StatementHeader: intoto.StatementHeader{
+					PredicateType: attestation.VSAPredicateType,
+				},
+			}
+			statement2 := &intoto.Statement{
+				StatementHeader: intoto.StatementHeader{
+					PredicateType: attestation.VSAPredicateType,
+				},
+			}
+			subject := &v1.Descriptor{
+				MediaType: "application/vnd.oci.image.manifest.v1+json",
+			}
+			manifest, err := NewAttestationManifest(subject)
+			require.NoError(t, err)
+			err = manifest.AddAttestation(ctx, signer, statement, opts)
+			require.NoError(t, err)
+
+			err = manifest.AddAttestation(ctx, signer, statement2, opts)
+			require.NoError(t, err)
+
+			newImg, err := manifest.BuildAttestationImage(attestation.WithReplacedLayers(tc.replace))
+			require.NoError(t, err)
+			layers, err := newImg.Layers()
+			require.NoError(t, err)
+			assert.Len(t, layers, 2)
+
+			newImgs, err := manifest.BuildReferringArtifacts()
+			require.NoError(t, err)
+			assert.Len(t, newImgs, 2)
+			for _, img := range newImgs {
+				mf, err := img.Manifest()
+				require.NoError(t, err)
+				assert.Equal(t, "application/vnd.in-toto+json", mf.ArtifactType)
+				assert.Equal(t, subject.MediaType, mf.MediaType)
+				assert.Equal(t, empty, mf.Config.MediaType)
+				assert.Equal(t, int64(2), mf.Config.Size)
+				assert.Equal(t, "e30=", string(mf.Config.Data))
+				layers, err := img.Layers()
+				require.NoError(t, err)
+				assert.Len(t, layers, 1)
+			}
+		})
+	}
+}

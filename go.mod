@@ -31,6 +31,7 @@ require (
 	sigs.k8s.io/yaml v1.4.0
 )
 
+// fork of a fork (in case it goes away) with changes to support ArtifactType (https://github.com/google/go-containerregistry/pull/1931)
 replace github.com/google/go-containerregistry v0.19.2 => github.com/kipz/go-containerregistry v0.0.0-20240423201245-bf57eace21f2
 
 require (

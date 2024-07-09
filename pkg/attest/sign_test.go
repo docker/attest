@@ -2,13 +2,18 @@ package attest
 
 import (
 	"encoding/json"
+	"fmt"
+	"net/http/httptest"
+	"net/url"
 	"path/filepath"
 	"testing"
 
 	"github.com/docker/attest/internal/test"
 	"github.com/docker/attest/pkg/attestation"
+	"github.com/docker/attest/pkg/mirror"
 	"github.com/docker/attest/pkg/oci"
 	"github.com/docker/attest/pkg/policy"
+	"github.com/google/go-containerregistry/pkg/registry"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/empty"
 	"github.com/google/go-containerregistry/pkg/v1/layout"
@@ -180,8 +185,11 @@ func TestSimpleStatementSigning(t *testing.T) {
 					PredicateType: attestation.VSAPredicateType,
 				},
 			}
+			digest, err := v1.NewHash("sha256:da8b190665956ea07890a0273e2a9c96bfe291662f08e2860e868eef69c34620")
+			require.NoError(t, err)
 			subject := &v1.Descriptor{
 				MediaType: "application/vnd.oci.image.manifest.v1+json",
+				Digest:    digest,
 			}
 			manifest, err := NewAttestationManifest(subject)
 			require.NoError(t, err)
@@ -222,6 +230,16 @@ func TestSimpleStatementSigning(t *testing.T) {
 				require.NoError(t, err)
 				assert.Len(t, layers, 1)
 			}
+			server := httptest.NewServer(registry.New(registry.WithReferrersSupport(true)))
+			defer server.Close()
+
+			u, err := url.Parse(server.URL)
+			require.NoError(t, err)
+
+			indexName := fmt.Sprintf("%s/repo:root", u.Host)
+			output, err := oci.ParseImageSpecs(indexName)
+			err = mirror.SaveReferrers(manifest, output)
+			require.NoError(t, err)
 		})
 	}
 }

@@ -47,21 +47,17 @@ func WithOptions(ctx context.Context, platform *v1.Platform) []remote.Option {
 	return options
 }
 
-func ExtractEnvelopes(ia *attestation.AttestationManifest, predicateType string) ([]*att.Envelope, error) {
-	manifest, err := ia.AttestationImage.Image.Manifest()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get manifest: %w", err)
-	}
+func ExtractEnvelopes(manifest *attestation.AttestationManifest, predicateType string) ([]*att.Envelope, error) {
 	var envs []*att.Envelope
-	layers, err := ia.AttestationImage.Image.Layers()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get layers: %w", err)
-	}
-	for i, l := range manifest.Layers {
-		if (strings.HasPrefix(string(l.MediaType), "application/vnd.in-toto.")) &&
-			strings.HasSuffix(string(l.MediaType), "+dsse") &&
-			l.Annotations[att.InTotoPredicateType] == predicateType {
-			reader, err := layers[i].Uncompressed()
+	for _, attestationLayer := range manifest.AttestationImage.OriginalLayers {
+		mt, err := attestationLayer.Layer.MediaType()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get layer media type: %w", err)
+		}
+		if (strings.HasPrefix(string(mt), "application/vnd.in-toto.")) &&
+			strings.HasSuffix(string(mt), "+dsse") &&
+			attestationLayer.Annotations[att.InTotoPredicateType] == predicateType {
+			reader, err := attestationLayer.Layer.Uncompressed()
 			if err != nil {
 				return nil, fmt.Errorf("failed to get layer contents: %w", err)
 			}

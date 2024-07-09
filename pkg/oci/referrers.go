@@ -80,9 +80,13 @@ func (r *ReferrersResolver) resolveAttestations(ctx context.Context) error {
 			if err != nil {
 				return fmt.Errorf("failed to get referred image: %w", err)
 			}
+			layers, err := attestation.GetAttestationsFromImage(attestationImage)
+			if err != nil {
+				return fmt.Errorf("failed to get attestations from image: %w", err)
+			}
 			attest := &attestation.AttestationManifest{
 				SubjectName:        r.Identifier,
-				AttestationImage:   &attestation.AttestationImage{Image: attestationImage},
+				AttestationImage:   &attestation.AttestationImage{OriginalLayers: layers},
 				OriginalDescriptor: &m,
 				SubjectDescriptor:  desc,
 			}

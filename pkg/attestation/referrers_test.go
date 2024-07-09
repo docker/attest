@@ -102,9 +102,7 @@ func TestAttestationReferenceTypes(t *testing.T) {
 			require.NoError(t, err)
 
 			opts := &attestation.SigningOptions{
-				Replace:     true,
-				SkipSubject: tc.skipSubject,
-				SkipTL:      true,
+				SkipTL: true,
 			}
 			attIdx, err := oci.IndexFromPath(UnsignedTestImage)
 			require.NoError(t, err)
@@ -121,15 +119,17 @@ func TestAttestationReferenceTypes(t *testing.T) {
 				require.NoError(t, err)
 				err = mirror.PushIndexToRegistry(attIdx.Index, indexName)
 				require.NoError(t, err)
-				for _, img := range signedManifests {
-					err = mirror.PushImageToRegistry(img.AttestationImage.Image, fmt.Sprintf("%s:tag-does-not-matter", repo))
+				for _, signedManifest := range signedManifests {
+					image, err := signedManifest.BuildAttestationImage(attestation.WithoutSubject(tc.skipSubject), attestation.WithReplacedLayers(true))
+					require.NoError(t, err)
+					err = mirror.PushImageToRegistry(image, fmt.Sprintf("%s:tag-does-not-matter", repo))
 					require.NoError(t, err)
 				}
 			} else {
 				signedManifests, err := attest.SignStatements(ctx, attIdx.Index, signer, opts)
 				require.NoError(t, err)
 				signedIndex := attIdx.Index
-				signedIndex, err = attestation.AddImagesToIndex(signedIndex, signedManifests)
+				signedIndex, err = attestation.AddImagesToIndex(signedIndex, signedManifests, attestation.WithReplacedLayers(true), attestation.WithoutSubject(tc.skipSubject))
 				require.NoError(t, err)
 				err = mirror.PushIndexToRegistry(signedIndex, indexName)
 				require.NoError(t, err)
@@ -225,8 +225,7 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 		require.NoError(t, err)
 
 		opts := &attestation.SigningOptions{
-			Replace: true,
-			SkipTL:  true,
+			SkipTL: true,
 		}
 		attIdx, err := oci.IndexFromPath(UnsignedTestImage)
 		require.NoError(t, err)
@@ -239,9 +238,11 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 		require.NoError(t, err)
 
 		// push signed attestation image to the ref server
-		for _, img := range signedManifests {
+		for _, signedManifest := range signedManifests {
 			// push references using subject-digest.att convention
-			err = mirror.PushImageToRegistry(img.AttestationImage.Image, fmt.Sprintf("%s/%s:tag-does-not-matter", refServerUrl.Host, repoName))
+			image, err := signedManifest.BuildAttestationImage()
+			require.NoError(t, err)
+			err = mirror.PushImageToRegistry(image, fmt.Sprintf("%s/%s:tag-does-not-matter", refServerUrl.Host, repoName))
 			require.NoError(t, err)
 
 			refServer := tc.refServer

@@ -53,15 +53,13 @@ func TestSignVerifyOCILayout(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			outputLayout := test.CreateTempDir(t, "", TestTempDir)
-			opts := &attestation.SigningOptions{
-				Replace: tc.replace,
-			}
+			opts := &attestation.SigningOptions{}
 			attIdx, err := oci.IndexFromPath(tc.TestImage)
 			require.NoError(t, err)
 			signedManifests, err := SignStatements(ctx, attIdx.Index, signer, opts)
 			require.NoError(t, err)
 			signedIndex := attIdx.Index
-			signedIndex, err = attestation.AddImagesToIndex(signedIndex, signedManifests)
+			signedIndex, err = attestation.AddImagesToIndex(signedIndex, signedManifests, attestation.WithReplacedLayers(tc.replace))
 			require.NoError(t, err)
 			// output signed attestations
 			idx := v1.ImageIndex(empty.Index)
@@ -102,6 +100,7 @@ func TestSignVerifyOCILayout(t *testing.T) {
 }
 
 func TestAddSignedLayerAnnotations(t *testing.T) {
+	ctx, signer := test.Setup(t)
 	testCases := []struct {
 		name    string
 		replace bool
@@ -115,12 +114,14 @@ func TestAddSignedLayerAnnotations(t *testing.T) {
 			data := []byte("signed")
 			testLayer := static.NewLayer(data, types.MediaType(intoto.PayloadType))
 			mediaType := types.OCIManifestSchema1
-			opts := &attestation.SigningOptions{
-				Replace: tc.replace,
-			}
+			opts := &attestation.SigningOptions{}
 			originalLayer := &attestation.AttestationLayer{
-				Layer:       testLayer,
-				Statement:   &intoto.Statement{},
+				Layer: testLayer,
+				Statement: &intoto.Statement{
+					StatementHeader: intoto.StatementHeader{
+						PredicateType: attestation.VSAPredicateType,
+					},
+				},
 				Annotations: map[string]string{"test": "test"},
 			}
 
@@ -129,15 +130,15 @@ func TestAddSignedLayerAnnotations(t *testing.T) {
 					MediaType: mediaType,
 				},
 				AttestationImage: &attestation.AttestationImage{
-					Image: empty.Image,
-					Layers: []*attestation.AttestationLayer{
+					OriginalLayers: []*attestation.AttestationLayer{
 						originalLayer,
 					},
 				},
 				SubjectDescriptor: &v1.Descriptor{},
 			}
-			err := manifest.AddOrReplaceLayer(originalLayer, opts)
-			newImg := manifest.AttestationImage.Image
+			err := manifest.AddAttestation(ctx, signer, originalLayer.Statement, opts)
+
+			newImg, err := manifest.BuildAttestationImage(attestation.WithReplacedLayers(tc.replace))
 			require.NoError(t, err)
 			mf, _ := newImg.RawManifest()
 			type Annotations struct {

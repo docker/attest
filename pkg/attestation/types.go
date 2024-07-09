@@ -31,9 +31,8 @@ type AttestationLayer struct {
 }
 
 type AttestationImage struct {
-	Descriptor *v1.Descriptor
-	Layers     []*AttestationLayer
-	Image      v1.Image
+	OriginalLayers []*AttestationLayer
+	signedLayers   []*AttestationLayer
 }
 
 type AttestationManifest struct {
@@ -45,6 +44,13 @@ type AttestationManifest struct {
 	// details of subect image
 	SubjectName       string
 	SubjectDescriptor *v1.Descriptor
+}
+
+type AttestationManifestImageOptions struct {
+	// how to output the image
+	skipSubject     bool
+	replaceLayers   bool
+	strictReferrers bool
 }
 
 // the following types are needed until https://github.com/secure-systems-lab/dsse/pull/61 is merged
@@ -78,12 +84,8 @@ type VerifyOptions struct {
 }
 
 type SigningOptions struct {
-	// replace unsigned statements with signed attestations
-	Replace bool
 	// don't log to the configured transparency log
 	SkipTL bool
-	// don't add OCI subject field to attestation image
-	SkipSubject bool
 }
 
 func DSSEMediaType(predicateType string) (string, error) {

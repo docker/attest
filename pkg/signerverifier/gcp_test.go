@@ -2,16 +2,6 @@
 
 package signerverifier
 
-import (
-	"context"
-	"crypto/ecdsa"
-	"testing"
-
-	"github.com/docker/attest/internal/util"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-)
-
 const publicKeyPEM = `-----BEGIN PUBLIC KEY-----
 MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEuMswW3iu7PR/rWTQjlhVmUsPK7rF
 k2s4SO3XbQ2GG2alm289SUUpmBAuVxvT8muYQ8HC/QzixzyTACTXsBDjQg==
@@ -20,11 +10,7 @@ k2s4SO3XbQ2GG2alm289SUUpmBAuVxvT8muYQ8HC/QzixzyTACTXsBDjQg==
 // to run locally, we need to impersonate the GCP service account
 // gcloud auth application-default login --impersonate-service-account attest-kms-test@attest-kms-test.iam.gserviceaccount.com
 
-<<<<<<< HEAD
 func TestGCPKMS_Signer(t *testing.T) {
-=======
-func _TestGCPKMS_Signer(t *testing.T) {
->>>>>>> 56ef672 (Single attestation when creating VSA)
 	// create a new signer
 	ctx := context.Background()
 	ref := "projects/attest-kms-test/locations/us-west1/keyRings/attest-kms-test/cryptoKeys/test-signing-key/cryptoKeyVersions/1"

@@ -43,22 +43,13 @@ func (r *OCILayoutResolver) fetchAttestationManifest() (*attestation.Attestation
 }
 
 func (r *OCILayoutResolver) Attestations(ctx context.Context, predicateType string) ([]*att.Envelope, error) {
-	attestationImage := r.AttestationManifest.AttestationImage
-	layers, err := attestationImage.Image.Layers()
-	if err != nil {
-		return nil, fmt.Errorf("failed to extract layers from attestation image: %w", err)
-	}
 	var envs []*att.Envelope
-	manifest, err := r.AttestationManifest.AttestationImage.Image.Manifest()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get manifest: %w", err)
-	}
-	for i, l := range manifest.Layers {
-		if l.Annotations[attestation.InTotoPredicateType] != predicateType {
+	for _, attestationLayer := range r.AttestationManifest.AttestationImage.OriginalLayers {
+		if attestationLayer.Annotations[attestation.InTotoPredicateType] != predicateType {
 			continue
 		}
-		layer := layers[i]
-		mt, err := layer.MediaType()
+
+		mt, err := attestationLayer.Layer.MediaType()
 		if err != nil {
 			return nil, fmt.Errorf("failed to get layer media type: %w", err)
 		}
@@ -68,7 +59,7 @@ func (r *OCILayoutResolver) Attestations(ctx context.Context, predicateType stri
 		}
 		var env = new(att.Envelope)
 		// parse layer blob as json
-		r, err := layer.Uncompressed()
+		r, err := attestationLayer.Layer.Uncompressed()
 
 		if err != nil {
 			return nil, fmt.Errorf("failed to get layer contents: %w", err)
@@ -138,8 +129,12 @@ func attestationManifestFromOCILayout(path string, platform *v1.Platform) (*atte
 		if err != nil {
 			return nil, fmt.Errorf("failed to extract attestation image with digest %s: %w", mf.Digest.String(), err)
 		}
+		layers, err := attestation.GetAttestationsFromImage(attestationImage)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get attestations from image: %w", err)
+		}
 		attest := &attestation.AttestationManifest{
-			AttestationImage:   &att.AttestationImage{Image: attestationImage},
+			AttestationImage:   &att.AttestationImage{OriginalLayers: layers},
 			OriginalDescriptor: &mf,
 			SubjectName:        name,
 			SubjectDescriptor:  subjectDescriptor,

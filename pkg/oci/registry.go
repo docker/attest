@@ -127,8 +127,12 @@ func FetchAttestationManifest(ctx context.Context, image string, platform *v1.Pl
 		return nil, fmt.Errorf("failed to get attestation image: %w", err)
 	}
 
+	layers, err := attestation.GetAttestationsFromImage(attestationImage)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get attestations from image: %w", err)
+	}
 	attest := &attestation.AttestationManifest{
-		AttestationImage:   &att.AttestationImage{Image: attestationImage},
+		AttestationImage:   &att.AttestationImage{OriginalLayers: layers},
 		OriginalDescriptor: &remoteDescriptor.Descriptor,
 		SubjectName:        image,
 		SubjectDescriptor:  subjectDescriptor,

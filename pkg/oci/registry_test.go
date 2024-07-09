@@ -25,10 +25,7 @@ func TestRegistry(t *testing.T) {
 	u, err := url.Parse(server.URL)
 	require.NoError(t, err)
 
-	opts := &attestation.SigningOptions{
-		Replace:     true,
-		SkipSubject: true,
-	}
+	opts := &attestation.SigningOptions{}
 	attIdx, err := oci.IndexFromPath(oci.UnsignedTestImage)
 	require.NoError(t, err)
 	signedManifests, err := attest.SignStatements(ctx, attIdx.Index, signer, opts)

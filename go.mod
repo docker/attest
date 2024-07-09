@@ -31,6 +31,8 @@ require (
 	sigs.k8s.io/yaml v1.4.0
 )
 
+replace github.com/google/go-containerregistry v0.19.2 => github.com/kipz/go-containerregistry v0.0.0-20240423201245-bf57eace21f2
+
 require (
 	cloud.google.com/go v0.115.0 // indirect
 	cloud.google.com/go/auth v0.7.0 // indirect

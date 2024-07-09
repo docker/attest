@@ -37,7 +37,7 @@ func PushImageToRegistry(image v1.Image, imageName string) error {
 	return remote.Write(ref, image, oci.MultiKeychainOption())
 }
 
-func PushIndexToRegistry(image v1.ImageIndex, imageName string) error {
+func PushIndexToRegistry(index v1.ImageIndex, imageName string) error {
 	// Parse the index name
 	ref, err := name.ParseReference(imageName)
 	if err != nil {
@@ -45,7 +45,7 @@ func PushIndexToRegistry(image v1.ImageIndex, imageName string) error {
 	}
 
 	// Push the index to the registry
-	return remote.WriteIndex(ref, image, oci.MultiKeychainOption())
+	return remote.WriteIndex(ref, index, oci.MultiKeychainOption())
 }
 
 func SaveImageAsOCILayout(image v1.Image, path string) error {
@@ -132,20 +132,8 @@ func SaveReferrers(manifest *attestation.AttestationManifest, outputs []*oci.Ima
 		if output.Type == oci.OCI {
 			continue
 		}
-		ociManifest, err := manifest.AttestationImage.Image.Manifest()
-		if err != nil {
-			return fmt.Errorf("failed to get manifest: %w", err)
-		}
-		refDigest := ociManifest.Annotations[attestation.DockerReferenceDigest]
-		if refDigest == "" {
-			return fmt.Errorf("no digest found in manifest")
-		}
-		hash, err := v1.NewHash(refDigest)
-		if err != nil {
-			return fmt.Errorf("failed to parse digest: %w", err)
-		}
 		// so that we use the same tag each time to reduce number of tags (tags aren't needed for referrers but we must push one)
-		attOut, err := oci.ReplaceTagInSpec(output, hash)
+		attOut, err := oci.ReplaceTagInSpec(output, manifest.SubjectDescriptor.Digest)
 		if err != nil {
 			return err
 		}
@@ -154,8 +142,13 @@ func SaveReferrers(manifest *attestation.AttestationManifest, outputs []*oci.Ima
 			OS:           "unknown",
 			Architecture: "unknown",
 		}
-
-		err = SaveImage(attOut, manifest.AttestationImage.Image, "")
+		images, err := manifest.BuildReferringArtifacts()
+		if err != nil {
+			return fmt.Errorf("failed to build image: %w", err)
+		}
+		for _, image := range images {
+			err = SaveImage(attOut, image, "")
+		}
 		if err != nil {
 			return fmt.Errorf("failed to push image: %w", err)
 		}

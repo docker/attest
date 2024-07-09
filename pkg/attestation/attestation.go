@@ -96,7 +96,7 @@ func (manifest *AttestationManifest) AddAttestation(ctx context.Context, signer 
 	if err != nil {
 		return fmt.Errorf("failed to create signed layer: %w", err)
 	}
-	manifest.AttestationImage.signedLayers = append(manifest.AttestationImage.signedLayers, layer)
+	manifest.AttestationImage.SignedLayers = append(manifest.AttestationImage.SignedLayers, layer)
 	return nil
 }
 
@@ -207,10 +207,10 @@ func (manifest *AttestationManifest) BuildAttestationImage(options ...func(*Atte
 	if err != nil {
 		return nil, fmt.Errorf("failed to create options: %w", err)
 	}
-	resultLayers := manifest.AttestationImage.signedLayers
+	resultLayers := manifest.AttestationImage.SignedLayers
 	for _, existingLayer := range manifest.AttestationImage.OriginalLayers {
 		var found bool
-		for _, signedLayer := range manifest.AttestationImage.signedLayers {
+		for _, signedLayer := range manifest.AttestationImage.SignedLayers {
 			if existingLayer.Statement == signedLayer.Statement {
 				found = true
 				// copy over original annotations
@@ -236,7 +236,7 @@ func (manifest *AttestationManifest) BuildAttestationImage(options ...func(*Atte
 // build an image per attestation (layer) suitable for use as Referrers
 func (manifest *AttestationManifest) BuildReferringArtifacts() ([]v1.Image, error) {
 	var images []v1.Image
-	for _, layer := range manifest.AttestationImage.signedLayers {
+	for _, layer := range manifest.AttestationImage.SignedLayers {
 		opts := &AttestationManifestImageOptions{
 			strictReferrers: true,
 		}

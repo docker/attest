@@ -191,11 +191,21 @@ func TestSimpleStatementSigning(t *testing.T) {
 			err = manifest.AddAttestation(ctx, signer, statement2, opts)
 			require.NoError(t, err)
 
+			// fake that the manfifest was loaded from a real image
+			manifest.AttestationImage.OriginalLayers = manifest.AttestationImage.SignedLayers
+			envelopes, err := oci.ExtractEnvelopes(manifest, attestation.VSAPredicateType)
+			require.NoError(t, err)
+			assert.Len(t, envelopes, 2)
+
 			newImg, err := manifest.BuildAttestationImage(attestation.WithReplacedLayers(tc.replace))
 			require.NoError(t, err)
 			layers, err := newImg.Layers()
 			require.NoError(t, err)
-			assert.Len(t, layers, 2)
+			if tc.replace {
+				assert.Len(t, layers, 2)
+			} else {
+				assert.Len(t, layers, 4)
+			}
 
 			newImgs, err := manifest.BuildReferringArtifacts()
 			require.NoError(t, err)

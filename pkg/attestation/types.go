@@ -32,7 +32,7 @@ type AttestationLayer struct {
 
 type AttestationImage struct {
 	OriginalLayers []*AttestationLayer
-	signedLayers   []*AttestationLayer
+	SignedLayers   []*AttestationLayer
 }
 
 type AttestationManifest struct {

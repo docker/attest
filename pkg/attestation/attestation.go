@@ -47,8 +47,7 @@ func GetAttestationManifestsFromIndex(index v1.ImageIndex) ([]*AttestationManife
 				&AttestationManifest{
 					OriginalDescriptor: &desc,
 					SubjectDescriptor:  subject,
-					AttestationImage: &AttestationImage{
-						OriginalLayers: attestationLayers}})
+					OriginalLayers:     attestationLayers})
 		}
 	}
 	return attestationManifests, nil
@@ -96,7 +95,7 @@ func (manifest *AttestationManifest) AddAttestation(ctx context.Context, signer 
 	if err != nil {
 		return fmt.Errorf("failed to create signed layer: %w", err)
 	}
-	manifest.AttestationImage.SignedLayers = append(manifest.AttestationImage.SignedLayers, layer)
+	manifest.SignedLayers = append(manifest.SignedLayers, layer)
 	return nil
 }
 
@@ -202,15 +201,14 @@ func WithReplacedLayers(replaceLayers bool) func(*AttestationManifestImageOption
 
 // build an image with signed attestations, optionally replacing existing layers with signed layers
 func (manifest *AttestationManifest) BuildAttestationImage(options ...func(*AttestationManifestImageOptions) error) (v1.Image, error) {
-	// always create a new image from all the layers
 	opts, err := newOptions(options...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create options: %w", err)
 	}
-	resultLayers := manifest.AttestationImage.SignedLayers
-	for _, existingLayer := range manifest.AttestationImage.OriginalLayers {
+	resultLayers := manifest.SignedLayers
+	for _, existingLayer := range manifest.OriginalLayers {
 		var found bool
-		for _, signedLayer := range manifest.AttestationImage.SignedLayers {
+		for _, signedLayer := range manifest.SignedLayers {
 			if existingLayer.Statement == signedLayer.Statement {
 				found = true
 				// copy over original annotations
@@ -236,7 +234,7 @@ func (manifest *AttestationManifest) BuildAttestationImage(options ...func(*Atte
 // build an image per attestation (layer) suitable for use as Referrers
 func (manifest *AttestationManifest) BuildReferringArtifacts() ([]v1.Image, error) {
 	var images []v1.Image
-	for _, layer := range manifest.AttestationImage.SignedLayers {
+	for _, layer := range manifest.SignedLayers {
 		opts := &AttestationManifestImageOptions{
 			strictReferrers: true,
 		}

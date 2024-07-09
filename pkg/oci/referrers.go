@@ -86,7 +86,7 @@ func (r *ReferrersResolver) resolveAttestations(ctx context.Context) error {
 			}
 			attest := &attestation.AttestationManifest{
 				SubjectName:        r.Identifier,
-				AttestationImage:   &attestation.AttestationImage{OriginalLayers: layers},
+				OriginalLayers:     layers,
 				OriginalDescriptor: &m,
 				SubjectDescriptor:  desc,
 			}

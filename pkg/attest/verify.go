@@ -175,9 +175,7 @@ func NewAttestationManifest(subject *v1.Descriptor) (*attestation.AttestationMan
 		OriginalDescriptor: &v1.Descriptor{
 			MediaType: "application/vnd.oci.image.manifest.v1+json",
 		},
-		AttestationImage: &attestation.AttestationImage{
-			OriginalLayers: []*attestation.AttestationLayer{},
-		},
+		OriginalLayers:    []*attestation.AttestationLayer{},
 		SubjectDescriptor: subject,
 	}, nil
 }

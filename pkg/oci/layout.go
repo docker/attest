@@ -44,7 +44,7 @@ func (r *OCILayoutResolver) fetchAttestationManifest() (*attestation.Attestation
 
 func (r *OCILayoutResolver) Attestations(ctx context.Context, predicateType string) ([]*att.Envelope, error) {
 	var envs []*att.Envelope
-	for _, attestationLayer := range r.AttestationManifest.AttestationImage.OriginalLayers {
+	for _, attestationLayer := range r.AttestationManifest.OriginalLayers {
 		if attestationLayer.Annotations[attestation.InTotoPredicateType] != predicateType {
 			continue
 		}
@@ -134,7 +134,7 @@ func attestationManifestFromOCILayout(path string, platform *v1.Platform) (*atte
 			return nil, fmt.Errorf("failed to get attestations from image: %w", err)
 		}
 		attest := &attestation.AttestationManifest{
-			AttestationImage:   &att.AttestationImage{OriginalLayers: layers},
+			OriginalLayers:     layers,
 			OriginalDescriptor: &mf,
 			SubjectName:        name,
 			SubjectDescriptor:  subjectDescriptor,

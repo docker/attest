@@ -30,17 +30,12 @@ type AttestationLayer struct {
 	Annotations map[string]string
 }
 
-type AttestationImage struct {
-	OriginalLayers []*AttestationLayer
-	SignedLayers   []*AttestationLayer
-}
-
 type AttestationManifest struct {
 	OriginalDescriptor *v1.Descriptor
-	// kept up to date during signing
+	OriginalLayers     []*AttestationLayer
 
-	AttestationImage *AttestationImage
-
+	// accumulated during signing
+	SignedLayers []*AttestationLayer
 	// details of subect image
 	SubjectName       string
 	SubjectDescriptor *v1.Descriptor

@@ -134,10 +134,8 @@ func TestAddSignedLayerAnnotations(t *testing.T) {
 				OriginalDescriptor: &v1.Descriptor{
 					MediaType: mediaType,
 				},
-				AttestationImage: &attestation.AttestationImage{
-					OriginalLayers: []*attestation.AttestationLayer{
-						originalLayer,
-					},
+				OriginalLayers: []*attestation.AttestationLayer{
+					originalLayer,
 				},
 				SubjectDescriptor: &v1.Descriptor{},
 			}
@@ -200,7 +198,7 @@ func TestSimpleStatementSigning(t *testing.T) {
 			require.NoError(t, err)
 
 			// fake that the manfifest was loaded from a real image
-			manifest.AttestationImage.OriginalLayers = manifest.AttestationImage.SignedLayers
+			manifest.OriginalLayers = manifest.SignedLayers
 			envelopes, err := oci.ExtractEnvelopes(manifest, attestation.VSAPredicateType)
 			require.NoError(t, err)
 			assert.Len(t, envelopes, 2)

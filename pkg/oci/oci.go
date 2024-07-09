@@ -49,7 +49,7 @@ func WithOptions(ctx context.Context, platform *v1.Platform) []remote.Option {
 
 func ExtractEnvelopes(manifest *attestation.AttestationManifest, predicateType string) ([]*att.Envelope, error) {
 	var envs []*att.Envelope
-	for _, attestationLayer := range manifest.AttestationImage.OriginalLayers {
+	for _, attestationLayer := range manifest.OriginalLayers {
 		mt, err := attestationLayer.Layer.MediaType()
 		if err != nil {
 			return nil, fmt.Errorf("failed to get layer media type: %w", err)

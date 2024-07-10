@@ -223,7 +223,7 @@ func TestSimpleStatementSigning(t *testing.T) {
 				assert.Equal(t, subject.MediaType, mf.MediaType)
 				assert.Equal(t, empty, mf.Config.MediaType)
 				assert.Equal(t, int64(2), mf.Config.Size)
-				assert.Equal(t, "e30=", string(mf.Config.Data))
+				assert.Equal(t, "{}", string(mf.Config.Data))
 				layers, err := img.Layers()
 				require.NoError(t, err)
 				assert.Len(t, layers, 1)

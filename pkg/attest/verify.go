@@ -166,11 +166,6 @@ func VerifyAttestations(ctx context.Context, resolver oci.AttestationResolver, p
 }
 
 func NewAttestationManifest(subject *v1.Descriptor) (*attestation.AttestationManifest, error) {
-	subjectDigest := subject.Digest.String()
-	subject.Annotations = map[string]string{
-		"vnd.docker.reference.digest": subjectDigest,
-		"vnd.docker.reference.type":   "attestation-manifest"}
-
 	return &attestation.AttestationManifest{
 		OriginalDescriptor: &v1.Descriptor{
 			MediaType: "application/vnd.oci.image.manifest.v1+json",

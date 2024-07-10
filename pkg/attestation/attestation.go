@@ -303,7 +303,7 @@ func (i *EmptyConfigImage) Manifest() (*v1.Manifest, error) {
 		MediaType: "application/vnd.oci.empty.v1+json",
 		Size:      2,
 		Digest:    v1.Hash{Algorithm: "sha256", Hex: "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},
-		Data:      []byte("e30="),
+		Data:      []byte("{}"),
 	}
 	return mf, nil
 }

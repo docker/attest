@@ -31,7 +31,7 @@ func TestRegistry(t *testing.T) {
 	signedManifests, err := attest.SignStatements(ctx, attIdx.Index, signer, opts)
 	require.NoError(t, err)
 	signedIndex := attIdx.Index
-	signedIndex, err = attestation.AddImagesToIndex(signedIndex, signedManifests)
+	signedIndex, err = attestation.UpdateIndexImages(signedIndex, signedManifests)
 	require.NoError(t, err)
 
 	indexName := fmt.Sprintf("%s/repo:root", u.Host)

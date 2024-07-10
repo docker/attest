@@ -83,7 +83,7 @@ func TestVSA(t *testing.T) {
 	signedManifests, err := SignStatements(ctx, attIdx.Index, signer, opts)
 	require.NoError(t, err)
 	signedIndex := attIdx.Index
-	signedIndex, err = attestation.AddImagesToIndex(signedIndex, signedManifests)
+	signedIndex, err = attestation.UpdateIndexImages(signedIndex, signedManifests)
 	require.NoError(t, err)
 
 	// output signed attestations
@@ -140,7 +140,7 @@ func TestVerificationFailure(t *testing.T) {
 	signedManifests, err := SignStatements(ctx, attIdx.Index, signer, opts)
 	require.NoError(t, err)
 	signedIndex := attIdx.Index
-	signedIndex, err = attestation.AddImagesToIndex(signedIndex, signedManifests, attestation.WithReplacedLayers(true))
+	signedIndex, err = attestation.UpdateIndexImages(signedIndex, signedManifests, attestation.WithReplacedLayers(true))
 	require.NoError(t, err)
 
 	// output signed attestations
@@ -217,7 +217,7 @@ func TestSignVerify(t *testing.T) {
 			signedManifests, err := SignStatements(ctx, attIdx.Index, signer, opts)
 			require.NoError(t, err)
 			signedIndex := attIdx.Index
-			signedIndex, err = attestation.AddImagesToIndex(signedIndex, signedManifests, attestation.WithReplacedLayers(true))
+			signedIndex, err = attestation.UpdateIndexImages(signedIndex, signedManifests, attestation.WithReplacedLayers(true))
 			require.NoError(t, err)
 
 			imageName := tc.imageName

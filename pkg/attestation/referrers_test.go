@@ -129,7 +129,7 @@ func TestAttestationReferenceTypes(t *testing.T) {
 				signedManifests, err := attest.SignStatements(ctx, attIdx.Index, signer, opts)
 				require.NoError(t, err)
 				signedIndex := attIdx.Index
-				signedIndex, err = attestation.AddImagesToIndex(signedIndex, signedManifests, attestation.WithReplacedLayers(true), attestation.WithoutSubject(tc.skipSubject))
+				signedIndex, err = attestation.UpdateIndexImages(signedIndex, signedManifests, attestation.WithReplacedLayers(true), attestation.WithoutSubject(tc.skipSubject))
 				require.NoError(t, err)
 				err = mirror.PushIndexToRegistry(signedIndex, indexName)
 				require.NoError(t, err)

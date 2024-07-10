@@ -49,7 +49,7 @@ func ExampleSign_remote() {
 		panic(err)
 	}
 	signedIndex := attIdx.Index
-	signedIndex, err = attestation.AddImagesToIndex(signedIndex, signedManifests)
+	signedIndex, err = attestation.UpdateIndexImages(signedIndex, signedManifests)
 	if err != nil {
 		panic(err)
 	}

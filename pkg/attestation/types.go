@@ -43,9 +43,9 @@ type AttestationManifest struct {
 
 type AttestationManifestImageOptions struct {
 	// how to output the image
-	skipSubject     bool
-	replaceLayers   bool
-	strictReferrers bool
+	skipSubject   bool
+	replaceLayers bool
+	laxReferrers  bool
 }
 
 // the following types are needed until https://github.com/secure-systems-lab/dsse/pull/61 is merged

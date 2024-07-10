@@ -136,7 +136,7 @@ func SignInTotoStatement(ctx context.Context, statement *intoto.Statement, signe
 	return env, nil
 }
 
-func AddImageToIndex(
+func UpdateIndexImage(
 	idx v1.ImageIndex,
 	manifest *AttestationManifest,
 	options ...func(*AttestationManifestImageOptions) error) (v1.ImageIndex, error) {
@@ -163,10 +163,10 @@ func AddImageToIndex(
 	return idx, nil
 }
 
-func AddImagesToIndex(idx v1.ImageIndex, manifest []*AttestationManifest, options ...func(*AttestationManifestImageOptions) error) (v1.ImageIndex, error) {
+func UpdateIndexImages(idx v1.ImageIndex, manifest []*AttestationManifest, options ...func(*AttestationManifestImageOptions) error) (v1.ImageIndex, error) {
 	var err error
 	for _, m := range manifest {
-		idx, err = AddImageToIndex(idx, m, options...)
+		idx, err = UpdateIndexImage(idx, m, options...)
 		if err != nil {
 			return nil, fmt.Errorf("failed to add image to index: %w", err)
 		}
@@ -223,7 +223,8 @@ func (manifest *AttestationManifest) BuildAttestationImage(options ...func(*Atte
 			resultLayers = append(resultLayers, existingLayer)
 		}
 	}
-
+	// so taht we attach all attestations to a single attestations image - as per current buildkit
+	opts.laxReferrers = true
 	newImg, err := buildImage(resultLayers, manifest.OriginalDescriptor, manifest.SubjectDescriptor, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build image: %w", err)
@@ -235,9 +236,7 @@ func (manifest *AttestationManifest) BuildAttestationImage(options ...func(*Atte
 func (manifest *AttestationManifest) BuildReferringArtifacts() ([]v1.Image, error) {
 	var images []v1.Image
 	for _, layer := range manifest.SignedLayers {
-		opts := &AttestationManifestImageOptions{
-			strictReferrers: true,
-		}
+		opts := &AttestationManifestImageOptions{}
 		newImg, err := buildImage([]*AttestationLayer{layer}, manifest.OriginalDescriptor, manifest.SubjectDescriptor, opts)
 		if err != nil {
 			return nil, fmt.Errorf("failed to build image: %w", err)
@@ -265,12 +264,12 @@ func buildImage(layers []*AttestationLayer, manifest *v1.Descriptor, subject *v1
 		}
 	}
 
-	if opts.strictReferrers {
+	// this is for attaching attestations to an attestation image in the index
+	if opts.laxReferrers {
+		newImg = mutate.ConfigMediaType(newImg, "application/vnd.oci.image.config.v1+json")
+	} else {
 		newImg = mutate.ArtifactType(newImg, intoto.PayloadType)
 		newImg = mutate.ConfigMediaType(newImg, "application/vnd.oci.empty.v1+json")
-
-	} else {
-		newImg = mutate.ConfigMediaType(newImg, "application/vnd.oci.image.config.v1+json")
 	}
 	// we need to set this even when we set the artifact type otherwise things break (even the go-container-registry client)
 	// even though it's allowed to be empty by spec when setting artifact type
@@ -280,7 +279,7 @@ func buildImage(layers []*AttestationLayer, manifest *v1.Descriptor, subject *v1
 	if !opts.skipSubject {
 		newImg = mutate.Subject(newImg, *subject).(v1.Image)
 	}
-	if opts.strictReferrers {
+	if !opts.laxReferrers {
 		// as per https://github.com/opencontainers/image-spec/blob/main/manifest.md#guidance-for-an-empty-descriptor
 		newImg = &EmptyConfigImage{newImg}
 	}

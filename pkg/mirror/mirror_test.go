@@ -20,7 +20,7 @@ func TestSavingIndex(t *testing.T) {
 	attIdx, err := oci.IndexFromPath(UnsignedTestImage)
 	require.NoError(t, err)
 
-	server := httptest.NewServer(registry.New(registry.WithReferrersSupport(true)))
+	server := httptest.NewServer(registry.New())
 	defer server.Close()
 
 	u, err := url.Parse(server.URL)
@@ -43,7 +43,7 @@ func TestSavingImage(t *testing.T) {
 
 	img := empty.Image
 
-	server := httptest.NewServer(registry.New(registry.WithReferrersSupport(true)))
+	server := httptest.NewServer(registry.New())
 	defer server.Close()
 
 	u, err := url.Parse(server.URL)

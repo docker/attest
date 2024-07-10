@@ -1,6 +1,7 @@
 package mirror
 
 import (
+	"context"
 	"fmt"
 	"net/http/httptest"
 	"net/url"
@@ -8,9 +9,13 @@ import (
 	"testing"
 
 	"github.com/docker/attest/internal/test"
+	"github.com/docker/attest/pkg/attest"
+	"github.com/docker/attest/pkg/attestation"
 	"github.com/docker/attest/pkg/oci"
 	"github.com/google/go-containerregistry/pkg/registry"
+	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/empty"
+	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/stretchr/testify/require"
 )
 
@@ -58,4 +63,61 @@ func TestSavingImage(t *testing.T) {
 	ociOutput, err := oci.ParseImageSpec("oci://" + outputLayout)
 	err = SaveImage(ociOutput, img, indexName)
 	require.NoError(t, err)
+}
+
+func TestSavingReferrers(t *testing.T) {
+	ctx, signer := test.Setup(t)
+	opts := &attestation.SigningOptions{}
+	statement := &intoto.Statement{
+		StatementHeader: intoto.StatementHeader{
+			PredicateType: attestation.VSAPredicateType,
+		},
+	}
+
+	digest, err := v1.NewHash("sha256:da8b190665956ea07890a0273e2a9c96bfe291662f08e2860e868eef69c34620")
+	require.NoError(t, err)
+	subject := &v1.Descriptor{
+		MediaType: "application/vnd.oci.image.manifest.v1+json",
+		Digest:    digest,
+	}
+	manifest, err := attest.NewAttestationManifest(subject)
+	require.NoError(t, err)
+	err = manifest.AddAttestation(ctx, signer, statement, opts)
+	require.NoError(t, err)
+	server := httptest.NewServer(registry.New(registry.WithReferrersSupport(true)))
+	defer server.Close()
+
+	u, err := url.Parse(server.URL)
+	require.NoError(t, err)
+
+	indexName := fmt.Sprintf("%s/repo:root", u.Host)
+	output, err := oci.ParseImageSpecs(indexName)
+	err = SaveReferrers(manifest, output)
+	require.NoError(t, err)
+
+	reg := &MockRegistryResolver{
+		subject:      subject,
+		MockResolver: &test.MockResolver{},
+		imageName:    indexName,
+	}
+	require.NoError(t, err)
+	refResolver, err := oci.NewReferrersAttestationResolver(reg)
+	require.NoError(t, err)
+	attestations, err := refResolver.Attestations(ctx, attestation.VSAPredicateType)
+	require.NoError(t, err)
+	require.Len(t, attestations, 1)
+}
+
+type MockRegistryResolver struct {
+	subject   *v1.Descriptor
+	imageName string
+	*test.MockResolver
+}
+
+func (r *MockRegistryResolver) ImageDescriptor(ctx context.Context) (*v1.Descriptor, error) {
+	return r.subject, nil
+}
+
+func (r *MockRegistryResolver) ImageName(ctx context.Context) (string, error) {
+	return r.imageName, nil
 }

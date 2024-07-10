@@ -15,12 +15,12 @@ type ReferrersResolver struct {
 	digest        string
 	referrersRepo string
 	manifests     []*attestation.AttestationManifest
-	*RegistryImageDetailsResolver
+	ImageDetailsResolver
 }
 
-func NewReferrersAttestationResolver(src *RegistryImageDetailsResolver, options ...func(*ReferrersResolver) error) (*ReferrersResolver, error) {
+func NewReferrersAttestationResolver(src ImageDetailsResolver, options ...func(*ReferrersResolver) error) (*ReferrersResolver, error) {
 	res := &ReferrersResolver{
-		RegistryImageDetailsResolver: src,
+		ImageDetailsResolver: src,
 	}
 	for _, opt := range options {
 		err := opt(res)
@@ -40,7 +40,11 @@ func WithReferrersRepo(repo string) func(*ReferrersResolver) error {
 
 func (r *ReferrersResolver) resolveAttestations(ctx context.Context) error {
 	if r.manifests == nil {
-		subjectRef, err := name.ParseReference(r.Identifier)
+		imageName, err := r.ImageName(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to get image name: %w", err)
+		}
+		subjectRef, err := name.ParseReference(imageName)
 		if err != nil {
 			return fmt.Errorf("failed to parse reference: %w", err)
 		}
@@ -85,7 +89,7 @@ func (r *ReferrersResolver) resolveAttestations(ctx context.Context) error {
 				return fmt.Errorf("failed to get attestations from image: %w", err)
 			}
 			attest := &attestation.AttestationManifest{
-				SubjectName:        r.Identifier,
+				SubjectName:        imageName,
 				OriginalLayers:     layers,
 				OriginalDescriptor: &m,
 				SubjectDescriptor:  desc,

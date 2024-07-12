@@ -88,9 +88,9 @@ func findPolicyMatchImpl(imageName string, mappings *config.PolicyMappings, matc
 	for _, rule := range mappings.Rules {
 		if rule.Pattern.MatchString(imageName) {
 			switch {
-			case rule.PolicyId == "" && rule.Rewrite == "":
+			case rule.PolicyId == "" && rule.Replacement == "":
 				return nil, fmt.Errorf("rule %s has neither policy-id nor rewrite", rule.Pattern)
-			case rule.PolicyId != "" && rule.Rewrite != "":
+			case rule.PolicyId != "" && rule.Replacement != "":
 				return nil, fmt.Errorf("rule %s has both policy-id and rewrite", rule.Pattern)
 			case rule.PolicyId != "":
 				policy := mappings.Policies[rule.PolicyId]
@@ -107,12 +107,12 @@ func findPolicyMatchImpl(imageName string, mappings *config.PolicyMappings, matc
 					rule:        rule,
 					matchedName: imageName,
 				}, nil
-			case rule.Rewrite != "":
+			case rule.Replacement != "":
 				if matched[rule] {
 					return nil, fmt.Errorf("rewrite loop detected")
 				}
 				matched[rule] = true
-				imageName = rule.Pattern.ReplaceAllString(imageName, rule.Rewrite)
+				imageName = rule.Pattern.ReplaceAllString(imageName, rule.Replacement)
 				return findPolicyMatchImpl(imageName, mappings, matched)
 			}
 		}

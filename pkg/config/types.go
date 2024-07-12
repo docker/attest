@@ -10,9 +10,9 @@ type policyMappingsFile struct {
 }
 
 type policyRuleFile struct {
-	Pattern  string `yaml:"pattern"`
-	PolicyId string `yaml:"policy-id"`
-	Rewrite  string `yaml:"rewrite"`
+	Pattern     string `yaml:"pattern"`
+	PolicyId    string `yaml:"policy-id"`
+	Replacement string `yaml:"rewrite"`
 }
 
 type PolicyMappings struct {
@@ -46,7 +46,7 @@ type PolicyMappingFile struct {
 }
 
 type PolicyRule struct {
-	Pattern  *regexp.Regexp
-	PolicyId string
-	Rewrite  string
+	Pattern     *regexp.Regexp
+	PolicyId    string
+	Replacement string
 }

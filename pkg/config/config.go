@@ -62,9 +62,9 @@ func expandMappingFile(mappingFile *policyMappingsFile) (*PolicyMappings, error)
 			return nil, err
 		}
 		rules = append(rules, &PolicyRule{
-			Pattern:  r,
-			PolicyId: rule.PolicyId,
-			Rewrite:  rule.Rewrite,
+			Pattern:     r,
+			PolicyId:    rule.PolicyId,
+			Replacement: rule.Replacement,
 		})
 	}
 

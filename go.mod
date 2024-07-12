@@ -23,8 +23,8 @@ require (
 	github.com/sigstore/sigstore/pkg/signature/kms/aws v1.8.6
 	github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.8.6
 	github.com/stretchr/testify v1.9.0
-	github.com/testcontainers/testcontainers-go v0.31.0
-	github.com/testcontainers/testcontainers-go/modules/registry v0.31.0
+	github.com/testcontainers/testcontainers-go v0.32.0
+	github.com/testcontainers/testcontainers-go/modules/registry v0.32.0
 	github.com/theupdateframework/go-tuf/v2 v2.0.0-20240504210453-5a634eb214ae // for https://github.com/theupdateframework/go-tuf/pull/632
 	google.golang.org/api v0.188.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -77,7 +77,7 @@ require (
 	github.com/digitorus/timestamp v0.0.0-20231217203849-220c5c2851b7 // indirect
 	github.com/docker/cli v26.1.3+incompatible // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
-	github.com/docker/docker v26.1.3+incompatible // indirect
+	github.com/docker/docker v27.0.3+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.8.1 // indirect
 	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect

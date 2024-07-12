@@ -59,7 +59,7 @@ func TestVerifyAttestations(t *testing.T) {
 			}
 
 			ctx := policy.WithPolicyEvaluator(context.Background(), &mockPE)
-			_, err := VerifyAttestations(ctx, resolver, &policy.Policy{ImageName: ""})
+			_, err := VerifyAttestations(ctx, resolver, &policy.Policy{ResolvedName: ""})
 			if tc.expectedError != nil {
 				if assert.Error(t, err) {
 					assert.Equal(t, tc.expectedError.Error(), err.Error())

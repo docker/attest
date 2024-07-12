@@ -125,13 +125,16 @@ func VerifyAttestations(ctx context.Context, resolver oci.AttestationResolver, p
 		return nil, err
 	}
 
-	if pctx.ImageName != "" {
+	if pctx.ResolvedName != "" {
+		// this means the name we have is not the one we want to use for policy evaluation
+		// so we need to replace it with the one we resolved during policy resolution.
+		// this can happen if the name is an alias for another image, e.g. if it is a mirror
 		ref, err := reference.ParseNormalizedNamed(name)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse image name: %w", err)
 		}
 		oldName := ref.Name()
-		name = strings.Replace(name, oldName, pctx.ImageName, 1)
+		name = strings.Replace(name, oldName, pctx.ResolvedName, 1)
 	}
 
 	purl, canonical, err := oci.RefToPURL(name, platform)

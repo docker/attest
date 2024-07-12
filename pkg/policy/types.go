@@ -36,10 +36,10 @@ type PolicyOptions struct {
 }
 
 type Policy struct {
-	InputFiles []*PolicyFile
-	Query      string
-	Mapping    *config.PolicyMapping
-	ImageName  string
+	InputFiles   []*PolicyFile
+	Query        string
+	Mapping      *config.PolicyMapping
+	ResolvedName string
 }
 
 type PolicyInput struct {

@@ -115,9 +115,7 @@ func TestFindPolicyMatch(t *testing.T) {
 					assert.Equal(t, tc.expectedPolicyID, match.policy.Id)
 				}
 			}
-			assert.Equal(t, tc.expectedImageName, match.imageName)
-
+			assert.Equal(t, tc.expectedImageName, match.matchedName)
 		})
-
 	}
 }

@@ -21,7 +21,7 @@ require (
 	github.com/sigstore/cosign/v2 v2.2.4
 	github.com/sigstore/rekor v1.3.6
 	github.com/sigstore/sigstore/pkg/signature/kms/aws v1.8.6
-	github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.8.6
+	github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.8.7
 	github.com/stretchr/testify v1.9.0
 	github.com/testcontainers/testcontainers-go v0.32.0
 	github.com/testcontainers/testcontainers-go/modules/registry v0.32.0
@@ -89,7 +89,7 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-chi/chi v4.1.2+incompatible // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
-	github.com/go-jose/go-jose/v4 v4.0.1 // indirect
+	github.com/go-jose/go-jose/v4 v4.0.2 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect

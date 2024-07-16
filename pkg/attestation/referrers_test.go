@@ -251,8 +251,7 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 			require.NoError(t, err)
 
 			opts := &attestation.SigningOptions{
-				Replace: true,
-				SkipTL:  true,
+				SkipTL: true,
 			}
 			attIdx, err := oci.IndexFromPath(UnsignedTestImage)
 			require.NoError(t, err)
@@ -265,10 +264,14 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 			require.NoError(t, err)
 
 			// push signed attestation image to the ref server
-			for _, img := range signedManifests {
+			for _, mf := range signedManifests {
 				// push references using subject-digest.att convention
-				err = mirror.PushImageToRegistry(img.AttestationImage.Image, fmt.Sprintf("%s/%s:tag-does-not-matter", refServerUrl.Host, repoName))
+				imgs, err := mf.BuildReferringArtifacts()
 				require.NoError(t, err)
+				for _, img := range imgs {
+					err = mirror.PushImageToRegistry(img, fmt.Sprintf("%s/%s:tag-does-not-matter", refServerUrl.Host, repoName))
+					require.NoError(t, err)
+				}
 			}
 			mfs2, err := attIdx.Index.IndexManifest()
 			require.NoError(t, err)

@@ -12,7 +12,6 @@ import (
 )
 
 type ReferrersResolver struct {
-	digest        string
 	referrersRepo string
 	manifests     []*attestation.AttestationManifest
 	ImageDetailsResolver

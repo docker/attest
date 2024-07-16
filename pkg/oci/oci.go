@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/containerd/containerd/platforms"
+	"github.com/containerd/platforms"
 	"github.com/distribution/reference"
 	"github.com/docker/attest/pkg/attestation"
 	att "github.com/docker/attest/pkg/attestation"

@@ -13,7 +13,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
 )
 
-func ExampleSign_remote() {
+func ExampleSignStatements_remote() {
 	// configure signerverifier
 	// local signer (unsafe for production)
 	signer, err := signerverifier.GenKeyPair()

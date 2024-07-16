@@ -22,7 +22,6 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/static"
 	"github.com/google/go-containerregistry/pkg/v1/types"
 	"github.com/stretchr/testify/assert"
-	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/registry"
 	"github.com/theupdateframework/go-tuf/v2/metadata"
 	"github.com/theupdateframework/go-tuf/v2/metadata/config"
@@ -342,7 +341,7 @@ func TestGetManifest(t *testing.T) {
 
 // RunTestRegistry starts a registry testcontainer for TUF on OCI testdata
 func RunTestRegistry(t *testing.T) (*registry.RegistryContainer, *url.URL) {
-	registryContainer, err := registry.RunContainer(context.Background(), testcontainers.WithImage("registry:2.8.3"))
+	registryContainer, err := registry.Run(context.Background(), "registry:2.8.3")
 	if err != nil {
 		t.Fatalf("failed to start container: %s", err)
 	}

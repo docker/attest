@@ -1,7 +1,6 @@
 package mirror
 
 import (
-	"context"
 	"fmt"
 	"net/http/httptest"
 	"net/url"
@@ -38,6 +37,7 @@ func TestSavingIndex(t *testing.T) {
 	require.NoError(t, err)
 
 	ociOutput, err := oci.ParseImageSpecs("oci://" + outputLayout)
+	require.NoError(t, err)
 	err = SaveIndex(ociOutput, attIdx.Index, indexName)
 	require.NoError(t, err)
 }
@@ -61,6 +61,7 @@ func TestSavingImage(t *testing.T) {
 	require.NoError(t, err)
 
 	ociOutput, err := oci.ParseImageSpec("oci://" + outputLayout)
+	require.NoError(t, err)
 	err = SaveImage(ociOutput, img, indexName)
 	require.NoError(t, err)
 }
@@ -92,13 +93,14 @@ func TestSavingReferrers(t *testing.T) {
 
 	indexName := fmt.Sprintf("%s/repo:root", u.Host)
 	output, err := oci.ParseImageSpecs(indexName)
+	require.NoError(t, err)
 	err = SaveReferrers(manifest, output)
 	require.NoError(t, err)
 
-	reg := &MockRegistryResolver{
-		subject:      subject,
+	reg := &test.MockRegistryResolver{
+		Subject:      subject,
 		MockResolver: &test.MockResolver{},
-		imageName:    indexName,
+		ImageNameStr: indexName,
 	}
 	require.NoError(t, err)
 	refResolver, err := oci.NewReferrersAttestationResolver(reg)
@@ -106,18 +108,4 @@ func TestSavingReferrers(t *testing.T) {
 	attestations, err := refResolver.Attestations(ctx, attestation.VSAPredicateType)
 	require.NoError(t, err)
 	require.Len(t, attestations, 1)
-}
-
-type MockRegistryResolver struct {
-	subject   *v1.Descriptor
-	imageName string
-	*test.MockResolver
-}
-
-func (r *MockRegistryResolver) ImageDescriptor(ctx context.Context) (*v1.Descriptor, error) {
-	return r.subject, nil
-}
-
-func (r *MockRegistryResolver) ImageName(ctx context.Context) (string, error) {
-	return r.imageName, nil
 }

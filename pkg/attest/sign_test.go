@@ -140,6 +140,7 @@ func TestAddSignedLayerAnnotations(t *testing.T) {
 				SubjectDescriptor: &v1.Descriptor{},
 			}
 			err := manifest.AddAttestation(ctx, signer, originalLayer.Statement, opts)
+			require.NoError(t, err)
 
 			newImg, err := manifest.BuildAttestationImage(attestation.WithReplacedLayers(tc.replace))
 			require.NoError(t, err)
@@ -236,6 +237,7 @@ func TestSimpleStatementSigning(t *testing.T) {
 
 			indexName := fmt.Sprintf("%s/repo:root", u.Host)
 			output, err := oci.ParseImageSpecs(indexName)
+			require.NoError(t, err)
 			err = mirror.SaveReferrers(manifest, output)
 			require.NoError(t, err)
 		})

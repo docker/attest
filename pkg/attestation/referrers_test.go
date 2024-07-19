@@ -294,3 +294,49 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 		}
 	}
 }
+
+func TestCorrectArtifactTypeInTagFallback(t *testing.T) {
+	ctx, signer := test.Setup(t)
+	server := httptest.NewServer(registry.New())
+
+	defer server.Close()
+	serverUrl, err := url.Parse(server.URL)
+	require.NoError(t, err)
+
+	repoName := "repo"
+
+	opts := &attestation.SigningOptions{
+		SkipTL: true,
+	}
+	attIdx, err := oci.IndexFromPath(UnsignedTestImage)
+	require.NoError(t, err)
+
+	indexName := fmt.Sprintf("%s/%s:latest", serverUrl.Host, repoName)
+	err = mirror.PushIndexToRegistry(attIdx.Index, indexName)
+	require.NoError(t, err)
+
+	signedManifests, err := attest.SignStatements(ctx, attIdx.Index, signer, opts)
+	require.NoError(t, err)
+
+	// this should create and maintain an index of referrers
+	for _, mf := range signedManifests {
+		imgs, err := mf.BuildReferringArtifacts()
+		require.NoError(t, err)
+		for _, img := range imgs {
+			err = mirror.PushImageToRegistry(img, fmt.Sprintf("%s/%s:tag-does-not-matter", serverUrl.Host, repoName))
+			require.NoError(t, err)
+			mf, err := img.Manifest()
+			require.NoError(t, err)
+			subject := mf.Subject
+			subjectRef, err := name.ParseReference(fmt.Sprintf("%s/%s:sha256-%s", serverUrl.Host, repoName, subject.Digest.Hex))
+			require.NoError(t, err)
+			idx, err := remote.Index(subjectRef)
+			require.NoError(t, err)
+			imf, err := idx.IndexManifest()
+			require.NoError(t, err)
+			for _, m := range imf.Manifests {
+				assert.Equal(t, "application/vnd.in-toto+json", m.ArtifactType)
+			}
+		}
+	}
+}

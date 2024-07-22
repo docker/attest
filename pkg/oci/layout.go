@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/docker/attest/pkg/attestation"
 	att "github.com/docker/attest/pkg/attestation"
@@ -44,17 +43,17 @@ func (r *OCILayoutResolver) fetchAttestationManifest() (*attestation.Attestation
 
 func (r *OCILayoutResolver) Attestations(ctx context.Context, predicateType string) ([]*att.Envelope, error) {
 	var envs []*att.Envelope
+	dsseMediaType, err := attestation.DSSEMediaType(predicateType)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get DSSE media type for predicate '%s': %w", predicateType, err)
+	}
 	for _, attestationLayer := range r.AttestationManifest.OriginalLayers {
-		if attestationLayer.Annotations[attestation.InTotoPredicateType] != predicateType {
-			continue
-		}
-
 		mt, err := attestationLayer.Layer.MediaType()
 		if err != nil {
 			return nil, fmt.Errorf("failed to get layer media type: %w", err)
 		}
 		mts := string(mt)
-		if !strings.HasSuffix(mts, "+dsse") {
+		if mts != dsseMediaType {
 			continue
 		}
 		var env = new(att.Envelope)

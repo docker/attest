@@ -250,7 +250,9 @@ func (manifest *AttestationManifest) BuildReferringArtifacts() ([]v1.Image, erro
 func buildImage(layers []*AttestationLayer, manifest *v1.Descriptor, subject *v1.Descriptor, opts *AttestationManifestImageOptions) (v1.Image, error) {
 	newImg := empty.Image
 	var err error
-
+	if len(layers) == 0 {
+		return nil, fmt.Errorf("no layers supplied to build image")
+	}
 	// NB: if we add the subject before the layers, it does not end up being computed/serialised in the output for some reason
 	//TODO - recreate this bug and push upstream
 	for _, layer := range layers {
@@ -268,7 +270,11 @@ func buildImage(layers []*AttestationLayer, manifest *v1.Descriptor, subject *v1
 	if opts.laxReferrers {
 		newImg = mutate.ConfigMediaType(newImg, "application/vnd.oci.image.config.v1+json")
 	} else {
-		newImg = mutate.ArtifactType(newImg, intoto.PayloadType)
+		dsseMediatType, err := DSSEMediaType(layers[0].Statement.PredicateType)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get DSSE media type: %w", err)
+		}
+		newImg = mutate.ArtifactType(newImg, dsseMediatType)
 		newImg = mutate.ConfigMediaType(newImg, "application/vnd.oci.empty.v1+json")
 	}
 	// we need to set this even when we set the artifact type otherwise things break (even the go-container-registry client)
@@ -277,6 +283,7 @@ func buildImage(layers []*AttestationLayer, manifest *v1.Descriptor, subject *v1
 
 	// see note above - must be added after the layers!
 	if !opts.skipSubject {
+		subject.Platform = nil
 		newImg = mutate.Subject(newImg, *subject).(v1.Image)
 	}
 	if !opts.laxReferrers {

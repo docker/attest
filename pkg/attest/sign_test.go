@@ -220,7 +220,8 @@ func TestSimpleStatementSigning(t *testing.T) {
 			for _, img := range newImgs {
 				mf, err := img.Manifest()
 				require.NoError(t, err)
-				assert.Equal(t, "application/vnd.in-toto+json", mf.ArtifactType)
+				assert.Contains(t, mf.ArtifactType, "application/vnd.in-toto")
+				assert.Contains(t, mf.ArtifactType, "+dsse")
 				assert.Equal(t, subject.MediaType, mf.MediaType)
 				assert.Equal(t, empty, mf.Config.MediaType)
 				assert.Equal(t, int64(2), mf.Config.Size)

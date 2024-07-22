@@ -8,7 +8,6 @@ import (
 	att "github.com/docker/attest/pkg/attestation"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
-	"github.com/pkg/errors"
 )
 
 type ReferrersResolver struct {
@@ -76,9 +75,6 @@ func (r *ReferrersResolver) resolveAttestations(ctx context.Context, predicateTy
 	referrersIndexManifest, err := referrersIndex.IndexManifest()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get index manifest: %w", err)
-	}
-	if len(referrersIndexManifest.Manifests) == 0 {
-		return nil, errors.New("no referrers found")
 	}
 	aManifests := make([]*attestation.AttestationManifest, 0)
 	for _, m := range referrersIndexManifest.Manifests {

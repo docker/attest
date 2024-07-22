@@ -57,7 +57,7 @@ type Envelope struct {
 type Signature struct {
 	KeyID     string    `json:"keyid"`
 	Sig       string    `json:"sig"`
-	Extension Extension `json:"extension",omitempty`
+	Extension Extension `json:"extension,omitempty"`
 }
 type Extension struct {
 	Kind string              `json:"kind"`

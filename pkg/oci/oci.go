@@ -49,14 +49,16 @@ func WithOptions(ctx context.Context, platform *v1.Platform) []remote.Option {
 
 func ExtractEnvelopes(manifest *attestation.AttestationManifest, predicateType string) ([]*att.Envelope, error) {
 	var envs []*att.Envelope
+	dsseMediaType, err := attestation.DSSEMediaType(predicateType)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get DSSE media type for predicate '%s': %w", predicateType, err)
+	}
 	for _, attestationLayer := range manifest.OriginalLayers {
 		mt, err := attestationLayer.Layer.MediaType()
 		if err != nil {
 			return nil, fmt.Errorf("failed to get layer media type: %w", err)
 		}
-		if (strings.HasPrefix(string(mt), "application/vnd.in-toto.")) &&
-			strings.HasSuffix(string(mt), "+dsse") &&
-			attestationLayer.Annotations[att.InTotoPredicateType] == predicateType {
+		if string(mt) == dsseMediaType {
 			reader, err := attestationLayer.Layer.Uncompressed()
 			if err != nil {
 				return nil, fmt.Errorf("failed to get layer contents: %w", err)

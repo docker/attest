@@ -40,7 +40,6 @@ func TestAttestationReferenceTypes(t *testing.T) {
 		name              string
 		server            *httptest.Server
 		referrersServer   *httptest.Server
-		skipSubject       bool
 		useDigest         bool
 		referrersRepo     string
 		attestationSource config.AttestationStyle
@@ -49,16 +48,6 @@ func TestAttestationReferenceTypes(t *testing.T) {
 		{
 			name:   "referrers support, defaults",
 			server: httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
-		},
-		{
-			name:   "no referrers support",
-			server: httptest.NewServer(registry.New()),
-		},
-		{
-			name:              "attached attestations",
-			server:            httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
-			skipSubject:       true,
-			attestationSource: config.AttestationStyleAttached,
 		},
 		{
 			name:      "use digest",
@@ -110,28 +99,27 @@ func TestAttestationReferenceTypes(t *testing.T) {
 			indexName := fmt.Sprintf("%s/repo:root", u.Host)
 			require.NoError(t, err)
 
+			outputRepo := indexName
 			if tc.referrersServer != nil {
 				ru, err := url.Parse(s.URL)
 				require.NoError(t, err)
-				repo := fmt.Sprintf("%s/referrers", ru.Host)
-				tc.referrersRepo = repo
-				signedManifests, err := attest.SignStatements(ctx, attIdx.Index, signer, opts)
-				require.NoError(t, err)
-				err = mirror.PushIndexToRegistry(attIdx.Index, indexName)
-				require.NoError(t, err)
-				for _, signedManifest := range signedManifests {
-					image, err := signedManifest.BuildAttestationImage(attestation.WithoutSubject(tc.skipSubject), attestation.WithReplacedLayers(true))
-					require.NoError(t, err)
-					err = mirror.PushImageToRegistry(image, fmt.Sprintf("%s:tag-does-not-matter", repo))
-					require.NoError(t, err)
-				}
-			} else {
-				signedManifests, err := attest.SignStatements(ctx, attIdx.Index, signer, opts)
-				require.NoError(t, err)
-				signedIndex := attIdx.Index
-				signedIndex, err = attestation.UpdateIndexImages(signedIndex, signedManifests, attestation.WithReplacedLayers(true), attestation.WithoutSubject(tc.skipSubject))
-				require.NoError(t, err)
-				err = mirror.PushIndexToRegistry(signedIndex, indexName)
+				tc.referrersRepo = fmt.Sprintf("%s/referrers", ru.Host)
+				outputRepo = tc.referrersRepo
+			}
+			// sign all the statements in the index
+			signedManifests, err := attest.SignStatements(ctx, attIdx.Index, signer, opts)
+			require.NoError(t, err)
+
+			// push subject image so that it can be resolved
+			require.NoError(t, err)
+			err = mirror.PushIndexToRegistry(attIdx.Index, indexName)
+			require.NoError(t, err)
+
+			// upload referrers
+			output, err := oci.ParseImageSpec(outputRepo)
+			require.NoError(t, err)
+			for _, attIdx := range signedManifests {
+				err = mirror.SaveReferrers(attIdx, []*oci.ImageSpec{output})
 				require.NoError(t, err)
 			}
 
@@ -170,26 +158,23 @@ func TestAttestationReferenceTypes(t *testing.T) {
 				require.NoError(t, err)
 				assert.Equal(t, attest.OutcomeSuccess, results.Outcome)
 
-				if !tc.skipSubject {
-					// can evaluate policy using referrers
-					if tc.useDigest {
-						p, err := oci.ParsePlatform(platform)
-						require.NoError(t, err)
-						options := oci.WithOptions(ctx, p)
-						subjectRef, err := name.ParseReference(indexName)
-						require.NoError(t, err)
-						desc, err := remote.Image(subjectRef, options...)
-						require.NoError(t, err)
-						subjectDigest, err := desc.Digest()
-						require.NoError(t, err)
-						ref = fmt.Sprintf("%s/repo@%s", u.Host, subjectDigest.String())
-					}
-					src, err := oci.ParseImageSpec(ref, oci.WithPlatform(platform))
+				if tc.useDigest {
+					p, err := oci.ParsePlatform(platform)
 					require.NoError(t, err)
-					results, err = attest.Verify(ctx, src, policyOpts)
+					options := oci.WithOptions(ctx, p)
+					subjectRef, err := name.ParseReference(indexName)
 					require.NoError(t, err)
-					assert.Equal(t, attest.OutcomeSuccess, results.Outcome)
+					desc, err := remote.Image(subjectRef, options...)
+					require.NoError(t, err)
+					subjectDigest, err := desc.Digest()
+					require.NoError(t, err)
+					ref = fmt.Sprintf("%s/repo@%s", u.Host, subjectDigest.String())
 				}
+				src, err = oci.ParseImageSpec(ref, oci.WithPlatform(platform))
+				require.NoError(t, err)
+				results, err = attest.Verify(ctx, src, policyOpts)
+				require.NoError(t, err)
+				assert.Equal(t, attest.OutcomeSuccess, results.Outcome)
 			}
 		})
 	}
@@ -290,6 +275,53 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 				results, err := attest.Verify(ctx, src, policyOpts)
 				require.NoError(t, err)
 				assert.Equal(t, attest.OutcomeSuccess, results.Outcome)
+			}
+		}
+	}
+}
+
+func TestCorrectArtifactTypeInTagFallback(t *testing.T) {
+	ctx, signer := test.Setup(t)
+	server := httptest.NewServer(registry.New())
+
+	defer server.Close()
+	serverUrl, err := url.Parse(server.URL)
+	require.NoError(t, err)
+
+	repoName := "repo"
+
+	opts := &attestation.SigningOptions{
+		SkipTL: true,
+	}
+	attIdx, err := oci.IndexFromPath(UnsignedTestImage)
+	require.NoError(t, err)
+
+	indexName := fmt.Sprintf("%s/%s:latest", serverUrl.Host, repoName)
+	err = mirror.PushIndexToRegistry(attIdx.Index, indexName)
+	require.NoError(t, err)
+
+	signedManifests, err := attest.SignStatements(ctx, attIdx.Index, signer, opts)
+	require.NoError(t, err)
+
+	// this should create and maintain an index of referrers
+	for _, mf := range signedManifests {
+		imgs, err := mf.BuildReferringArtifacts()
+		require.NoError(t, err)
+		for _, img := range imgs {
+			err = mirror.PushImageToRegistry(img, fmt.Sprintf("%s/%s:tag-does-not-matter", serverUrl.Host, repoName))
+			require.NoError(t, err)
+			mf, err := img.Manifest()
+			require.NoError(t, err)
+			subject := mf.Subject
+			subjectRef, err := name.ParseReference(fmt.Sprintf("%s/%s:sha256-%s", serverUrl.Host, repoName, subject.Digest.Hex))
+			require.NoError(t, err)
+			idx, err := remote.Index(subjectRef)
+			require.NoError(t, err)
+			imf, err := idx.IndexManifest()
+			require.NoError(t, err)
+			for _, m := range imf.Manifests {
+				assert.Contains(t, m.ArtifactType, "application/vnd.in-toto")
+				assert.Contains(t, m.ArtifactType, "+dsse")
 			}
 		}
 	}

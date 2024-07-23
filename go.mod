@@ -31,7 +31,7 @@ require (
 )
 
 // fork of a fork (in case it goes away) with changes to support ArtifactType (https://github.com/google/go-containerregistry/pull/1931)
-replace github.com/google/go-containerregistry v0.20.0 => github.com/kipz/go-containerregistry v0.0.0-20240423201245-bf57eace21f2
+replace github.com/google/go-containerregistry v0.20.0 => github.com/kipz/go-containerregistry v0.0.0-20240722163910-ebe90246535d
 
 require (
 	cloud.google.com/go v0.115.0 // indirect

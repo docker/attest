@@ -1,6 +1,7 @@
 module github.com/docker/attest
 
-go 1.22.1
+go 1.22.5
+
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/aws/aws-sdk-go-v2/config v1.27.27
@@ -30,7 +31,7 @@ require (
 )
 
 // fork of a fork (in case it goes away) with changes to support ArtifactType (https://github.com/google/go-containerregistry/pull/1931)
-replace github.com/google/go-containerregistry v0.20.0 => github.com/kipz/go-containerregistry v0.0.0-20240722163910-ebe90246535d
+replace github.com/google/go-containerregistry v0.20.1 => github.com/kipz/go-containerregistry v0.0.0-20240722163910-ebe90246535d
 
 require (
 	cloud.google.com/go v0.115.0 // indirect

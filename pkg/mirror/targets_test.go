@@ -50,8 +50,8 @@ func TestGetTufTargetsMirror(t *testing.T) {
 			ann, ok := layer.Annotations[tufFileAnnotation]
 			assert.True(t, ok)
 			parts := strings.Split(ann, ".")
-			// <digest>.filename.json
-			assert.Equal(t, len(parts), 3)
+			// <digest>.filename.<ext|optional>
+			assert.GreaterOrEqual(t, len(parts), 2)
 		}
 	}
 }
@@ -97,8 +97,8 @@ func TestGetDelegatedTargetMirrors(t *testing.T) {
 			ann, ok := layer.Annotations[tufFileAnnotation]
 			assert.True(t, ok)
 			parts := strings.Split(ann, ".")
-			// <subdir>/<digest>.filename.json
-			assert.Equal(t, len(parts), 3)
+			// <subdir>/<digest>.filename.<ext|optional>
+			assert.GreaterOrEqual(t, len(parts), 2)
 		}
 	}
 }

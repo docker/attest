@@ -32,9 +32,9 @@ Library to create attestation signatures on container images, and verify images 
 # What is this?
 
 `attest` is a library for signing and verifying [in-toto](https://in-toto.io/) attestations on container images.
-Examples of attestations include statements about the provenance of an image, and the SBOM of an image.
+Examples of attestations include statements about the provenance and SBOM of an image.
 
-The library can be used to verify these attestations using Rego policy.
+This library can be used to verify these attestations using Rego policy.
 Policy can be used to check whether an attestation is correctly signed, and that the contents of the attestation are correct.
 
 # Features
@@ -63,7 +63,7 @@ See also [example_sign_test.go](./pkg/attest/example_sign_test.go) for an exampl
 
 ## Verifying Images
 
-An image can be verified against a policy using the `attest.Verify` function.
+An image's attestations can be verified against a policy using the `attest.Verify` function.
 This function takes an image spec for the image to verify, and a set of options for policy resolution.
 By default, the policy is resolved from the [the Docker TUF repository](https://github.com/docker/tuf), but the options can be used to specify a local policy directory, or a policy ID to use.
 See the [Policy Mapping](#policy-mapping) for more details.
@@ -133,7 +133,7 @@ The input to the policy is an object with the following fields:
 
 There are two builtin functions provided by `attest` that can be used to help with policy evaluation:
 - `attest.fetch(predicate_type)`: fetches all attestations for the input image with the given predicate type. For example, `attest.fetch("https://spdx.dev/Document")` will fetch all SPDX SBOM attestations for the input image.
-- `attest.verify(attestation, options)`: verifies the DSSE envelope layer of the given attestation, and returns the statement. The options object can contain the following fields:
+- `attest.verify(attestation, options)`: verifies the DSSE envelope of the given attestation, and returns the statement. The options object can contain the following fields:
   - `keys` (array): keys to use for signature verification. Each key contains the following fields:
     - `id` (string): the key ID as specified in [Public Key IDs](#public-key-ids)
     - `key` (string): the PEM-encoded public key

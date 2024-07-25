@@ -21,7 +21,5 @@ jobs:
       - name: Send repository_dispatch event
         uses: peter-evans/repository-dispatch@v3.0.0
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          repository: docker/attest
           event-type: update_attest_all
           client-payload: '{"attest_version": "${{ github.ref_name }}"}'

@@ -1,0 +1,27 @@
+name: release
+on:
+  release:
+    types: [published]
+jobs:
+  trigger_attest_update:
+    name: Update attest lib - ALL
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+        contents: write
+        pull-requests: write
+    steps:
+      - name: Generate GitHub App Token
+        id: app-token
+        uses: actions/create-github-app-token@31c86eb3b33c9b601a1f60f98dcbfd1d70f379b4 # v1.10.3
+        with:
+            app-id: ${{ vars.ATTEST_RELEASE_APP_ID }}
+            private-key: ${{ secrets.ATTEST_RELEASE_APP_PRIVATE_KEY }}
+            repositories: "attest-actions"
+      - name: Send repository_dispatch event
+        uses: peter-evans/repository-dispatch@v3.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: docker/attest
+          event-type: update_attest_all
+          client-payload: '{"attest_version": "${{ github.ref_name }}"}'

@@ -16,8 +16,8 @@ Library to create attestation signatures on container images, and verify images 
 - [Features](#features)
 - [Installation](#installation)
 - [Usage](#usage)
+  - [Verifying Image Attestations](#verifying-image-attestations)
   - [Signing Attestations](#signing-attestations)
-  - [Verifying Images](#verifying-images)
   - [Other examples](#other-examples)
 - [Rego Policy](#rego-policy)
   - [Writing Policy](#writing-policy)
@@ -40,8 +40,8 @@ Policy can be used to check whether an attestation is correctly signed, and that
 # Features
 
 - Sign in-toto attestations
-- Attach attestations to container images
-- Verify attestations on container images using Rego policy
+- Push attestations to container registries using OCI 1.1 compatible artifacts
+- Verify attestations on container images using Rego policy and attestations fetched using OCI 1.1 referrers
 
 # Installation
 
@@ -50,6 +50,17 @@ $ go get github.com/docker/attest
 ```
 
 # Usage
+
+## Verifying Image Attestations
+
+An image's attestations can be verified against a policy using the `attest.Verify` function.
+This function takes an [oci.ImageSpec](https://github.com/docker/attest/blob/781a738b54b9549c1dabfd7ea3f7ea582514ddec/pkg/oci/types.go#L35-L41) for the image to verify, and a set of options for policy resolution.
+By default, the policy is resolved from the [the Docker TUF repository](https://github.com/docker/tuf), but the options can be used to specify an alternative TUF repository, a local policy directory, and/or a policy ID to use.
+See [Policy Mapping](#policy-mapping) for more details.
+
+The `attest.Verify` function returns a `VerificationSummary` object, which contains the results of the policy evaluation.
+
+See [example_verify_test.go](./pkg/attest/example_verify_test.go) for an example of how to verify an image against a policy.
 
 ## Signing Attestations
 
@@ -61,17 +72,6 @@ See [example_attestation_manifest_test.go](./pkg/attestation/example_attestation
 
 See also [example_sign_test.go](./pkg/attest/example_sign_test.go) for an example of how to sign all attached in-toto statements on an image, e.g. those produced by buildkit.
 
-## Verifying Images
-
-An image's attestations can be verified against a policy using the `attest.Verify` function.
-This function takes an image spec for the image to verify, and a set of options for policy resolution.
-By default, the policy is resolved from the [the Docker TUF repository](https://github.com/docker/tuf), but the options can be used to specify a local policy directory, or a policy ID to use.
-See the [Policy Mapping](#policy-mapping) for more details.
-
-The `attest.Verify` function returns a `VerificationSummary` object, which contains the results of the policy evaluation.
-
-See [example_verify_test.go](./pkg/attest/example_verify_test.go) for an example of how to verify an image against a policy.
-
 ## Other examples
 
 See [example_mirror_test.go](./pkg/mirror/example_mirror_test.go) for an example of mirroring a TUF repository to an OCI registry.
@@ -81,7 +81,7 @@ See [example_registry_test.go](./pkg/tuf/example_registry_test.go) for an exampl
 
 # Rego Policy
 
-An image policy consists at least one `rego` file and optionally some `yaml` data files.
+An image policy consists of one or more `rego` files and, optionally, `json` or `yaml` data files.
 
 The policies for trusted namespaces `docker.io/docker` and `docker.io/library` are stored in [the Docker TUF root](https://github.com/docker/tuf) under the `docker` and `doi` target sub-directories respectively.
 

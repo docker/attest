@@ -7,7 +7,7 @@ import (
 	"regexp"
 
 	"github.com/docker/attest/pkg/tuf"
-	goyaml "gopkg.in/yaml.v3"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -24,7 +24,7 @@ func LoadLocalMappings(configDir string) (*PolicyMappings, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read local policy mapping file %s: %w", path, err)
 	}
-	err = goyaml.Unmarshal(mappingFile, mappings)
+	err = yaml.Unmarshal(mappingFile, mappings)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal policy mapping file %s: %w", path, err)
 	}
@@ -42,7 +42,7 @@ func LoadTufMappings(tufClient tuf.TUFClient, localTargetsDir string) (*PolicyMa
 	}
 	mappings := &policyMappingsFile{}
 
-	err = goyaml.Unmarshal(fileContents, mappings)
+	err = yaml.Unmarshal(fileContents, mappings)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal policy mapping file %s: %w", filename, err)
 	}

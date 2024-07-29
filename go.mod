@@ -26,7 +26,6 @@ require (
 	github.com/testcontainers/testcontainers-go/modules/registry v0.32.0
 	github.com/theupdateframework/go-tuf/v2 v2.0.0
 	google.golang.org/api v0.189.0
-	gopkg.in/yaml.v3 v3.0.1
 	sigs.k8s.io/yaml v1.4.0
 )
 
@@ -200,5 +199,6 @@ require (
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/klog/v2 v2.120.1 // indirect
 )

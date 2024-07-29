@@ -1,18 +1,20 @@
 package config
 
-import "regexp"
+import (
+	"regexp"
+)
 
 type policyMappingsFile struct {
-	Version  string            `yaml:"version"`
-	Kind     string            `yaml:"kind"`
-	Policies []*PolicyMapping  `yaml:"policies"`
-	Rules    []*policyRuleFile `yaml:"rules"`
+	Version  string            `json:"version"`
+	Kind     string            `json:"kind"`
+	Policies []*PolicyMapping  `json:"policies"`
+	Rules    []*policyRuleFile `json:"rules"`
 }
 
 type policyRuleFile struct {
-	Pattern     string `yaml:"pattern"`
-	PolicyId    string `yaml:"policy-id"`
-	Replacement string `yaml:"rewrite"`
+	Pattern     string `json:"pattern"`
+	PolicyId    string `json:"policy-id"`
+	Replacement string `json:"rewrite"`
 }
 
 type PolicyMappings struct {
@@ -30,19 +32,19 @@ const (
 )
 
 type PolicyMapping struct {
-	Id           string              `yaml:"id"`
-	Description  string              `yaml:"description"`
-	Files        []PolicyMappingFile `yaml:"files"`
-	Attestations *AttestationConfig  `yaml:"attestations"`
+	Id           string              `json:"id"`
+	Description  string              `json:"description"`
+	Files        []PolicyMappingFile `json:"files"`
+	Attestations *AttestationConfig  `json:"attestations"`
 }
 
 type AttestationConfig struct {
-	Style AttestationStyle `yaml:"style"`
-	Repo  string           `yaml:"repo"`
+	Style AttestationStyle `json:"style"`
+	Repo  string           `json:"repo"`
 }
 
 type PolicyMappingFile struct {
-	Path string `yaml:"path"`
+	Path string `json:"path"`
 }
 
 type PolicyRule struct {

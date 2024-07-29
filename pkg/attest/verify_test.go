@@ -177,17 +177,18 @@ func TestSignVerify(t *testing.T) {
 	outputLayout := test.CreateTempDir(t, "", TestTempDir)
 
 	testCases := []struct {
-		name        string
-		signTL      bool
-		policyDir   string
-		imageName   string
-		expectError bool
+		name      string
+		signTL    bool
+		policyDir string
+		imageName string
+
+		expectedNonSuccess Outcome
 	}{
 		{name: "happy path", signTL: true, policyDir: PassNoTLPolicyDir},
 		{name: "sign tl, verify no tl", signTL: true, policyDir: PassPolicyDir},
 		{name: "no tl", signTL: false, policyDir: PassPolicyDir},
 		{name: "mirror", signTL: true, policyDir: PassMirrorPolicyDir, imageName: "mirror.org/library/test-image:test"},
-		{name: "mirror no match", signTL: true, policyDir: PassMirrorPolicyDir, imageName: "incorrect.org/library/test-image:test", expectError: true},
+		{name: "mirror no match", signTL: true, policyDir: PassMirrorPolicyDir, imageName: "incorrect.org/library/test-image:test", expectedNonSuccess: OutcomeNoPolicy},
 		{name: "verify inputs", signTL: false, policyDir: InputsPolicyDir},
 	}
 
@@ -220,11 +221,11 @@ func TestSignVerify(t *testing.T) {
 				LocalPolicyDir: tc.policyDir,
 			}
 			results, err := Verify(ctx, spec, policyOpts)
-			if tc.expectError {
-				require.Error(t, err)
+			require.NoError(t, err)
+			if tc.expectedNonSuccess != "" {
+				assert.Equal(t, tc.expectedNonSuccess, results.Outcome)
 				return
 			}
-			require.NoError(t, err)
 			assert.Equal(t, OutcomeSuccess, results.Outcome)
 			platform, err := oci.ParsePlatform(LinuxAMD64)
 			require.NoError(t, err)

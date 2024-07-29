@@ -35,6 +35,11 @@ var (
 	DockerTUFRootDefault = embed.RootDefault
 )
 
+const (
+	defaultMetadataSource = "docker/tuf-metadata"
+	defaultTargetsSource  = "docker/tuf-targets"
+)
+
 type Downloader interface {
 	DownloadTarget(target, filePath string) (file *TargetFile, err error)
 }
@@ -49,6 +54,10 @@ type TargetFile struct {
 	TargetURI      string
 	Digest         string
 	Data           []byte
+}
+
+func NewDockerDefaultTUFClient(tufPath string) (*Client, error) {
+	return NewClient(DockerTUFRootDefault.Data, tufPath, defaultMetadataSource, defaultTargetsSource, NewDefaultVersionChecker())
 }
 
 // NewClient creates a new TUF client.

@@ -3,6 +3,8 @@ package attest
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -11,6 +13,7 @@ import (
 	"github.com/docker/attest/pkg/config"
 	"github.com/docker/attest/pkg/oci"
 	"github.com/docker/attest/pkg/policy"
+	"github.com/docker/attest/pkg/tuf"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 )
 
@@ -19,6 +22,19 @@ func Verify(ctx context.Context, src *oci.ImageSpec, opts *policy.Options) (resu
 	detailsResolver, err := policy.CreateImageDetailsResolver(src)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create image details resolver: %w", err)
+	}
+	if opts.LocalTargetsDir == "" {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get user home directory: %w", err)
+		}
+		opts.LocalTargetsDir = filepath.Join(homeDir, ".docker", "tuf")
+	}
+	if opts.TUFClient == nil {
+		opts.TUFClient, err = tuf.NewDockerDefaultTUFClient(opts.LocalTargetsDir)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create default TUF client: %w", err)
+		}
 	}
 	if opts.AttestationStyle == "" {
 		opts.AttestationStyle = config.AttestationStyleReferrers

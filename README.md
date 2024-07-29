@@ -24,6 +24,7 @@ Library to create attestation signatures on container images, and verify images 
     - [Builtin Functions](#builtin-functions)
   - [Policy Mapping](#policy-mapping)
 - [Public Key IDs](#public-key-ids)
+- [Transparency Logging](#transparency-logging)
 - [Verification Summary Attestation (VSA)](#verification-summary-attestation-vsa)
 - [API Reference](#api-reference)
 - [Project Layout](#project-layout)
@@ -132,8 +133,8 @@ There are two builtin functions provided by `attest` that can be used to help wi
     - `from` (string): the time from which the key is valid, or `null` if the key was always valid (default: `null`)
     - `status` (string): `active` if the key is active, otherwise the reason the key is inactive. This is only used in error messages if the `from` date is in the past
     - `distrust` (bool): whether the key should be distrusted (default: `false`). If `true`, the key will be considered invalid
-      - `signing-format` (string): the format of the signing key, must be `dssev1`
-  - `skip_tl` (bool): whether to skip transparency log entry verification (default: `false`)
+    - `signing-format` (string): the format of the signing key, must be `dssev1`
+  - `skip_tl` (bool): whether to skip transparency log entry verification (see [Transparency Logging](#transparency-logging)) (default: `false`)
 
 Both `attest.fetch` and `attest.verify` return an object with the following fields:
 - `value`: the return value of the function if successful
@@ -250,6 +251,18 @@ To generate a key-id from a public key, use `openssl` as follows:
 ```shell
 openssl pkey -in <public-key.pem> -pubin -outform DER | openssl dgst -sha256
 ```
+
+# Transparency Logging
+
+`attest` supports transparency logging for attestation signatures.
+This serves two purposes:
+
+1. the transparency log is a mechanism to ensure that all attestations are logged in a tamper-evident way, and that the logs are publicly auditable; and
+2. the transparency log is a trusted source of timestamps for attestations, which allows signatures to be verified even if the key used to sign the attestation has expired.
+
+By default, transparency logging is enabled and the logs are stored in the public-good Rekor transparency log.
+Another transparency log can be used by creating an implementation of the [tl.TL](https://github.com/docker/attest/blob/781a738b54b9549c1dabfd7ea3f7ea582514ddec/pkg/tlog/tl.go#L57-L62) interface and using [`tl.WithTL`](https://github.com/docker/attest/blob/781a738b54b9549c1dabfd7ea3f7ea582514ddec/pkg/tlog/tl.go#L37) to set in on a context.
+Alternatively, transparency logging can be disabled when signing by using `SkipTL` in the `SigningOptions`, and when verifying by using `skip_tl` in the options to `attest.verify` in the Rego policy.
 
 # Verification Summary Attestation (VSA)
 

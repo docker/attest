@@ -39,6 +39,9 @@ Examples of attestations include statements about the provenance and SBOM of an 
 This library can be used to verify these attestations using Rego policy.
 Policy can be used to check whether an attestation is correctly signed, and that the contents of the attestation are correct.
 
+Our overall goal with this project is adoption of the ideas into other open-source projects, rather than to create another standalone tool.
+It would be a great outcome if this library was no longer needed because the functionality was built into other tools.
+
 # Features
 
 - Sign in-toto attestations

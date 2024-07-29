@@ -152,7 +152,32 @@ The return value of `attest.fetch` is an attestation which can be passed to `att
 ## Policy Mapping
 
 A `mapping.yaml` file is stored at the root of TUF targets and contains the mapping from repository name to files containing the corresponding policy.
-Mirrors can also be specified as in the example below:
+
+A simple mapping file might look like this:
+
+```yaml
+version: v1
+kind: policy-mapping
+policies:
+  - id: docker-official-images
+    description: Docker Official Images
+    files:
+      - path: doi/policy.rego
+rules:
+  - pattern: "^docker[.]io/library/(.*)$"
+    policy-id: docker-official-images
+```
+
+The `policies` section contains a list of policies, each with an `id` and a `description`, and a list of `files` containing the policy.
+The `rules` section contains a list of rules that map regex expressions to policies.
+If the `pattern` regex matches the repository name, the policy with the `policy-id` is used to evaluate the image.
+In the above example, any repository in the `docker.io/library` namespace will be evaluated against the policy in `doi/policy.rego`.
+
+Sometimes it is necessary to rewrite the repository name before evaluating the policy.
+This can be useful when the repository name which is used to reference the image is different from the repository name in the attestations.
+For example, when mirroring images from a public registry to a private registry, the repository name in the attestations will be the public registry, but the image will be referenced by the name of the private registry.
+
+An example of a mapping file with rewrite rules might look like this:
 
 ```yaml
 version: v1
@@ -169,7 +194,9 @@ rules:
     rewrite: docker.io/library/$1
 ```
 
-Above, the first rule means that any repository matching the `pattern` regex maps to the policy with the `id` field set to `docker-official-images`. The second rule means that any repository matching the `pattern` regex is _rewritten_ using the `rewrite` field. This means two things:
+As before, any repository in the `docker.io/library` namespace will be evaluated against the policy in `doi/policy.rego`.
+The second rule will rewrite any repository in the `public.ecr.aws/docker/library` namespace to `docker.io/library`.
+This means two things:
 
 1. The rules are evaluated again using the rewritten repository name until a policy is found (in this case the first rule will match); and
 2. The rewritten name is passed into the actual policy when it is evaluated.

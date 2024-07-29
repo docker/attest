@@ -30,6 +30,7 @@ Library to create attestation signatures on container images, and verify images 
   - [Example VSA](#example-vsa)
 - [API Reference](#api-reference)
 - [Project Layout](#project-layout)
+- [Versioning](#versioning)
 
 # What is this?
 
@@ -352,3 +353,10 @@ Full API reference can be found at [pkg.go.dev/github.com/docker/attest](https:/
 - [internal/](https://pkg.go.dev/github.com/docker/image-signer-verifier/pkg) => packages that are only for project internal purposes
 - [scripts/](scripts/) => build scripts
 - [test/](test/) => data for use in tests
+
+# Versioning
+
+`attest` uses [Semantic Versioning](https://semver.org/).
+As such, until `attest` reaches version 1.0.0, breaking changes may be introduced in minor versions.
+
+> Anything MAY change at any time. The public API SHOULD NOT be considered stable.

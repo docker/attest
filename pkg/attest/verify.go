@@ -23,24 +23,9 @@ func Verify(ctx context.Context, src *oci.ImageSpec, opts *policy.Options) (resu
 	if err != nil {
 		return nil, fmt.Errorf("failed to create image details resolver: %w", err)
 	}
-	if opts.LocalTargetsDir == "" {
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get user home directory: %w", err)
-		}
-		opts.LocalTargetsDir = filepath.Join(homeDir, ".docker", "tuf")
-	}
-	if opts.TUFClient == nil {
-		opts.TUFClient, err = tuf.NewDockerDefaultTUFClient(opts.LocalTargetsDir)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create default TUF client: %w", err)
-		}
-	}
-	if opts.AttestationStyle == "" {
-		opts.AttestationStyle = config.AttestationStyleReferrers
-	}
-	if opts.ReferrersRepo != "" && opts.AttestationStyle != config.AttestationStyleReferrers {
-		return nil, fmt.Errorf("referrers repo specified but attestation source not set to referrers")
+	err = populateDefaultOptions(opts)
+	if err != nil {
+		return nil, err
 	}
 	pctx, err := policy.ResolvePolicy(ctx, detailsResolver, opts)
 	if err != nil {
@@ -74,6 +59,38 @@ func Verify(ctx context.Context, src *oci.ImageSpec, opts *policy.Options) (resu
 		return nil, fmt.Errorf("failed to evaluate policy: %w", err)
 	}
 	return result, nil
+}
+
+func populateDefaultOptions(opts *policy.Options) (err error) {
+	if opts.LocalTargetsDir == "" {
+		opts.LocalTargetsDir, err = defaultLocalTargetsDir()
+		if err != nil {
+			return err
+		}
+	}
+	if opts.TUFClient == nil {
+		opts.TUFClient, err = tuf.NewDockerDefaultTUFClient(opts.LocalTargetsDir)
+		if err != nil {
+			return fmt.Errorf("failed to create default TUF client: %w", err)
+		}
+	}
+
+	if opts.AttestationStyle == "" {
+		opts.AttestationStyle = config.AttestationStyleReferrers
+	}
+	if opts.ReferrersRepo != "" && opts.AttestationStyle != config.AttestationStyleReferrers {
+		return fmt.Errorf("referrers repo specified but attestation source not set to referrers")
+	}
+
+	return nil
+}
+
+func defaultLocalTargetsDir() (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get user home directory: %w", err)
+	}
+	return filepath.Join(homeDir, ".docker", "tuf"), nil
 }
 
 func toVerificationResult(p *policy.Policy, input *policy.Input, result *policy.Result) (*VerificationResult, error) {

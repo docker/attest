@@ -89,7 +89,8 @@ The policies for trusted namespaces `docker.io/docker` and `docker.io/library` a
 `attest` uses [Open Policy Agent](https://www.openpolicyagent.org/) (OPA) for policy evaluation, and policies are written in Rego.
 A full guide to writing Rego policies is available in the [Rego documentation](https://www.openpolicyagent.org/docs/latest/policy-language/).
 
-For attest, a policy must contain at a minimum a `result` rule in a package called `attest` that returns an object matching the schema defined by the [`policy.Result`](https://github.com/docker/attest/blob/bd2c4d7d8aa497754b674412b09628be8d02fab5/pkg/policy/types.go#L23-L27) struct. For example:
+For attest, a policy must contain at a minimum a `result` rule in a package called `attest` that returns an object matching the schema defined by the [`policy.Result`](https://github.com/docker/attest/blob/bd2c4d7d8aa497754b674412b09628be8d02fab5/pkg/policy/types.go#L23-L27) struct.
+For example:
 
 ```rego
 package attest
@@ -133,14 +134,18 @@ The input to the policy is an object with the following fields:
 
 There are two builtin functions provided by `attest` that can be used to help with policy evaluation:
 
-- `attest.fetch(predicate_type)`: fetches all attestations for the input image with the given predicate type. For example, `attest.fetch("https://spdx.dev/Document")` will fetch all SPDX SBOM attestations for the input image.
-- `attest.verify(attestation, options)`: verifies the DSSE envelope of the given attestation, and returns the statement. The options object can contain the following fields:
+- `attest.fetch(predicate_type)`: fetches all attestations for the input image with the given predicate type.
+  For example, `attest.fetch("https://spdx.dev/Document")` will fetch all SPDX SBOM attestations for the input image.
+- `attest.verify(attestation, options)`: verifies the DSSE envelope of the given attestation, and returns the statement.
+  The options object can contain the following fields:
   - `keys` (array): keys to use for signature verification. Each key contains the following fields:
     - `id` (string): the key ID as specified in [Public Key IDs](#public-key-ids)
     - `key` (string): the PEM-encoded public key
     - `from` (string): the time from which the key is valid, or `null` if the key was always valid (default: `null`)
-    - `status` (string): `active` if the key is active, otherwise the reason the key is inactive. This is only used in error messages if the `from` date is in the past
-    - `distrust` (bool): whether the key should be distrusted (default: `false`). If `true`, the key will be considered invalid
+    - `status` (string): `active` if the key is active, otherwise the reason the key is inactive.
+      This is only used in error messages if the `from` date is in the past
+    - `distrust` (bool): whether the key should be distrusted (default: `false`).
+      If `true`, the key will be considered invalid
     - `signing-format` (string): the format of the signing key, must be `dssev1`
   - `skip_tl` (bool): whether to skip transparency log entry verification (see [Transparency Logging](#transparency-logging)) (default: `false`)
 
@@ -205,12 +210,16 @@ This means two things:
 1. The rules are evaluated again using the rewritten repository name until a policy is found (in this case the first rule will match); and
 2. The rewritten name is passed into the actual policy when it is evaluated.
 
-The `rewrite` field is not a simple string replacement, but a regex replacement. This means that the `rewrite` field can contain capture groups that are referenced in the `pattern` field. For example, the `rewrite` field in the example above contains `$1`, which is a reference to the first capture group in the `pattern` field.
+The `rewrite` field is not a simple string replacement, but a regex replacement.
+This means that the `rewrite` field can contain capture groups that are referenced in the `pattern` field.
+For example, the `rewrite` field in the example above contains `$1`, which is a reference to the first capture group in the `pattern` field.
 
 > [!IMPORTANT]
-> It's important to remember to escape the `.` character in the `pattern` field, as it is a special character in regex. This is why the `.` character is surrounded by `[]` in the example above.
+> It's important to remember to escape the `.` character in the `pattern` field, as it is a special character in regex.
+> This is why the `.` character is surrounded by `[]` in the example above.
 >
-> It's also important to make use of the `^` and `$` characters in the `pattern` field to ensure that the regex matches the entire repository name. This is to prevent the regex from matching a subset of the repository name, e.g. `docker.io/library` matching `notdocker.io/library`.
+> It's also important to make use of the `^` and `$` characters in the `pattern` field to ensure that the regex matches the entire repository name.
+> This is to prevent the regex from matching a subset of the repository name, e.g. `docker.io/library` matching `notdocker.io/library`.
 
 Local policy can also be specified via a local `mapping.yaml`, which can be used to create new mirrors of policies described in the Docker TUF root, as well as describing entirely independent policies. For example:
 
@@ -280,7 +289,8 @@ The rewritten repository name will match the `docker-official-images` polict in 
 
 # Public Key IDs
 
-When signing attestations, a key-id is generated from the public key and added to envelope. This is used at verification time to look up the public key.
+When signing attestations, a key-id is generated from the public key and added to envelope.
+This is used at verification time to look up the public key.
 
 To generate a key-id from a public key, use `openssl` as follows:
 

@@ -264,7 +264,7 @@ This serves two purposes:
 1. the transparency log is a mechanism to ensure that all attestations are logged in a tamper-evident way, and that the logs are publicly auditable; and
 2. the transparency log is a trusted source of timestamps for attestations, which allows signatures to be verified even if the key used to sign the attestation has expired.
 
-By default, transparency logging is enabled and the logs are stored in the public-good Rekor transparency log.
+By default, transparency logging is enabled and the logs are stored in the [public-good Rekor](https://docs.sigstore.dev/logging/overview/) instance.
 Another transparency log can be used by creating an implementation of the [tl.TL](https://github.com/docker/attest/blob/781a738b54b9549c1dabfd7ea3f7ea582514ddec/pkg/tlog/tl.go#L57-L62) interface and using [`tl.WithTL`](https://github.com/docker/attest/blob/781a738b54b9549c1dabfd7ea3f7ea582514ddec/pkg/tlog/tl.go#L37) to set in on a context.
 Alternatively, transparency logging can be disabled when signing by using `SkipTL` in the `SigningOptions`, and when verifying by using `skip_tl` in the options to `attest.verify` in the Rego policy.
 

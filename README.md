@@ -6,6 +6,7 @@ Library to create attestation signatures on container images, and verify images 
 [![Go Reference](https://pkg.go.dev/badge/github.com/docker/attest.svg)](https://pkg.go.dev/github.com/docker/attest)
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/docker/attest/test.yml?branch=main)](https://github.com/docker/attest/actions/workflows/test.yml)
 [![codecov](https://codecov.io/gh/docker/attest/graph/badge.svg?token=cGT0f1ACKg)](https://codecov.io/gh/docker/attest)
+
 </div>
 
 # Table of Contents
@@ -118,6 +119,7 @@ This can be useful if there are attestations that are invalid, but are not requi
 ### Input
 
 The input to the policy is an object with the following fields:
+
 - `digest` (string): the digest of the image being verified
 - `purl` (string): the package URL of the image being verified
 - `is_canonical` (bool): whether the image being verified was referenced by a 'canonical' name, i.e. one that contains a digest
@@ -125,6 +127,7 @@ The input to the policy is an object with the following fields:
 ### Builtin Functions
 
 There are two builtin functions provided by `attest` that can be used to help with policy evaluation:
+
 - `attest.fetch(predicate_type)`: fetches all attestations for the input image with the given predicate type. For example, `attest.fetch("https://spdx.dev/Document")` will fetch all SPDX SBOM attestations for the input image.
 - `attest.verify(attestation, options)`: verifies the DSSE envelope of the given attestation, and returns the statement. The options object can contain the following fields:
   - `keys` (array): keys to use for signature verification. Each key contains the following fields:
@@ -137,6 +140,7 @@ There are two builtin functions provided by `attest` that can be used to help wi
   - `skip_tl` (bool): whether to skip transparency log entry verification (see [Transparency Logging](#transparency-logging)) (default: `false`)
 
 Both `attest.fetch` and `attest.verify` return an object with the following fields:
+
 - `value`: the return value of the function if successful
 - `error`: an error message if the function failed
 
@@ -148,7 +152,6 @@ The return value of `attest.fetch` is an attestation which can be passed to `att
 
 A `mapping.yaml` file is stored at the root of TUF targets and contains the mapping from repository name to files containing the corresponding policy.
 Mirrors can also be specified as in the example below:
-
 
 ```yaml
 version: v1
@@ -209,6 +212,7 @@ where `<policy-dir>` is a directory containing a `mapping.yaml` file, and any po
 ```
 
 > [!NOTE]
+>
 > `PolicyId` can also be set to select a policy by ID, completely ignoring the `rules` section of the mapping file.
 
 The rules section of a local `mapping.yaml` can refer to the policies described in the `mapping.yaml` file in the Docker TUF root to specify additional mirrors to which the referenced policy can be applied.
@@ -228,19 +232,19 @@ The rewritten repository name will match the `docker-official-images` polict in 
 > [!WARNING]
 > Local `mapping.yaml` policies take precendence over TUF managed policies, so for example, it's possible to apply a custom policy to `docker.io/library` namespace:
 >
->```yaml
->version: v1
->kind: policy-mapping
->policies:
->  - id: mydoi
->    description: my doi policy
->    files:
->      - path: "mypolicy.rego"
+> ```yaml
+> version: v1
+> kind: policy-mapping
+> policies:
+>   - id: mydoi
+>     description: my doi policy
+>     files:
+>       - path: "mypolicy.rego"
 >
->rules:
->  - pattern: "^docker[.]io/library/(.*)$"
->    policy-id: mydoi
->```
+> rules:
+>   - pattern: "^docker[.]io/library/(.*)$"
+>     policy-id: mydoi
+> ```
 
 # Public Key IDs
 

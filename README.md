@@ -27,6 +27,7 @@ Library to create attestation signatures on container images, and verify images 
 - [Public Key IDs](#public-key-ids)
 - [Transparency Logging](#transparency-logging)
 - [Verification Summary Attestation (VSA)](#verification-summary-attestation-vsa)
+  - [Example VSA](#example-vsa)
 - [API Reference](#api-reference)
 - [Project Layout](#project-layout)
 
@@ -270,32 +271,40 @@ Alternatively, transparency logging can be disabled when signing by using `SkipT
 
 # Verification Summary Attestation (VSA)
 
-The SBOM and Provenance attestations can be very large, so downloading and verifying signatures of these is undesirable when only integrity and basic provenance (who signed) are required (e.g. for `docker pull`).
+Verification of attestations can be expensive, especially when the attestations are large.
+For example, an SBOM attestation can be several megabytes in size.
+An alternative to consumers verifying the full attestation is to have a trusted entity verify the attestation and publish a [SLSA Verification Summary Attestation](https://slsa.dev/spec/v1.0/verification_summary) (VSA) to the registry.
+The VSA can then be verified by the consumer without needing to verify the full attestation, as long as the consumer trusts the entity that signed the VSA.
+This is useful when the consumer only needs to know that the attestation was verified by a trusted entity, and does not need to know the details of the attestation.
 
-To that end, `attest` always generates a [SLSA VSA](https://slsa.dev/spec/v1.0/verification_summary) when verifying attestations on an image.
-For example, to add a VSA like below:
+A useful pattern is to have apply a policy to a third-party image at initial ingress, then publish a VSA when publishing the image to an internal registry to attest that the image complies with the policy.
+The VSA can be verified very quickly, for example in a Kubernetes admission controller.
+
+`attest` always generates a [SLSA VSA](https://slsa.dev/spec/v1.0/verification_summary) when verifying attestations on an image.
+The VSA can be signed and published to the registry using the signing functions mentioned in [Signing Attestations](#signing-attestations).
+
+## Example VSA
 
 ```json
 {
   "_type": "https://in-toto.io/Statement/v1",
   "subject": [
     {
-      "name": "pkg:docker/amd64/notary@server?platform=linux%2Famd64",
+      "name": "pkg:docker/example.org/example-image@1.0?platform=linux%2Famd64",
       "digest": {
-        "sha256": "c6f74294aee419c7b22194def439ea1b496cc9021e5270fb80d7954864e39e55"
+        "sha256": "49f717386e5462e945232569a97a05831cb83bef8c3369be3bb7ea1793686960"
       }
     }
   ],
   "predicateType": "https://slsa.dev/verification_summary/v1",
   "predicate": {
     "verifier": {
-      "id": "https://docker.com"
+      "id": "https://example.org/internal-verifier"
     },
     "timeVerified": "2024-04-19T08:00:00.01Z",
-    "resourceUri": "pkg:docker/amd64/notary@server?platform=linux%2Famd64&digest=sha256%3Ac6f74294aee419c7b22194def439ea1b496cc9021e5270fb80d7954864e39e55",
+    "resourceUri": "pkg:docker/example.org/example-image@1.0?platform=linux%2Famd64&digest=sha256%3A49f717386e5462e945232569a97a05831cb83bef8c3369be3bb7ea1793686960",
     "policy": {
-      "kipz/doc": "This probably wants to be a more rigorous treatment of our DOI build policies and how they relate to SLSA",
-      "uri": "https://github.com/docker-library/official-images?tab=readme-ov-file#security"
+      "uri": "https://example.org/internal-policy/v1"
     },
     "verificationResult": "PASSED",
     "verifiedLevels": ["SLSA_BUILD_LEVEL_3"]

@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/docker/attest/internal/embed"
 	"github.com/docker/attest/pkg/attest"
 	"github.com/docker/attest/pkg/oci"
 	"github.com/docker/attest/pkg/policy"
@@ -21,7 +20,7 @@ func createTufClient(outputPath string) (*tuf.Client, error) {
 	// metadataURI := "https://docker.github.io/tuf-staging/metadata"
 	// targetsURI := "https://docker.github.io/tuf-staging/targets"
 
-	return tuf.NewClient(embed.RootStaging.Data, outputPath, metadataURI, targetsURI, tuf.NewMockVersionChecker())
+	return tuf.NewClient(tuf.DockerTUFRootStaging.Data, outputPath, metadataURI, targetsURI, tuf.NewMockVersionChecker())
 }
 
 func ExampleVerify_remote() {

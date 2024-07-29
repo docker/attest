@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/docker/attest/internal/embed"
 	"github.com/docker/attest/internal/test"
 	"github.com/docker/attest/pkg/tuf"
 	"github.com/stretchr/testify/assert"
@@ -26,7 +25,7 @@ func TestGetTufMetadataMirror(t *testing.T) {
 	defer server.Close()
 
 	path := test.CreateTempDir(t, "", "tuf_temp")
-	m, err := NewTUFMirror(embed.RootDev.Data, path, server.URL+metadataPath, server.URL+targetsPath, tuf.NewMockVersionChecker())
+	m, err := NewTUFMirror(tuf.DockerTUFRootDev.Data, path, server.URL+metadataPath, server.URL+targetsPath, tuf.NewMockVersionChecker())
 	assert.NoError(t, err)
 
 	tufMetadata, err := m.getMetadataMirror(server.URL + metadataPath)
@@ -44,7 +43,7 @@ func TestGetMetadataManifest(t *testing.T) {
 	defer server.Close()
 
 	path := test.CreateTempDir(t, "", "tuf_temp")
-	m, err := NewTUFMirror(embed.RootDev.Data, path, server.URL+metadataPath, server.URL+targetsPath, tuf.NewMockVersionChecker())
+	m, err := NewTUFMirror(tuf.DockerTUFRootDev.Data, path, server.URL+metadataPath, server.URL+targetsPath, tuf.NewMockVersionChecker())
 	assert.NoError(t, err)
 
 	img, err := m.GetMetadataManifest(server.URL + metadataPath)
@@ -83,7 +82,7 @@ func TestGetDelegatedMetadataMirrors(t *testing.T) {
 	defer server.Close()
 
 	path := test.CreateTempDir(t, "", "tuf_temp")
-	m, err := NewTUFMirror(embed.RootDev.Data, path, server.URL+metadataPath, server.URL+targetsPath, tuf.NewMockVersionChecker())
+	m, err := NewTUFMirror(tuf.DockerTUFRootDev.Data, path, server.URL+metadataPath, server.URL+targetsPath, tuf.NewMockVersionChecker())
 	assert.NoError(t, err)
 
 	delegations, err := m.GetDelegatedMetadataMirrors()

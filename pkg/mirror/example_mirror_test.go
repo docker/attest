@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/docker/attest/internal/embed"
 	"github.com/docker/attest/pkg/mirror"
 	"github.com/docker/attest/pkg/oci"
 	"github.com/docker/attest/pkg/tuf"
@@ -30,7 +29,7 @@ func ExampleNewTUFMirror() {
 	// configure TUF mirror
 	metadataURI := "https://docker.github.io/tuf-staging/metadata"
 	targetsURI := "https://docker.github.io/tuf-staging/targets"
-	m, err := mirror.NewTUFMirror(embed.RootStaging.Data, tufOutputPath, metadataURI, targetsURI, tuf.NewMockVersionChecker())
+	m, err := mirror.NewTUFMirror(tuf.DockerTUFRootStaging.Data, tufOutputPath, metadataURI, targetsURI, tuf.NewMockVersionChecker())
 	if err != nil {
 		panic(err)
 	}

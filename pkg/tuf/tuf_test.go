@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/docker/attest/internal/embed"
 	"github.com/stretchr/testify/assert"
 	"github.com/theupdateframework/go-tuf/v2/metadata"
 )
@@ -65,17 +64,17 @@ func TestRootInit(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		_, err := NewClient(embed.RootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker)
+		_, err := NewClient(DockerTUFRootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker)
 		assert.NoErrorf(t, err, "Failed to create TUF client: %v", err)
 
 		// recreation should work with same root
-		_, err = NewClient(embed.RootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker)
+		_, err = NewClient(DockerTUFRootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker)
 		assert.NoErrorf(t, err, "Failed to recreate TUF client: %v", err)
 
 		_, err = NewClient([]byte("broken"), tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker)
 		assert.Errorf(t, err, "Expected error recreating TUF client with broken root: %v", err)
 
-		_, err = NewClient(embed.RootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysBadVersionChecker)
+		_, err = NewClient(DockerTUFRootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysBadVersionChecker)
 		assert.Errorf(t, err, "Expected error creating TUF client with bad attest version: %v", err)
 	}
 }
@@ -111,7 +110,7 @@ func TestDownloadTarget(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tufClient, err := NewClient(embed.RootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker)
+		tufClient, err := NewClient(DockerTUFRootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker)
 		assert.NoErrorf(t, err, "Failed to create TUF client: %v", err)
 
 		// get trusted tuf metadata

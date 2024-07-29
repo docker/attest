@@ -4,7 +4,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/docker/attest/internal/embed"
 	"github.com/docker/attest/pkg/tuf"
 	"github.com/theupdateframework/go-tuf/v2/metadata"
 )
@@ -21,7 +20,7 @@ func ExampleNewClient_registry() {
 	metadataURI := "registry-1.docker.io/docker/tuf-metadata:latest"
 	targetsURI := "registry-1.docker.io/docker/tuf-targets"
 
-	registryClient, err := tuf.NewClient(embed.RootStaging.Data, tufOutputPath, metadataURI, targetsURI, tuf.NewMockVersionChecker())
+	registryClient, err := tuf.NewClient(tuf.DockerTUFRootStaging.Data, tufOutputPath, metadataURI, targetsURI, tuf.NewMockVersionChecker())
 	if err != nil {
 		panic(err)
 	}

@@ -3,13 +3,12 @@ package mirror
 import (
 	"fmt"
 
-	"github.com/docker/attest/internal/embed"
 	"github.com/docker/attest/pkg/tuf"
 )
 
 func NewTUFMirror(root []byte, tufPath, metadataURL, targetsURL string, versionChecker tuf.VersionChecker) (*TUFMirror, error) {
 	if root == nil {
-		root = embed.RootDefault.Data
+		root = tuf.DockerTUFRootDefault.Data
 	}
 	tufClient, err := tuf.NewClient(root, tufPath, metadataURL, targetsURL, versionChecker)
 	if err != nil {

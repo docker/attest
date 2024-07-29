@@ -18,7 +18,6 @@ Library to create attestation signatures on container images, and verify images 
 - [Usage](#usage)
   - [Verifying Image Attestations](#verifying-image-attestations)
   - [Signing Attestations](#signing-attestations)
-  - [Other examples](#other-examples)
 - [Rego Policy](#rego-policy)
   - [Writing Policy](#writing-policy)
     - [Input](#input)
@@ -71,13 +70,6 @@ For the common use case of signing a statement and adding it to a manifest, e.g.
 See [example_attestation_manifest_test.go](./pkg/attestation/example_attestation_manifest_test.go)
 
 See also [example_sign_test.go](./pkg/attest/example_sign_test.go) for an example of how to sign all attached in-toto statements on an image, e.g. those produced by buildkit.
-
-## Other examples
-
-See [example_mirror_test.go](./pkg/mirror/example_mirror_test.go) for an example of mirroring a TUF repository to an OCI registry.
-
-See [example_registry_test.go](./pkg/tuf/example_registry_test.go) for an example of using the `go-tuf` OCI registry client to fetch TUF metadata from an OCI registry.
-
 
 # Rego Policy
 

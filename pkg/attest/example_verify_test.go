@@ -48,11 +48,11 @@ func ExampleVerify_remote() {
 		PolicyId:        "",                                       // set to ignore policy mapping and select a policy by id
 	}
 
-	// verify attestations
 	src, err := oci.ParseImageSpec(image, oci.WithPlatform(platform))
 	if err != nil {
 		panic(err)
 	}
+	// verify attestations
 	result, err := attest.Verify(context.Background(), src, opts)
 	if err != nil {
 		panic(err)

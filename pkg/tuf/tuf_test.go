@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/theupdateframework/go-tuf/v2/metadata"
 )
 
@@ -74,8 +75,11 @@ func TestRootInit(t *testing.T) {
 		_, err = NewClient([]byte("broken"), tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker)
 		assert.Errorf(t, err, "Expected error recreating TUF client with broken root: %v", err)
 
-		_, err = NewClient(DockerTUFRootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysBadVersionChecker)
-		assert.Errorf(t, err, "Expected error creating TUF client with bad attest version: %v", err)
+		tc, err := NewClient(DockerTUFRootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysBadVersionChecker)
+		assert.NoErrorf(t, err, "Failed to create TUF client with bad version checker")
+
+		err = tc.Initialize()
+		assert.Errorf(t, err, "Expected error intializing TUF client with bad attest version")
 	}
 }
 
@@ -112,6 +116,10 @@ func TestDownloadTarget(t *testing.T) {
 	for _, tc := range testCases {
 		tufClient, err := NewClient(DockerTUFRootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker)
 		assert.NoErrorf(t, err, "Failed to create TUF client: %v", err)
+
+		err = tufClient.Initialize()
+		require.NoError(t, err)
+		require.NotNil(t, tufClient.updater, "Failed to create updater")
 
 		// get trusted tuf metadata
 		trustedMetadata := tufClient.updater.GetTrustedMetadataSet()

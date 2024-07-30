@@ -15,7 +15,6 @@ import (
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/package-url/packageurl-go"
-	"github.com/pkg/errors"
 )
 
 // ParsePlatform parses the provided platform string or attempts to obtain
@@ -82,7 +81,7 @@ func imageDescriptor(ix *v1.IndexManifest, platform *v1.Platform) (*v1.Descripto
 			return &m, nil
 		}
 	}
-	return nil, errors.New(fmt.Sprintf("no image found for platform %v", platform))
+	return nil, fmt.Errorf("no image found for platform %v", platform)
 }
 
 func attestationDigestForDigest(ix *v1.IndexManifest, imageDigest string, attestType string) (string, error) {
@@ -93,7 +92,7 @@ func attestationDigestForDigest(ix *v1.IndexManifest, imageDigest string, attest
 			}
 		}
 	}
-	return "", errors.New(fmt.Sprintf("no attestation found for image %s", imageDigest))
+	return "", fmt.Errorf("no attestation found for image %s", imageDigest)
 }
 
 func RefToPURL(ref string, platform *v1.Platform) (string, bool, error) {

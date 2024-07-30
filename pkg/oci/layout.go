@@ -9,7 +9,6 @@ import (
 	att "github.com/docker/attest/pkg/attestation"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/layout"
-	"github.com/pkg/errors"
 )
 
 // implementation of AttestationResolver that closes over attestations from an oci layout
@@ -140,5 +139,5 @@ func attestationManifestFromOCILayout(path string, platform *v1.Platform) (*atte
 		}
 		return attest, nil
 	}
-	return nil, errors.New("attestation manifest not found")
+	return nil, fmt.Errorf("attestation manifest not found")
 }

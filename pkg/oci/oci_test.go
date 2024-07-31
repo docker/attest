@@ -54,9 +54,7 @@ func TestRefToPurl(t *testing.T) {
 	assert.True(t, canonical)
 }
 
-var (
-	UnsignedTestImage = filepath.Join("..", "..", "test", "testdata", "unsigned-test-image")
-)
+var UnsignedTestImage = filepath.Join("..", "..", "test", "testdata", "unsigned-test-image")
 
 // Test fix for https://github.com/docker/secure-artifacts-team-issues/issues/202
 func TestImageDigestForPlatform(t *testing.T) {

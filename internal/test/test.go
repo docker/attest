@@ -124,10 +124,10 @@ func ExtractStatementsFromIndex(idx v1.ImageIndex, mediaType string) ([]*Annotat
 				return nil, fmt.Errorf("failed to get layer contents: %w", err)
 			}
 			defer r.Close()
-			var intotoStatement = new(intoto.Statement)
+			intotoStatement := new(intoto.Statement)
 			var desc *v1.Descriptor
 			if strings.HasSuffix(string(mt), "+dsse") {
-				var env = new(attestation.Envelope)
+				env := new(attestation.Envelope)
 				err = json.NewDecoder(r).Decode(env)
 				if err != nil {
 					return nil, fmt.Errorf("failed to decode env: %w", err)

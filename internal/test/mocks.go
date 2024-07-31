@@ -34,7 +34,6 @@ func (r MockResolver) ImageDescriptor(ctx context.Context) (*v1.Descriptor, erro
 		Size:      1234,
 		MediaType: "application/vnd.oci.image.manifest.v1+json",
 	}, nil
-
 }
 
 func (r MockResolver) ImagePlatform(ctx context.Context) (*v1.Platform, error) {

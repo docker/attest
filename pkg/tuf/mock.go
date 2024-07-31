@@ -38,7 +38,7 @@ func (dc *mockTufClient) DownloadTarget(target string, filePath string) (actualF
 		dstFilePath = filePath
 	}
 
-	err = os.MkdirAll(filepath.Dir(dstFilePath), 0755)
+	err = os.MkdirAll(filepath.Dir(dstFilePath), 0o755)
 	if err != nil {
 		return "", nil, err
 	}

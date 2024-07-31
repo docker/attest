@@ -16,11 +16,13 @@ var prodRoot []byte
 
 var defaultRoot = prodRoot
 
-type RootName string
-type EmbeddedRoot struct {
-	Data []byte
-	Name RootName
-}
+type (
+	RootName     string
+	EmbeddedRoot struct {
+		Data []byte
+		Name RootName
+	}
+)
 
 var (
 	RootDev     = EmbeddedRoot{Data: devRoot, Name: "dev"}

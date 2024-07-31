@@ -137,7 +137,7 @@ func SaveReferrers(manifest *attestation.AttestationManifest, outputs []*oci.Ima
 		if err != nil {
 			return err
 		}
-		//otherwise we end up with the detected platform, though I'm not sure it matters
+		// otherwise we end up with the detected platform, though I'm not sure it matters
 		attOut.Platform = &v1.Platform{
 			OS:           "unknown",
 			Architecture: "unknown",

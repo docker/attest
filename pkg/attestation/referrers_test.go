@@ -57,7 +57,7 @@ func TestAttestationReferenceTypes(t *testing.T) {
 		{
 			name:              "attached attestations, referrers repo (mismatched args)",
 			server:            httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
-			expectFailure:     true, //mismatched args
+			expectFailure:     true, // mismatched args
 			attestationSource: config.AttestationStyleAttached,
 			referrersRepo:     "referrers",
 		},
@@ -261,7 +261,7 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 			mfs2, err := attIdx.Index.IndexManifest()
 			require.NoError(t, err)
 			for _, mf := range mfs2.Manifests {
-				//skip signed/unsigned attestations
+				// skip signed/unsigned attestations
 				if mf.Annotations[attestation.DockerReferenceType] == attestation.AttestationManifestType {
 					continue
 				}

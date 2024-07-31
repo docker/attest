@@ -56,20 +56,19 @@ func NewTufClient(initialRoot []byte, tufPath, metadataSource, targetsSource str
 
 	// create a directory for each initial root.json
 	metadataPath := filepath.Join(tufPath, tufRootDigest)
-	err := os.MkdirAll(metadataPath, 0755)
+	err := os.MkdirAll(metadataPath, 0o755)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create directory '%s': %w", metadataPath, err)
 	}
 	rootFile := filepath.Join(metadataPath, "root.json")
 	var rootBytes []byte
 	rootBytes, err = os.ReadFile(rootFile)
-
 	if err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return nil, fmt.Errorf("failed to read root.json: %w", err)
 		}
 		// write the root.json file to the metadata directory
-		err = os.WriteFile(rootFile, initialRoot, 0644)
+		err = os.WriteFile(rootFile, initialRoot, 0o644)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to write root.json %w", err)
 		}
@@ -131,7 +130,7 @@ func (t *TufClient) DownloadTarget(target string, filePath string) (actualFilePa
 
 	// check if filePath exists and create the directory if it doesn't
 	if _, err := os.Stat(filepath.Dir(filePath)); os.IsNotExist(err) {
-		err = os.MkdirAll(filepath.Dir(filePath), 0755)
+		err = os.MkdirAll(filepath.Dir(filePath), 0o755)
 		if err != nil {
 			return "", nil, fmt.Errorf("failed to create target download directory '%s': %w", filepath.Dir(filePath), err)
 		}

@@ -47,7 +47,8 @@ func GetAttestationManifestsFromIndex(index v1.ImageIndex) ([]*AttestationManife
 				&AttestationManifest{
 					OriginalDescriptor: &desc,
 					SubjectDescriptor:  subject,
-					OriginalLayers:     attestationLayers})
+					OriginalLayers:     attestationLayers,
+				})
 		}
 	}
 	return attestationManifests, nil
@@ -78,7 +79,7 @@ func GetAttestationsFromImage(image v1.Image) ([]*AttestationLayer, error) {
 		// copy original annotations
 		ann := maps.Clone(layerDesc.Annotations)
 		// only decode intoto statements
-		var stmt = new(intoto.Statement)
+		stmt := new(intoto.Statement)
 		if mt == types.MediaType(intoto.PayloadType) {
 			err = json.NewDecoder(r).Decode(&stmt)
 			if err != nil {
@@ -139,9 +140,9 @@ func SignInTotoStatement(ctx context.Context, statement *intoto.Statement, signe
 func UpdateIndexImage(
 	idx v1.ImageIndex,
 	manifest *AttestationManifest,
-	options ...func(*AttestationManifestImageOptions) error) (v1.ImageIndex, error) {
+	options ...func(*AttestationManifestImageOptions) error,
+) (v1.ImageIndex, error) {
 	image, err := manifest.BuildAttestationImage(options...)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to build image: %w", err)
 	}
@@ -218,7 +219,7 @@ func (manifest *AttestationManifest) BuildAttestationImage(options ...func(*Atte
 				break
 			}
 		}
-		//add existing layers if they've not been signed or we're not replacing them
+		// add existing layers if they've not been signed or we're not replacing them
 		if !found || !opts.replaceLayers {
 			resultLayers = append(resultLayers, existingLayer)
 		}
@@ -254,7 +255,7 @@ func buildImage(layers []*AttestationLayer, manifest *v1.Descriptor, subject *v1
 		return nil, fmt.Errorf("no layers supplied to build image")
 	}
 	// NB: if we add the subject before the layers, it does not end up being computed/serialised in the output for some reason
-	//TODO - recreate this bug and push upstream
+	// TODO - recreate this bug and push upstream
 	for _, layer := range layers {
 		add := mutate.Addendum{
 			Layer:       layer.Layer,

@@ -22,7 +22,7 @@ func loadAttestation(t *testing.T, path string) *attestation.Envelope {
 		t.Fatal(err)
 	}
 
-	var env = new(attestation.Envelope)
+	env := new(attestation.Envelope)
 	err = json.Unmarshal(ex, env)
 	if err != nil {
 		t.Fatal(err)
@@ -103,7 +103,6 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestLoadingMappings(t *testing.T) {

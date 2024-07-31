@@ -35,8 +35,7 @@ func WithReferrersRepo(repo string) func(*ReferrersResolver) error {
 	}
 }
 
-func (r *ReferrersResolver) resolveAttestations(ctx context.Context, predicateType string) ([]*attestation.AttestationManifest,
-	error) {
+func (r *ReferrersResolver) resolveAttestations(ctx context.Context, predicateType string) ([]*attestation.AttestationManifest, error) {
 	dsseMediaType, err := attestation.DSSEMediaType(predicateType)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get DSSE media type for predicate '%s': %w", predicateType, err)

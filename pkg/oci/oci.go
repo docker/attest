@@ -63,7 +63,7 @@ func ExtractEnvelopes(manifest *attestation.AttestationManifest, predicateType s
 				return nil, fmt.Errorf("failed to get layer contents: %w", err)
 			}
 			defer reader.Close()
-			var env = new(att.Envelope)
+			env := new(att.Envelope)
 			err = json.NewDecoder(reader).Decode(&env)
 			if err != nil {
 				return nil, fmt.Errorf("failed to decode envelope: %w", err)

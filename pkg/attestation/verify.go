@@ -27,8 +27,10 @@ type KeyMetadata struct {
 	Distrust      bool       `json:"distrust,omitempty"`
 }
 
-type Keys []KeyMetadata
-type KeysMap map[string]KeyMetadata
+type (
+	Keys    []KeyMetadata
+	KeysMap map[string]KeyMetadata
+)
 
 func VerifyDSSE(ctx context.Context, env *Envelope, opts *VerifyOptions) ([]byte, error) {
 	// enforce payload type

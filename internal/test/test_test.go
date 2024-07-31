@@ -8,9 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var (
-	UnsignedTestImage = filepath.Join("..", "..", "test", "testdata", "unsigned-test-image")
-)
+var UnsignedTestImage = filepath.Join("..", "..", "test", "testdata", "unsigned-test-image")
 
 const (
 	ExpectedStatements = 4

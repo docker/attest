@@ -35,7 +35,7 @@ type VSAInputAttestation struct {
 }
 
 func ToVSAResourceURI(sub intoto.Subject) (string, error) {
-	//parse purl
+	// parse purl
 	purl, err := packageurl.FromString(sub.Name)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse package url: %w", err)

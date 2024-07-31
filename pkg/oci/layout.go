@@ -55,10 +55,9 @@ func (r *OCILayoutResolver) Attestations(ctx context.Context, predicateType stri
 		if mts != dsseMediaType {
 			continue
 		}
-		var env = new(att.Envelope)
+		env := new(att.Envelope)
 		// parse layer blob as json
 		r, err := attestationLayer.Layer.Uncompressed()
-
 		if err != nil {
 			return nil, fmt.Errorf("failed to get layer contents: %w", err)
 		}

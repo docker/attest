@@ -43,7 +43,6 @@ func TestSavingIndex(t *testing.T) {
 }
 
 func TestSavingImage(t *testing.T) {
-
 	outputLayout := test.CreateTempDir(t, "", "mirror-test")
 
 	img := empty.Image

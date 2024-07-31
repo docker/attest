@@ -18,11 +18,13 @@ const (
 	Docker             SourceType = "Docker"
 )
 
-type SourceType string
-type NamedIndex struct {
-	Index v1.ImageIndex
-	Name  string
-}
+type (
+	SourceType string
+	NamedIndex struct {
+		Index v1.ImageIndex
+		Name  string
+	}
+)
 
 type AttestationOptions struct {
 	NoReferrers   bool

@@ -140,6 +140,7 @@ var verifyDecl = &ast.Builtin{
 	Decl:             types.NewFunction(types.Args(dynamicObj, dynamicObj), dynamicObj),
 	Nondeterministic: true,
 }
+
 var attestDecl = &ast.Builtin{
 	Name:             "attest.fetch",
 	Decl:             types.NewFunction(types.Args(types.S), dynamicObj),

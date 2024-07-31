@@ -21,9 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var (
-	ExampleAttestation = filepath.Join("..", "..", "test", "testdata", "example_attestation.json")
-)
+var ExampleAttestation = filepath.Join("..", "..", "test", "testdata", "example_attestation.json")
 
 const (
 	LinuxAMD64 = "linux/amd64"
@@ -33,7 +31,7 @@ func TestVerifyAttestations(t *testing.T) {
 	ex, err := os.ReadFile(ExampleAttestation)
 	assert.NoError(t, err)
 
-	var env = new(attestation.Envelope)
+	env := new(attestation.Envelope)
 	err = json.Unmarshal(ex, env)
 	assert.NoError(t, err)
 	resolver := &test.MockResolver{
@@ -51,7 +49,6 @@ func TestVerifyAttestations(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-
 			mockPE := policy.MockPolicyEvaluator{
 				EvaluateFunc: func(ctx context.Context, resolver oci.AttestationResolver, pctx *policy.Policy, input *policy.PolicyInput) (*policy.Result, error) {
 					return policy.AllowedResult(), tc.policyEvaluationError

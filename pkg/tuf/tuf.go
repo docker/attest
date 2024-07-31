@@ -68,7 +68,7 @@ func NewTufClient(initialRoot []byte, tufPath, metadataSource, targetsSource str
 			return nil, fmt.Errorf("failed to read root.json: %w", err)
 		}
 		// write the root.json file to the metadata directory
-		err = os.WriteFile(rootFile, initialRoot, 0o644) // #nosec G306
+		err = os.WriteFile(rootFile, initialRoot, 0o666) // #nosec G306
 		if err != nil {
 			return nil, fmt.Errorf("Failed to write root.json %w", err)
 		}

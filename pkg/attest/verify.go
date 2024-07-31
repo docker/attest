@@ -15,8 +15,6 @@ import (
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 )
 
-type AttestStutterStruct struct{}
-
 func Verify(ctx context.Context, src *oci.ImageSpec, opts *policy.PolicyOptions) (result *VerificationResult, err error) {
 	// so that we can resolve mapping from the image name earlier
 	detailsResolver, err := policy.CreateImageDetailsResolver(src)

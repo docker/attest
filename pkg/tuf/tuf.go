@@ -56,7 +56,7 @@ func NewTufClient(initialRoot []byte, tufPath, metadataSource, targetsSource str
 
 	// create a directory for each initial root.json
 	metadataPath := filepath.Join(tufPath, tufRootDigest)
-	err := os.MkdirAll(metadataPath, 0o755)
+	err := os.MkdirAll(metadataPath, os.ModePerm)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create directory '%s': %w", metadataPath, err)
 	}
@@ -130,7 +130,7 @@ func (t *TufClient) DownloadTarget(target string, filePath string) (actualFilePa
 
 	// check if filePath exists and create the directory if it doesn't
 	if _, err := os.Stat(filepath.Dir(filePath)); os.IsNotExist(err) {
-		err = os.MkdirAll(filepath.Dir(filePath), 0o755)
+		err = os.MkdirAll(filepath.Dir(filePath), os.ModePerm)
 		if err != nil {
 			return "", nil, fmt.Errorf("failed to create target download directory '%s': %w", filepath.Dir(filePath), err)
 		}

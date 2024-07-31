@@ -36,7 +36,7 @@ var (
 )
 
 const (
-	defaultMetadataSource = "docker/tuf-metadata"
+	defaultMetadataSource = "docker/tuf-metadata:latest"
 	defaultTargetsSource  = "docker/tuf-targets"
 )
 

@@ -79,7 +79,8 @@ func (r *ReferrersResolver) resolveAttestations(ctx context.Context, predicateTy
 	aManifests := make([]*attestation.AttestationManifest, 0)
 	for _, m := range referrersIndexManifest.Manifests {
 		remoteRef := referrersSubjectRef.Context().Digest(m.Digest.String())
-		attestationImage, err := remote.Image(remoteRef)
+		options = WithOptions(ctx, nil)
+		attestationImage, err := remote.Image(remoteRef, options...)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get referred image: %w", err)
 		}

@@ -10,6 +10,17 @@ updates:
     commit-message:
       prefix: "feat"
       include: "scope"
+    allow:
+      - dependency-type: "direct"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor", "version-update:semver-patch"]
+    security-updates: true
+    open-pull-requests-limit: 10
+    target-branch: "main"
+    severities:
+      - "high"
+      - "critical"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

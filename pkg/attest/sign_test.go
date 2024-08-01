@@ -72,7 +72,7 @@ func TestSignVerifyOCILayout(t *testing.T) {
 				Add: signedIndex,
 				Descriptor: v1.Descriptor{
 					Annotations: map[string]string{
-						oci.OciReferenceTarget: attIdx.Name,
+						oci.OCIReferenceTarget: attIdx.Name,
 					},
 				},
 			})

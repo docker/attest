@@ -37,7 +37,7 @@ func ParsePlatform(platformStr string) (*v1.Platform, error) {
 
 func WithOptions(ctx context.Context, platform *v1.Platform) []remote.Option {
 	// prepare options
-	options := []remote.Option{MultiKeychainOption(), remote.WithTransport(HttpTransport()), remote.WithContext(ctx)}
+	options := []remote.Option{MultiKeychainOption(), remote.WithTransport(HTTPTransport()), remote.WithContext(ctx)}
 
 	// add in platform into remote Get operation; this might conflict with an explicit digest, but we are trying anyway
 	if platform != nil {

@@ -66,7 +66,7 @@ func ExampleSignStatements_remote() {
 		Add: signedIndex,
 		Descriptor: v1.Descriptor{
 			Annotations: map[string]string{
-				oci.OciReferenceTarget: attIdx.Name,
+				oci.OCIReferenceTarget: attIdx.Name,
 			},
 		},
 	})

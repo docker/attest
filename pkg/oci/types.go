@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	OciReferenceTarget            = "org.opencontainers.image.ref.name"
+	OCIReferenceTarget            = "org.opencontainers.image.ref.name"
 	LocalPrefix                   = "oci://"
 	RegistryPrefix                = "docker://"
 	OCI                SourceType = "OCI"
@@ -52,7 +52,7 @@ func IndexFromPath(path string) (*NamedIndex, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get digest: %w", err)
 	}
-	imageName := idxm.Manifests[0].Annotations[OciReferenceTarget]
+	imageName := idxm.Manifests[0].Annotations[OCIReferenceTarget]
 	idxDigest := idxm.Manifests[0].Digest
 
 	idx, err := wrapperIdx.ImageIndex(idxDigest)

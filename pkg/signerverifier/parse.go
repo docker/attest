@@ -9,7 +9,7 @@ import (
 
 const pemType = "PUBLIC KEY"
 
-func Parse(pubkeyBytes []byte) (*ecdsa.PublicKey, error) {
+func ParsePublicKey(pubkeyBytes []byte) (*ecdsa.PublicKey, error) {
 	p, _ := pem.Decode(pubkeyBytes)
 	if p == nil {
 		return nil, fmt.Errorf("pubkey file does not contain any PEM data")
@@ -29,7 +29,7 @@ func Parse(pubkeyBytes []byte) (*ecdsa.PublicKey, error) {
 	return ecdsaPubKey, nil
 }
 
-func ToPEM(ecdsaPubKey *ecdsa.PublicKey) ([]byte, error) {
+func ConvertToPEM(ecdsaPubKey *ecdsa.PublicKey) ([]byte, error) {
 	pubKeyBytes, err := x509.MarshalPKIXPublicKey(ecdsaPubKey)
 	if err != nil {
 		return nil, fmt.Errorf("error failed to marshal public key: %w", err)

@@ -21,10 +21,10 @@ func TestGetTufMetadataMirror(t *testing.T) {
 	defer server.Close()
 
 	path := test.CreateTempDir(t, "", "tuf_temp")
-	m, err := NewTufMirror(embed.RootDev.Data, path, server.URL+"/metadata", server.URL+"/targets", tuf.NewMockVersionChecker())
+	m, err := NewTUFMirror(embed.RootDev.Data, path, server.URL+"/metadata", server.URL+"/targets", tuf.NewMockVersionChecker())
 	assert.NoError(t, err)
 
-	tufMetadata, err := m.getTufMetadataMirror(server.URL + "/metadata")
+	tufMetadata, err := m.getMetadataMirror(server.URL + "/metadata")
 	assert.NoError(t, err)
 
 	// check that all roles are not empty
@@ -39,7 +39,7 @@ func TestGetMetadataManifest(t *testing.T) {
 	defer server.Close()
 
 	path := test.CreateTempDir(t, "", "tuf_temp")
-	m, err := NewTufMirror(embed.RootDev.Data, path, server.URL+"/metadata", server.URL+"/targets", tuf.NewMockVersionChecker())
+	m, err := NewTUFMirror(embed.RootDev.Data, path, server.URL+"/metadata", server.URL+"/targets", tuf.NewMockVersionChecker())
 	assert.NoError(t, err)
 
 	img, err := m.GetMetadataManifest(server.URL + "/metadata")
@@ -78,7 +78,7 @@ func TestGetDelegatedMetadataMirrors(t *testing.T) {
 	defer server.Close()
 
 	path := test.CreateTempDir(t, "", "tuf_temp")
-	m, err := NewTufMirror(embed.RootDev.Data, path, server.URL+"/metadata", server.URL+"/targets", tuf.NewMockVersionChecker())
+	m, err := NewTUFMirror(embed.RootDev.Data, path, server.URL+"/metadata", server.URL+"/targets", tuf.NewMockVersionChecker())
 	assert.NoError(t, err)
 
 	delegations, err := m.GetDelegatedMetadataMirrors()

@@ -31,23 +31,23 @@ const (
 
 type tlCtxKeyType struct{}
 
-var TlCtxKey tlCtxKeyType
+var TLCtxKey tlCtxKeyType
 
 // sets TL in context
 func WithTL(ctx context.Context, tl TL) context.Context {
-	return context.WithValue(ctx, TlCtxKey, tl)
+	return context.WithValue(ctx, TLCtxKey, tl)
 }
 
 // gets TL from context, defaults to Rekor TL if not set
 func GetTL(ctx context.Context) TL {
-	t, ok := ctx.Value(TlCtxKey).(TL)
+	t, ok := ctx.Value(TLCtxKey).(TL)
 	if !ok {
 		t = &RekorTL{}
 	}
 	return t
 }
 
-type TlPayload struct {
+type TLPayload struct {
 	Algorithm string
 	Hash      string
 	Signature string
@@ -243,8 +243,8 @@ func (tl *RekorTL) UnmarshalEntry(entry []byte) (any, error) {
 	return le, nil
 }
 
-func extractHashedRekord(Body string) (*TlPayload, error) {
-	sig := new(TlPayload)
+func extractHashedRekord(Body string) (*TLPayload, error) {
+	sig := new(TLPayload)
 	pe, err := models.UnmarshalProposedEntry(base64.NewDecoder(base64.StdEncoding, strings.NewReader(Body)), runtime.JSONConsumer())
 	if err != nil {
 		return nil, err

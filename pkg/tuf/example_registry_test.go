@@ -21,7 +21,7 @@ func ExampleNewTufClient_registry() {
 	metadataURI := "registry-1.docker.io/docker/tuf-metadata:latest"
 	targetsURI := "registry-1.docker.io/docker/tuf-targets"
 
-	registryClient, err := tuf.NewTufClient(embed.RootStaging.Data, tufOutputPath, metadataURI, targetsURI, tuf.NewMockVersionChecker())
+	registryClient, err := tuf.NewTUFClient(embed.RootStaging.Data, tufOutputPath, metadataURI, targetsURI, tuf.NewMockVersionChecker())
 	if err != nil {
 		panic(err)
 	}

@@ -126,7 +126,7 @@ func TestFindFileInManifest(t *testing.T) {
 	img = mutate.ConfigMediaType(img, types.OCIConfigJSON)
 	// add test layer
 	name := strings.Join([]string{hash.Hex, file}, ".")
-	ann := map[string]string{TufFileNameAnnotation: name}
+	ann := map[string]string{TUFFileNameAnnotation: name}
 	layer := mutate.Addendum{Layer: static.NewLayer(data, tufTargetMediaType), Annotations: ann}
 	img, err := mutate.Append(img, layer)
 	assert.NoError(t, err)
@@ -141,7 +141,7 @@ func TestFindFileInManifest(t *testing.T) {
 		Add: img,
 		Descriptor: v1.Descriptor{
 			Annotations: map[string]string{
-				TufFileNameAnnotation: name,
+				TUFFileNameAnnotation: name,
 			},
 		},
 	})

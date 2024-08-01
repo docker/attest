@@ -55,7 +55,7 @@ func ExampleAttestationManifest() {
 				ID: "test-verifier",
 			},
 			TimeVerified:       time.Now().UTC().Format(time.RFC3339),
-			ResourceUri:        "some-uri",
+			ResourceURI:        "some-uri",
 			Policy:             attestation.VSAPolicy{URI: "some-uri"},
 			VerificationResult: "PASSED",
 			VerifiedLevels:     []string{"SLSA_BUILD_LEVEL_1"},

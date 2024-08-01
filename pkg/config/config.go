@@ -31,7 +31,7 @@ func LoadLocalMappings(configDir string) (*PolicyMappings, error) {
 	return expandMappingFile(mappings)
 }
 
-func LoadTufMappings(tufClient tuf.TUFClient, localTargetsDir string) (*PolicyMappings, error) {
+func LoadTUFMappings(tufClient tuf.TUFDownloader, localTargetsDir string) (*PolicyMappings, error) {
 	if tufClient == nil {
 		return nil, fmt.Errorf("tuf client not set")
 	}
@@ -52,7 +52,7 @@ func LoadTufMappings(tufClient tuf.TUFClient, localTargetsDir string) (*PolicyMa
 func expandMappingFile(mappingFile *policyMappingsFile) (*PolicyMappings, error) {
 	policies := make(map[string]*PolicyMapping)
 	for _, policy := range mappingFile.Policies {
-		policies[policy.Id] = policy
+		policies[policy.ID] = policy
 	}
 
 	var rules []*PolicyRule
@@ -63,7 +63,7 @@ func expandMappingFile(mappingFile *policyMappingsFile) (*PolicyMappings, error)
 		}
 		rules = append(rules, &PolicyRule{
 			Pattern:     r,
-			PolicyId:    rule.PolicyId,
+			PolicyID:    rule.PolicyID,
 			Replacement: rule.Replacement,
 		})
 	}

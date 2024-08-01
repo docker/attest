@@ -29,7 +29,7 @@ func ExampleNewTufMirror() {
 	// configure TUF mirror
 	metadataURI := "https://docker.github.io/tuf-staging/metadata"
 	targetsURI := "https://docker.github.io/tuf-staging/targets"
-	m, err := mirror.NewTufMirror(embed.RootStaging.Data, tufOutputPath, metadataURI, targetsURI, tuf.NewMockVersionChecker())
+	m, err := mirror.NewTUFMirror(embed.RootStaging.Data, tufOutputPath, metadataURI, targetsURI, tuf.NewMockVersionChecker())
 	if err != nil {
 		panic(err)
 	}
@@ -46,7 +46,7 @@ func ExampleNewTufMirror() {
 	}
 
 	// create targets manifest
-	targets, err := m.GetTufTargetMirrors()
+	targets, err := m.GetTUFTargetMirrors()
 	if err != nil {
 		panic(err)
 	}

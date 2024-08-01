@@ -112,7 +112,7 @@ func TestFindPolicyMatch(t *testing.T) {
 			assert.Equal(t, tc.expectedMatchType, match.matchType)
 			if match.matchType == matchTypePolicy {
 				if assert.NotNil(t, match.policy) {
-					assert.Equal(t, tc.expectedPolicyID, match.policy.Id)
+					assert.Equal(t, tc.expectedPolicyID, match.policy.ID)
 				}
 			}
 			assert.Equal(t, tc.expectedImageName, match.matchedName)

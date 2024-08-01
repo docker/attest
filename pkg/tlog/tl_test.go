@@ -53,7 +53,7 @@ func TestUploadAndVerifyLogEntry(t *testing.T) {
 	assert.NoError(t, err)
 
 	var tl TL
-	if USE_MOCK_TL {
+	if UseMockTL {
 		tl = &MockTL{
 			UploadLogEntryFunc: func(ctx context.Context, subject string, payload []byte, signature []byte, signer dsse.SignerVerifier) ([]byte, error) {
 				return []byte(TestEntry), nil

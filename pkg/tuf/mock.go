@@ -67,6 +67,6 @@ func NewMockVersionChecker() *mockVersionChecker {
 	return &mockVersionChecker{}
 }
 
-func (vc *mockVersionChecker) CheckVersion(client TUFClient) error {
+func (vc *mockVersionChecker) CheckVersion(client TUFDownloader) error {
 	return vc.err
 }

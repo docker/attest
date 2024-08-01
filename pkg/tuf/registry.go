@@ -19,12 +19,12 @@ import (
 )
 
 const (
-	TufFileNameAnnotation = "tuf.io/filename"
+	TUFFileNameAnnotation = "tuf.io/filename"
 )
 
-type TufRole string
+type TUFRole string
 
-var TufRoles = []TufRole{metadata.ROOT, metadata.SNAPSHOT, metadata.TARGETS, metadata.TIMESTAMP}
+var TUFRoles = []TUFRole{metadata.ROOT, metadata.SNAPSHOT, metadata.TARGETS, metadata.TIMESTAMP}
 
 // RegistryFetcher implements Fetcher
 type RegistryFetcher struct {
@@ -239,7 +239,7 @@ func (d *RegistryFetcher) findFileInManifest(mf []byte, name string) (*v1.Hash, 
 	// find annotation with file name
 	var digest string
 	for _, layer := range layers {
-		if layer.Annotations[TufFileNameAnnotation] == name {
+		if layer.Annotations[TUFFileNameAnnotation] == name {
 			digest = layer.Digest
 			break
 		}
@@ -288,7 +288,7 @@ func transportWithTimeout(timeout time.Duration) http.RoundTripper {
 
 // isDelegatedRole returns true if the role is a delegated role
 func isDelegatedRole(role string) bool {
-	for _, r := range TufRoles {
+	for _, r := range TUFRoles {
 		if role == string(r) {
 			return false // role is not a delegated role
 		}

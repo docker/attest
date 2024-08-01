@@ -15,8 +15,8 @@ const (
 	AttestationManifestType       = "attestation-manifest"
 	InTotoPredicateType           = "in-toto.io/predicate-type"
 	DockerReferenceDigest         = "vnd.docker.reference.digest"
-	DockerDsseExtKind             = "application/vnd.docker.attestation-verification.v1+json"
-	RekorTlExtKind                = "Rekor"
+	DockerDSSEExtKind             = "application/vnd.docker.attestation-verification.v1+json"
+	RekorTLExtKind                = "Rekor"
 	OCIDescriptorDSSEMediaType    = ociv1.MediaTypeDescriptor + "+dsse"
 	InTotoReferenceLifecycleStage = "vnd.docker.lifecycle-stage"
 	LifecycleStageExperimental    = "experimental"
@@ -61,14 +61,14 @@ type Signature struct {
 }
 type Extension struct {
 	Kind string              `json:"kind"`
-	Ext  DockerDsseExtension `json:"ext"`
+	Ext  DockerDSSEExtension `json:"ext"`
 }
 
-type DockerDsseExtension struct {
-	Tl DockerTlExtension `json:"tl"`
+type DockerDSSEExtension struct {
+	TL DockerTLExtension `json:"tl"`
 }
 
-type DockerTlExtension struct {
+type DockerTLExtension struct {
 	Kind string `json:"kind"`
 	Data any    `json:"data"`
 }

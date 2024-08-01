@@ -67,7 +67,7 @@ func toVerificationResult(p *policy.Policy, input *policy.PolicyInput, result *p
 		return nil, fmt.Errorf("failed to split digest: %w", err)
 	}
 	subject := intoto.Subject{
-		Name:   input.Purl,
+		Name:   input.PURL,
 		Digest: dgst,
 	}
 	resourceUri, err := attestation.ToVSAResourceURI(subject)
@@ -103,7 +103,7 @@ func toVerificationResult(p *policy.Policy, input *policy.PolicyInput, result *p
 					ID: result.Summary.Verifier,
 				},
 				TimeVerified:       time.Now().UTC().Format(time.RFC3339),
-				ResourceUri:        resourceUri,
+				ResourceURI:        resourceUri,
 				Policy:             attestation.VSAPolicy{URI: result.Summary.PolicyURI},
 				VerificationResult: outcomeStr,
 				VerifiedLevels:     result.Summary.SLSALevels,
@@ -145,7 +145,7 @@ func VerifyAttestations(ctx context.Context, resolver oci.AttestationResolver, p
 	}
 	input := &policy.PolicyInput{
 		Digest:      digest,
-		Purl:        purl,
+		PURL:        purl,
 		IsCanonical: canonical,
 	}
 

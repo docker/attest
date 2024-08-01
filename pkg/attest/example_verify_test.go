@@ -13,7 +13,7 @@ import (
 	"github.com/docker/attest/pkg/tuf"
 )
 
-func createTufClient(outputPath string) (*tuf.TufClient, error) {
+func createTufClient(outputPath string) (*tuf.TUFClient, error) {
 	// using oci tuf metadata and targets
 	metadataURI := "registry-1.docker.io/docker/tuf-metadata:latest"
 	targetsURI := "registry-1.docker.io/docker/tuf-targets"
@@ -21,7 +21,7 @@ func createTufClient(outputPath string) (*tuf.TufClient, error) {
 	// metadataURI := "https://docker.github.io/tuf-staging/metadata"
 	// targetsURI := "https://docker.github.io/tuf-staging/targets"
 
-	return tuf.NewTufClient(embed.RootStaging.Data, outputPath, metadataURI, targetsURI, tuf.NewMockVersionChecker())
+	return tuf.NewTUFClient(embed.RootStaging.Data, outputPath, metadataURI, targetsURI, tuf.NewMockVersionChecker())
 }
 
 func ExampleVerify_remote() {
@@ -42,10 +42,10 @@ func ExampleVerify_remote() {
 
 	// configure policy options
 	opts := &policy.PolicyOptions{
-		TufClient:       tufClient,
+		TUFClient:       tufClient,
 		LocalTargetsDir: filepath.Join(home, ".docker", "policy"), // location to store policy files downloaded from TUF
 		LocalPolicyDir:  "",                                       // overrides TUF policy for local policy files if set
-		PolicyId:        "",                                       // set to ignore policy mapping and select a policy by id
+		PolicyID:        "",                                       // set to ignore policy mapping and select a policy by id
 	}
 
 	src, err := oci.ParseImageSpec(image, oci.WithPlatform(platform))

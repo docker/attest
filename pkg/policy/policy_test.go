@@ -65,16 +65,16 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 		t.Run(tc.repo, func(t *testing.T) {
 			input := &policy.PolicyInput{
 				Digest:      "sha256:test-digest",
-				Purl:        "test-purl",
+				PURL:        "test-purl",
 				IsCanonical: tc.isCanonical,
 			}
 
 			tufClient := tuf.NewMockTufClient(tc.repo, test.CreateTempDir(t, "", "tuf-dest"))
 			if tc.policy == nil {
 				tc.policy = &policy.PolicyOptions{
-					TufClient:       tufClient,
+					TUFClient:       tufClient,
 					LocalTargetsDir: test.CreateTempDir(t, "", "tuf-targets"),
-					PolicyId:        tc.policyId,
+					PolicyID:        tc.policyId,
 				}
 			}
 			imageName, err := tc.resolver.ImageName(ctx)
@@ -110,8 +110,8 @@ func TestLoadingMappings(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, len(policyMappings.Rules), 3)
 	for _, mirror := range policyMappings.Rules {
-		if mirror.PolicyId != "" {
-			assert.Equal(t, "docker-official-images", mirror.PolicyId)
+		if mirror.PolicyID != "" {
+			assert.Equal(t, "docker-official-images", mirror.PolicyID)
 		}
 	}
 }

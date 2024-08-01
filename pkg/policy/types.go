@@ -27,10 +27,10 @@ type Result struct {
 }
 
 type PolicyOptions struct {
-	TufClient        tuf.TUFClient
+	TUFClient        tuf.TUFDownloader
 	LocalTargetsDir  string
 	LocalPolicyDir   string
-	PolicyId         string
+	PolicyID         string
 	ReferrersRepo    string
 	AttestationStyle config.AttestationStyle
 }
@@ -44,7 +44,7 @@ type Policy struct {
 
 type PolicyInput struct {
 	Digest      string `json:"digest"`
-	Purl        string `json:"purl"`
+	PURL        string `json:"purl"`
 	IsCanonical bool   `json:"isCanonical"`
 }
 

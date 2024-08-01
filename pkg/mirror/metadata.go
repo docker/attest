@@ -17,8 +17,8 @@ import (
 // -----------------
 
 // GetMetadataManifest returns an image with TUF root metadata as layers
-func (m *TufMirror) GetMetadataManifest(metadataURL string) (v1.Image, error) {
-	metadata, err := m.getTufMetadataMirror(metadataURL)
+func (m *TUFMirror) GetMetadataManifest(metadataURL string) (v1.Image, error) {
+	metadata, err := m.getMetadataMirror(metadataURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get metadata: %w", err)
 	}
@@ -29,16 +29,16 @@ func (m *TufMirror) GetMetadataManifest(metadataURL string) (v1.Image, error) {
 	return manifest, nil
 }
 
-// getTufMetadataMirror returns a TufMetadata struct with TUF metadata as map of file names to bytes
-func (m *TufMirror) getTufMetadataMirror(metadataURL string) (*TufMetadata, error) {
-	trustedMetadata := m.TufClient.GetMetadata()
+// getMetadataMirror returns a TufMetadata struct with TUF metadata as map of file names to bytes
+func (m *TUFMirror) getMetadataMirror(metadataURL string) (*TUFMetadata, error) {
+	trustedMetadata := m.TUFClient.GetMetadata()
 
 	rootMetadata := map[string][]byte{}
 	rootVersion := trustedMetadata.Root.Signed.Version
 	// get the previous versions of root metadata if any
 	if rootVersion != 1 {
 		var err error
-		rootMetadata, err = m.TufClient.GetPriorRoots(metadataURL)
+		rootMetadata, err = m.TUFClient.GetPriorRoots(metadataURL)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get prior root metadata: %w", err)
 		}
@@ -69,7 +69,7 @@ func (m *TufMirror) getTufMetadataMirror(metadataURL string) (*TufMetadata, erro
 		snapshotVersion = strconv.FormatInt(trustedMetadata.Snapshot.Signed.Version, 10)
 		targetsVersion = strconv.FormatInt(trustedMetadata.Targets[metadata.TARGETS].Signed.Version, 10)
 	}
-	return &TufMetadata{
+	return &TUFMetadata{
 		Root:      rootMetadata,
 		Snapshot:  map[string][]byte{nameFromRole(metadata.SNAPSHOT, snapshotVersion): snapshotBytes},
 		Targets:   map[string][]byte{nameFromRole(metadata.TARGETS, targetsVersion): targetsBytes},
@@ -78,11 +78,11 @@ func (m *TufMirror) getTufMetadataMirror(metadataURL string) (*TufMetadata, erro
 }
 
 // buildMetadataManifest returns an OCI image with TUF metadata as layers with annotations
-func (m *TufMirror) buildMetadataManifest(metadata *TufMetadata) (v1.Image, error) {
+func (m *TUFMirror) buildMetadataManifest(metadata *TUFMetadata) (v1.Image, error) {
 	img := empty.Image
 	img = mutate.MediaType(img, types.OCIManifestSchema1)
 	img = mutate.ConfigMediaType(img, types.OCIConfigJSON)
-	for _, role := range TufRoles {
+	for _, role := range TUFRoles {
 		layers, err := m.makeRoleLayers(role, metadata)
 		if err != nil {
 			return nil, fmt.Errorf("failed to make role layer: %w", err)
@@ -96,7 +96,7 @@ func (m *TufMirror) buildMetadataManifest(metadata *TufMetadata) (v1.Image, erro
 }
 
 // makeRoleLayers returns a list of layers for a given TUF role
-func (m *TufMirror) makeRoleLayers(role TufRole, tufMetadata *TufMetadata) ([]mutate.Addendum, error) {
+func (m *TUFMirror) makeRoleLayers(role TUFRole, tufMetadata *TUFMetadata) ([]mutate.Addendum, error) {
 	var layers []mutate.Addendum
 	ann := map[string]string{tufFileAnnotation: ""}
 	switch role {
@@ -116,7 +116,7 @@ func (m *TufMirror) makeRoleLayers(role TufRole, tufMetadata *TufMetadata) ([]mu
 }
 
 // annotatedMetaLayers returns a list of layers with annotations for each TUF metadata file
-func (m *TufMirror) annotatedMetaLayers(meta map[string][]byte) []mutate.Addendum {
+func (m *TUFMirror) annotatedMetaLayers(meta map[string][]byte) []mutate.Addendum {
 	var layers []mutate.Addendum
 	for name, data := range meta {
 		ann := map[string]string{tufFileAnnotation: name}
@@ -130,7 +130,7 @@ func (m *TufMirror) annotatedMetaLayers(meta map[string][]byte) []mutate.Addendu
 // ------------------------------
 
 // GetDelegatedMetadataMirrors returns a list of mirrors (image/tag pairs) for each delegated targets role metadata
-func (m *TufMirror) GetDelegatedMetadataMirrors() ([]*MirrorImage, error) {
+func (m *TUFMirror) GetDelegatedMetadataMirrors() ([]*MirrorImage, error) {
 	// get current delegated targets metadata
 	delegatedTargets, err := m.getDelegatedTargetsMetadata()
 	if err != nil {
@@ -144,11 +144,11 @@ func (m *TufMirror) GetDelegatedMetadataMirrors() ([]*MirrorImage, error) {
 }
 
 // getDelegatedTargetsMetadata returns delegated targets metadata as a list of DelegatedTargetMetadata (role name and data)
-func (m *TufMirror) getDelegatedTargetsMetadata() ([]DelegatedTargetMetadata, error) {
+func (m *TUFMirror) getDelegatedTargetsMetadata() ([]DelegatedTargetMetadata, error) {
 	var delegatedTargets []DelegatedTargetMetadata
-	md := m.TufClient.GetMetadata()
+	md := m.TUFClient.GetMetadata()
 	for _, role := range md.Targets[metadata.TARGETS].Signed.Delegations.Roles {
-		roleMetadata, err := m.TufClient.LoadDelegatedTargets(role.Name, metadata.TARGETS)
+		roleMetadata, err := m.TUFClient.LoadDelegatedTargets(role.Name, metadata.TARGETS)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get delegated role metadata: %w", err)
 		}
@@ -171,7 +171,7 @@ func (m *TufMirror) getDelegatedTargetsMetadata() ([]DelegatedTargetMetadata, er
 }
 
 // buildDelegatedMetadataManifests returns a list of mirrors (image/tag pairs) for each delegated target role metadata
-func (m *TufMirror) buildDelegatedMetadataManifests(delegated []DelegatedTargetMetadata) ([]*MirrorImage, error) {
+func (m *TUFMirror) buildDelegatedMetadataManifests(delegated []DelegatedTargetMetadata) ([]*MirrorImage, error) {
 	manifests := []*MirrorImage{}
 	for _, role := range delegated {
 		img := empty.Image

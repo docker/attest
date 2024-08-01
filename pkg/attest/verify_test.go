@@ -89,7 +89,7 @@ func TestVSA(t *testing.T) {
 		Add: signedIndex,
 		Descriptor: v1.Descriptor{
 			Annotations: map[string]string{
-				oci.OciReferenceTarget: attIdx.Name,
+				oci.OCIReferenceTarget: attIdx.Name,
 			},
 		},
 	})
@@ -146,7 +146,7 @@ func TestVerificationFailure(t *testing.T) {
 		Add: signedIndex,
 		Descriptor: v1.Descriptor{
 			Annotations: map[string]string{
-				oci.OciReferenceTarget: attIdx.Name,
+				oci.OCIReferenceTarget: attIdx.Name,
 			},
 		},
 	})
@@ -227,7 +227,7 @@ func TestSignVerify(t *testing.T) {
 				Add: signedIndex,
 				Descriptor: v1.Descriptor{
 					Annotations: map[string]string{
-						oci.OciReferenceTarget: imageName,
+						oci.OCIReferenceTarget: imageName,
 					},
 				},
 			})
@@ -250,7 +250,7 @@ func TestSignVerify(t *testing.T) {
 			require.NoError(t, err)
 			expectedPURL, _, err := oci.RefToPURL(attIdx.Name, platform)
 			require.NoError(t, err)
-			assert.Equal(t, expectedPURL, results.Input.Purl)
+			assert.Equal(t, expectedPURL, results.Input.PURL)
 		})
 	}
 }

@@ -10,9 +10,9 @@ import (
 )
 
 // using AWS KMS
-func GetAWSSigner(ctx context.Context, keyArn string, region string) (dsse.SignerVerifier, error) {
-	keypath := fmt.Sprintf("awskms:///%s", keyArn)
-	sv, err := awssigner.LoadSignerVerifier(ctx, keypath, config.WithRegion(region))
+func GetAWSSigner(ctx context.Context, keyARN string, region string) (dsse.SignerVerifier, error) {
+	keyPath := fmt.Sprintf("awskms:///%s", keyARN)
+	sv, err := awssigner.LoadSignerVerifier(ctx, keyPath, config.WithRegion(region))
 	if err != nil {
 		return nil, fmt.Errorf("error loading aws signer verifier: %w", err)
 	}

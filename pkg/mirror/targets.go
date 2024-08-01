@@ -13,16 +13,16 @@ import (
 	"github.com/theupdateframework/go-tuf/v2/metadata"
 )
 
-// GetTufTargetMirrors returns a list of top-level target files as MirrorImages (image with tag)
-func (m *TufMirror) GetTufTargetMirrors() ([]*MirrorImage, error) {
+// GetTUFTargetMirrors returns a list of top-level target files as MirrorImages (image with tag)
+func (m *TUFMirror) GetTUFTargetMirrors() ([]*MirrorImage, error) {
 	targetMirrors := []*MirrorImage{}
-	md := m.TufClient.GetMetadata()
+	md := m.TUFClient.GetMetadata()
 
 	// for each top-level target file, create an image with the target file as a layer
 	targets := md.Targets[metadata.TARGETS].Signed.Targets
 	for _, t := range targets {
 		// download target file
-		_, data, err := m.TufClient.DownloadTarget(t.Path, filepath.Join(m.tufPath, "download"))
+		_, data, err := m.TUFClient.DownloadTarget(t.Path, filepath.Join(m.tufPath, "download"))
 		if err != nil {
 			return nil, fmt.Errorf("failed to download target %s: %w", t.Path, err)
 		}
@@ -49,9 +49,9 @@ func (m *TufMirror) GetTufTargetMirrors() ([]*MirrorImage, error) {
 
 // GetDelegatedTargetMirrors returns a list of delegated target files as MirrorIndexes (image index with tag)
 // each image in the index contains a delegated target file
-func (m *TufMirror) GetDelegatedTargetMirrors() ([]*MirrorIndex, error) {
+func (m *TUFMirror) GetDelegatedTargetMirrors() ([]*MirrorIndex, error) {
 	mirror := []*MirrorIndex{}
-	md := m.TufClient.GetMetadata()
+	md := m.TUFClient.GetMetadata()
 
 	// for each delegated role, create an image index with target files as images
 	roles := md.Targets[metadata.TARGETS].Signed.Delegations.Roles
@@ -60,7 +60,7 @@ func (m *TufMirror) GetDelegatedTargetMirrors() ([]*MirrorIndex, error) {
 		index := v1.ImageIndex(empty.Index)
 
 		// get delegated targets metadata for role
-		roleMeta, err := m.TufClient.LoadDelegatedTargets(role.Name, metadata.TARGETS)
+		roleMeta, err := m.TUFClient.LoadDelegatedTargets(role.Name, metadata.TARGETS)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load delegated targets metadata: %w", err)
 		}
@@ -68,7 +68,7 @@ func (m *TufMirror) GetDelegatedTargetMirrors() ([]*MirrorIndex, error) {
 		// for each target file, create an image with the target file as a layer
 		for _, target := range roleMeta.Signed.Targets {
 			// download target file
-			_, data, err := m.TufClient.DownloadTarget(target.Path, filepath.Join(m.tufPath, "download"))
+			_, data, err := m.TUFClient.DownloadTarget(target.Path, filepath.Join(m.tufPath, "download"))
 			if err != nil {
 				return nil, fmt.Errorf("failed to download target %s: %w", target.Path, err)
 			}

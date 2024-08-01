@@ -44,7 +44,7 @@ func TestSignVerifyAttestation(t *testing.T) {
 	// signer.Public() used here for test purposes
 	ecPub, ok := signer.Public().(*ecdsa.PublicKey)
 	assert.True(t, ok)
-	pem, err := signerverifier.ToPEM(ecPub)
+	pem, err := signerverifier.ConvertToPEM(ecPub)
 	assert.NoError(t, err)
 	keyId, err := signerverifier.KeyID(ecPub)
 	assert.NoError(t, err)
@@ -52,7 +52,7 @@ func TestSignVerifyAttestation(t *testing.T) {
 	badKeyPriv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	require.NoError(t, err)
 	badKey := &badKeyPriv.PublicKey
-	badPEM, err := signerverifier.ToPEM(badKey)
+	badPEM, err := signerverifier.ConvertToPEM(badKey)
 	require.NoError(t, err)
 
 	testCases := []struct {

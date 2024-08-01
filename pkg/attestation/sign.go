@@ -28,13 +28,13 @@ func SignDSSE(ctx context.Context, payload []byte, signer dsse.SignerVerifier, o
 	}
 
 	// get Key ID from signer
-	keyId, err := signer.KeyID()
+	keyID, err := signer.KeyID()
 	if err != nil {
 		return nil, fmt.Errorf("error getting public key ID: %w", err)
 	}
 
 	dsseSig := Signature{
-		KeyID: keyId,
+		KeyID: keyID,
 		Sig:   base64Encoding.EncodeToString(sig),
 	}
 	if !opts.SkipTL {
@@ -66,10 +66,10 @@ func logSignature(ctx context.Context, t tlog.TL, sig *[]byte, encPayload *[]byt
 		return nil, fmt.Errorf("error unmarshaling tl entry: %w", err)
 	}
 	return &Extension{
-		Kind: DockerDsseExtKind,
-		Ext: DockerDsseExtension{
-			Tl: DockerTlExtension{
-				Kind: RekorTlExtKind,
+		Kind: DockerDSSEExtKind,
+		Ext: DockerDSSEExtension{
+			TL: DockerTLExtension{
+				Kind: RekorTLExtKind,
 				Data: entryObj, // transparency log entry metadata
 			},
 		},

@@ -14,7 +14,7 @@ const (
 type VSAPredicate struct {
 	Verifier           VSAVerifier           `json:"verifier"`
 	TimeVerified       string                `json:"timeVerified"`
-	ResourceUri        string                `json:"resourceUri"`
+	ResourceURI        string                `json:"resourceUri"`
 	Policy             VSAPolicy             `json:"policy"`
 	InputAttestations  []VSAInputAttestation `json:"inputAttestations"`
 	VerificationResult string                `json:"verificationResult"`

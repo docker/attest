@@ -21,12 +21,12 @@ import (
 )
 
 const (
-	USE_MOCK_TL     = true
-	USE_MOCK_KMS    = true
-	USE_MOCK_POLICY = true
+	UseMockTL     = true
+	UseMockKMS    = true
+	UseMockPolicy = true
 
-	AwsRegion    = "us-east-1"
-	AwsKmsKeyArn = "arn:aws:kms:us-east-1:175142243308:alias/doi-signing" // sandbox
+	AWSRegion    = "us-east-1"
+	AWSKMSKeyARN = "arn:aws:kms:us-east-1:175142243308:alias/doi-signing" // sandbox
 )
 
 func CreateTempDir(t *testing.T, dir, pattern string) string {
@@ -47,7 +47,7 @@ func CreateTempDir(t *testing.T, dir, pattern string) string {
 
 func Setup(t *testing.T) (context.Context, dsse.SignerVerifier) {
 	var tl tlog.TL
-	if USE_MOCK_TL {
+	if UseMockTL {
 		tl = tlog.GetMockTL()
 	} else {
 		tl = &tlog.RekorTL{}
@@ -56,7 +56,7 @@ func Setup(t *testing.T) (context.Context, dsse.SignerVerifier) {
 	ctx := tlog.WithTL(context.Background(), tl)
 
 	var policyEvaluator policy.PolicyEvaluator
-	if USE_MOCK_POLICY {
+	if UseMockPolicy {
 		policyEvaluator = policy.GetMockPolicy()
 	} else {
 		policyEvaluator = policy.NewRegoEvaluator(true)
@@ -66,13 +66,13 @@ func Setup(t *testing.T) (context.Context, dsse.SignerVerifier) {
 
 	var signer dsse.SignerVerifier
 	var err error
-	if USE_MOCK_KMS {
+	if UseMockKMS {
 		signer, err = GetMockSigner(ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
 	} else {
-		signer, err = signerverifier.GetAWSSigner(ctx, AwsKmsKeyArn, AwsRegion)
+		signer, err = signerverifier.GetAWSSigner(ctx, AWSKMSKeyARN, AWSRegion)
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -16,15 +16,15 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 )
 
-func NewTufMirror(root []byte, tufPath, metadataURL, targetsURL string, versionChecker tuf.VersionChecker) (*TufMirror, error) {
+func NewTUFMirror(root []byte, tufPath, metadataURL, targetsURL string, versionChecker tuf.VersionChecker) (*TUFMirror, error) {
 	if root == nil {
 		root = embed.RootDefault.Data
 	}
-	tufClient, err := tuf.NewTufClient(root, tufPath, metadataURL, targetsURL, versionChecker)
+	tufClient, err := tuf.NewTUFClient(root, tufPath, metadataURL, targetsURL, versionChecker)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create TUF client: %w", err)
 	}
-	return &TufMirror{TufClient: tufClient, tufPath: tufPath, metadataURL: metadataURL, targetsURL: targetsURL}, nil
+	return &TUFMirror{TUFClient: tufClient, tufPath: tufPath, metadataURL: metadataURL, targetsURL: targetsURL}, nil
 }
 
 func PushImageToRegistry(image v1.Image, imageName string) error {
@@ -85,7 +85,7 @@ func SaveIndex(outputs []*oci.ImageSpec, index v1.ImageIndex, indexName string) 
 				Add: index,
 				Descriptor: v1.Descriptor{
 					Annotations: map[string]string{
-						oci.OciReferenceTarget: indexName,
+						oci.OCIReferenceTarget: indexName,
 					},
 				},
 			})
@@ -110,7 +110,7 @@ func SaveImage(output *oci.ImageSpec, image v1.Image, imageName string) error {
 			Add: image,
 			Descriptor: v1.Descriptor{
 				Annotations: map[string]string{
-					oci.OciReferenceTarget: imageName,
+					oci.OCIReferenceTarget: imageName,
 				},
 			},
 		})

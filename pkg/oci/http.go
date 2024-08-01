@@ -7,21 +7,21 @@ import (
 )
 
 type userAgentTransporter struct {
-	ua string
-	rt http.RoundTripper
+	userAgent    string
+	routeTripper http.RoundTripper
 }
 
 type Option = func(*http.Client)
 
 func (u *userAgentTransporter) RoundTrip(req *http.Request) (*http.Response, error) {
-	req.Header.Set("User-Agent", u.ua)
+	req.Header.Set("User-Agent", u.userAgent)
 
-	return u.rt.RoundTrip(req)
+	return u.routeTripper.RoundTrip(req)
 }
 
-func HttpTransport() http.RoundTripper {
+func HTTPTransport() http.RoundTripper {
 	return &userAgentTransporter{
-		ua: "Docker-Client",
-		rt: cleanhttp.DefaultTransport(),
+		userAgent:    "Docker-Client",
+		routeTripper: cleanhttp.DefaultTransport(),
 	}
 }

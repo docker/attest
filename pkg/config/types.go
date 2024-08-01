@@ -13,7 +13,7 @@ type policyMappingsFile struct {
 
 type policyRuleFile struct {
 	Pattern     string `json:"pattern"`
-	PolicyId    string `json:"policy-id"`
+	PolicyID    string `json:"policy-id"`
 	Replacement string `json:"rewrite"`
 }
 
@@ -32,7 +32,7 @@ const (
 )
 
 type PolicyMapping struct {
-	Id           string              `json:"id"`
+	ID           string              `json:"id"`
 	Description  string              `json:"description"`
 	Files        []PolicyMappingFile `json:"files"`
 	Attestations *AttestationConfig  `json:"attestations"`
@@ -49,6 +49,6 @@ type PolicyMappingFile struct {
 
 type PolicyRule struct {
 	Pattern     *regexp.Regexp
-	PolicyId    string
+	PolicyID    string
 	Replacement string
 }

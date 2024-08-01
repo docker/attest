@@ -37,7 +37,7 @@ func TestGCPKMS_Signer(t *testing.T) {
 	keyId, err := signer.KeyID()
 	require.NoError(t, err)
 	assert.NotEmpty(t, keyId)
-	publicKey, err := Parse([]byte(publicKeyPEM))
+	publicKey, err := ParsePublicKey([]byte(publicKeyPEM))
 	require.NoError(t, err)
 	// verify payload ecdsa signature
 	ok := ecdsa.VerifyASN1(publicKey, hash, sig)

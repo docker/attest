@@ -124,7 +124,7 @@ func ExtractStatementsFromIndex(idx v1.ImageIndex, mediaType string) ([]*Annotat
 				return nil, fmt.Errorf("failed to get layer contents: %w", err)
 			}
 			defer r.Close()
-			intotoStatement := new(intoto.Statement)
+			inTotoStatement := new(intoto.Statement)
 			var desc *v1.Descriptor
 			if strings.HasSuffix(string(mt), "+dsse") {
 				env := new(attestation.Envelope)
@@ -136,7 +136,7 @@ func ExtractStatementsFromIndex(idx v1.ImageIndex, mediaType string) ([]*Annotat
 				if err != nil {
 					return nil, fmt.Errorf("failed to decode payload: %w", err)
 				}
-				err = json.Unmarshal([]byte(payload), intotoStatement)
+				err = json.Unmarshal([]byte(payload), inTotoStatement)
 				if err != nil {
 					return nil, fmt.Errorf("failed to decode %s statement: %w", mediaType, err)
 				}
@@ -158,7 +158,7 @@ func ExtractStatementsFromIndex(idx v1.ImageIndex, mediaType string) ([]*Annotat
 			}
 			statements = append(statements, &AnnotatedStatement{
 				OCIDescriptor:   desc,
-				InTotoStatement: intotoStatement,
+				InTotoStatement: inTotoStatement,
 				Annotations:     annotations,
 			})
 		}

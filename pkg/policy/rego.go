@@ -181,7 +181,7 @@ func RegoFunctions(resolver oci.AttestationResolver) []*tester.Builtin {
 					Memoize:          true,
 					Nondeterministic: verifyDecl.Nondeterministic,
 				},
-				handleErrors2(verifyIntotoEnvelope)),
+				handleErrors2(verifyInTotoEnvelope)),
 		},
 		{
 			Decl: attestDecl,
@@ -192,12 +192,12 @@ func RegoFunctions(resolver oci.AttestationResolver) []*tester.Builtin {
 					Memoize:          true,
 					Nondeterministic: attestDecl.Nondeterministic,
 				},
-				handleErrors1(fetchIntotoAttestations(resolver))),
+				handleErrors1(fetchInTotoAttestations(resolver))),
 		},
 	}
 }
 
-func fetchIntotoAttestations(resolver oci.AttestationResolver) rego.Builtin1 {
+func fetchInTotoAttestations(resolver oci.AttestationResolver) rego.Builtin1 {
 	return func(rCtx rego.BuiltinContext, predicateTypeTerm *ast.Term) (*ast.Term, error) {
 		predicateTypeStr, ok := predicateTypeTerm.Value.(ast.String)
 		if !ok {
@@ -227,7 +227,7 @@ func fetchIntotoAttestations(resolver oci.AttestationResolver) rego.Builtin1 {
 	}
 }
 
-func verifyIntotoEnvelope(rCtx rego.BuiltinContext, envTerm, optsTerm *ast.Term) (*ast.Term, error) {
+func verifyInTotoEnvelope(rCtx rego.BuiltinContext, envTerm, optsTerm *ast.Term) (*ast.Term, error) {
 	env := new(att.Envelope)
 	opts := new(att.VerifyOptions)
 	err := ast.As(envTerm.Value, env)

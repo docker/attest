@@ -137,7 +137,7 @@ func TestAttestationReferenceTypes(t *testing.T) {
 					ref = fmt.Sprintf("%s/repo@%s", u.Host, idxDigest.String())
 				}
 
-				policyOpts := &policy.PolicyOptions{
+				policyOpts := &policy.Options{
 					LocalPolicyDir: LocalPolicy,
 				}
 
@@ -201,12 +201,12 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 	} {
 		server := tc.server
 		defer server.Close()
-		serverUrl, err := url.Parse(server.URL)
+		serverURL, err := url.Parse(server.URL)
 		require.NoError(t, err)
 
 		refServer := tc.refServer
 		defer refServer.Close()
-		refServerUrl, err := url.Parse(refServer.URL)
+		refServerURL, err := url.Parse(refServer.URL)
 		require.NoError(t, err)
 
 		opts := &attestation.SigningOptions{
@@ -215,7 +215,7 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 		attIdx, err := oci.IndexFromPath(UnsignedTestImage)
 		require.NoError(t, err)
 
-		indexName := fmt.Sprintf("%s/%s:latest", serverUrl.Host, repoName)
+		indexName := fmt.Sprintf("%s/%s:latest", serverURL.Host, repoName)
 		err = mirror.PushIndexToRegistry(attIdx.Index, indexName)
 		require.NoError(t, err)
 
@@ -227,12 +227,12 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 			// push references using subject-digest.att convention
 			image, err := signedManifest.BuildAttestationImage()
 			require.NoError(t, err)
-			err = mirror.PushImageToRegistry(image, fmt.Sprintf("%s/%s:tag-does-not-matter", refServerUrl.Host, repoName))
+			err = mirror.PushImageToRegistry(image, fmt.Sprintf("%s/%s:tag-does-not-matter", refServerURL.Host, repoName))
 			require.NoError(t, err)
 
 			refServer := tc.refServer
 			defer refServer.Close()
-			refServerUrl, err := url.Parse(refServer.URL)
+			refServerURL, err := url.Parse(refServer.URL)
 			require.NoError(t, err)
 
 			opts := &attestation.SigningOptions{
@@ -241,7 +241,7 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 			attIdx, err := oci.IndexFromPath(UnsignedTestImage)
 			require.NoError(t, err)
 
-			indexName := fmt.Sprintf("%s/%s:latest", serverUrl.Host, repoName)
+			indexName := fmt.Sprintf("%s/%s:latest", serverURL.Host, repoName)
 			err = mirror.PushIndexToRegistry(attIdx.Index, indexName)
 			require.NoError(t, err)
 
@@ -254,7 +254,7 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 				imgs, err := mf.BuildReferringArtifacts()
 				require.NoError(t, err)
 				for _, img := range imgs {
-					err = mirror.PushImageToRegistry(img, fmt.Sprintf("%s/%s:tag-does-not-matter", refServerUrl.Host, repoName))
+					err = mirror.PushImageToRegistry(img, fmt.Sprintf("%s/%s:tag-does-not-matter", refServerURL.Host, repoName))
 					require.NoError(t, err)
 				}
 			}
@@ -267,7 +267,7 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 				}
 				// can evaluate policy using referrers in a different repo
 				referencedImage := fmt.Sprintf("%s@%s", indexName, mf.Digest.String())
-				policyOpts := &policy.PolicyOptions{
+				policyOpts := &policy.Options{
 					LocalPolicyDir: PassPolicyDir,
 				}
 				src, err := oci.ParseImageSpec(referencedImage)
@@ -285,7 +285,7 @@ func TestCorrectArtifactTypeInTagFallback(t *testing.T) {
 	server := httptest.NewServer(registry.New())
 
 	defer server.Close()
-	serverUrl, err := url.Parse(server.URL)
+	serverURL, err := url.Parse(server.URL)
 	require.NoError(t, err)
 
 	repoName := "repo"
@@ -296,7 +296,7 @@ func TestCorrectArtifactTypeInTagFallback(t *testing.T) {
 	attIdx, err := oci.IndexFromPath(UnsignedTestImage)
 	require.NoError(t, err)
 
-	indexName := fmt.Sprintf("%s/%s:latest", serverUrl.Host, repoName)
+	indexName := fmt.Sprintf("%s/%s:latest", serverURL.Host, repoName)
 	err = mirror.PushIndexToRegistry(attIdx.Index, indexName)
 	require.NoError(t, err)
 
@@ -308,12 +308,12 @@ func TestCorrectArtifactTypeInTagFallback(t *testing.T) {
 		imgs, err := mf.BuildReferringArtifacts()
 		require.NoError(t, err)
 		for _, img := range imgs {
-			err = mirror.PushImageToRegistry(img, fmt.Sprintf("%s/%s:tag-does-not-matter", serverUrl.Host, repoName))
+			err = mirror.PushImageToRegistry(img, fmt.Sprintf("%s/%s:tag-does-not-matter", serverURL.Host, repoName))
 			require.NoError(t, err)
 			mf, err := img.Manifest()
 			require.NoError(t, err)
 			subject := mf.Subject
-			subjectRef, err := name.ParseReference(fmt.Sprintf("%s/%s:sha256-%s", serverUrl.Host, repoName, subject.Digest.Hex))
+			subjectRef, err := name.ParseReference(fmt.Sprintf("%s/%s:sha256-%s", serverURL.Host, repoName, subject.Digest.Hex))
 			require.NoError(t, err)
 			idx, err := remote.Index(subjectRef)
 			require.NoError(t, err)

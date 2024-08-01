@@ -16,15 +16,15 @@ type MockResolver struct {
 	Envs []*attestation.Envelope
 }
 
-func (r MockResolver) Attestations(ctx context.Context, mediaType string) ([]*attestation.Envelope, error) {
+func (r MockResolver) Attestations(_ context.Context, _ string) ([]*attestation.Envelope, error) {
 	return r.Envs, nil
 }
 
-func (r MockResolver) ImageName(ctx context.Context) (string, error) {
+func (r MockResolver) ImageName(_ context.Context) (string, error) {
 	return "library/alpine:latest", nil
 }
 
-func (r MockResolver) ImageDescriptor(ctx context.Context) (*v1.Descriptor, error) {
+func (r MockResolver) ImageDescriptor(_ context.Context) (*v1.Descriptor, error) {
 	digest, err := v1.NewHash("sha256:da8b190665956ea07890a0273e2a9c96bfe291662f08e2860e868eef69c34620")
 	if err != nil {
 		return nil, err
@@ -36,7 +36,7 @@ func (r MockResolver) ImageDescriptor(ctx context.Context) (*v1.Descriptor, erro
 	}, nil
 }
 
-func (r MockResolver) ImagePlatform(ctx context.Context) (*v1.Platform, error) {
+func (r MockResolver) ImagePlatform(_ context.Context) (*v1.Platform, error) {
 	return oci.ParsePlatform("linux/amd64")
 }
 
@@ -46,15 +46,15 @@ type MockRegistryResolver struct {
 	*MockResolver
 }
 
-func (r *MockRegistryResolver) ImageDescriptor(ctx context.Context) (*v1.Descriptor, error) {
+func (r *MockRegistryResolver) ImageDescriptor(_ context.Context) (*v1.Descriptor, error) {
 	return r.Subject, nil
 }
 
-func (r *MockRegistryResolver) ImageName(ctx context.Context) (string, error) {
+func (r *MockRegistryResolver) ImageName(_ context.Context) (string, error) {
 	return r.ImageNameStr, nil
 }
 
-func GetMockSigner(ctx context.Context) (dsse.SignerVerifier, error) {
+func GetMockSigner(_ context.Context) (dsse.SignerVerifier, error) {
 	priv, err := os.ReadFile(filepath.Join("..", "..", "test", "testdata", "test-signing-key.pem"))
 	if err != nil {
 		return nil, err

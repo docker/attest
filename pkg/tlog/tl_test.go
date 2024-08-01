@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	// test artifacts
+	// test artifacts.
 	TestPayload   = "test"
 	TestPublicKey = "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAED4V+REhx+aqWH7ylMMDHahNMnMLS\nOJP/9kAm9lp+3mqYTAhURra6OD5Qx8Zbd+euPyPk9y+w/gWGDB9zn/Il1A==\n-----END PUBLIC KEY-----"
 )
@@ -55,13 +55,13 @@ func TestUploadAndVerifyLogEntry(t *testing.T) {
 	var tl TL
 	if UseMockTL {
 		tl = &MockTL{
-			UploadLogEntryFunc: func(ctx context.Context, subject string, payload []byte, signature []byte, signer dsse.SignerVerifier) ([]byte, error) {
+			UploadLogEntryFunc: func(_ context.Context, _ string, _ []byte, _ []byte, _ dsse.SignerVerifier) ([]byte, error) {
 				return []byte(TestEntry), nil
 			},
-			VerifyLogEntryFunc: func(ctx context.Context, entryBytes []byte) (time.Time, error) {
+			VerifyLogEntryFunc: func(_ context.Context, _ []byte) (time.Time, error) {
 				return time.Time{}, nil
 			},
-			VerifyEntryPayloadFunc: func(entryBytes, payload, publicKey []byte) error {
+			VerifyEntryPayloadFunc: func(_, _, _ []byte) error {
 				return nil
 			},
 		}

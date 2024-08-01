@@ -50,7 +50,7 @@ func TestVerifyAttestations(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockPE := policy.MockPolicyEvaluator{
-				EvaluateFunc: func(ctx context.Context, resolver oci.AttestationResolver, pctx *policy.Policy, input *policy.PolicyInput) (*policy.Result, error) {
+				EvaluateFunc: func(_ context.Context, _ oci.AttestationResolver, _ *policy.Policy, _ *policy.Input) (*policy.Result, error) {
 					return policy.AllowedResult(), tc.policyEvaluationError
 				},
 			}
@@ -97,7 +97,7 @@ func TestVSA(t *testing.T) {
 	assert.NoError(t, err)
 
 	// mocked vsa query should pass
-	policyOpts := &policy.PolicyOptions{
+	policyOpts := &policy.Options{
 		LocalPolicyDir: PassPolicyDir,
 	}
 	src, err := oci.ParseImageSpec("oci://"+outputLayout, oci.WithPlatform(LinuxAMD64))
@@ -117,7 +117,8 @@ func TestVSA(t *testing.T) {
 	assert.Len(t, results.VSA.Subject, 1)
 
 	require.IsType(t, attestation.VSAPredicate{}, results.VSA.Predicate)
-	attestationPredicate := results.VSA.Predicate.(attestation.VSAPredicate)
+	attestationPredicate, ok := results.VSA.Predicate.(attestation.VSAPredicate)
+	require.True(t, ok)
 
 	assert.Equal(t, "PASSED", attestationPredicate.VerificationResult)
 	assert.Equal(t, "docker-official-images", attestationPredicate.Verifier.ID)
@@ -154,7 +155,7 @@ func TestVerificationFailure(t *testing.T) {
 	assert.NoError(t, err)
 
 	// mocked vsa query should fail
-	policyOpts := &policy.PolicyOptions{
+	policyOpts := &policy.Options{
 		LocalPolicyDir: FailPolicyDir,
 	}
 	src, err := oci.ParseImageSpec("oci://"+outputLayout, oci.WithPlatform(LinuxAMD64))
@@ -174,7 +175,8 @@ func TestVerificationFailure(t *testing.T) {
 	assert.Len(t, results.VSA.Subject, 1)
 
 	require.IsType(t, attestation.VSAPredicate{}, results.VSA.Predicate)
-	attestationPredicate := results.VSA.Predicate.(attestation.VSAPredicate)
+	attestationPredicate, ok := results.VSA.Predicate.(attestation.VSAPredicate)
+	require.True(t, ok)
 
 	assert.Equal(t, "FAILED", attestationPredicate.VerificationResult)
 	assert.Equal(t, "docker-official-images", attestationPredicate.Verifier.ID)
@@ -234,7 +236,7 @@ func TestSignVerify(t *testing.T) {
 			_, err = layout.Write(outputLayout, idx)
 			assert.NoError(t, err)
 
-			policyOpts := &policy.PolicyOptions{
+			policyOpts := &policy.Options{
 				LocalPolicyDir: tc.policyDir,
 			}
 			src, err := oci.ParseImageSpec("oci://"+outputLayout, oci.WithPlatform(LinuxAMD64))

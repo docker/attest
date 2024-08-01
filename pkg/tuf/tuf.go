@@ -20,11 +20,12 @@ import (
 	"github.com/theupdateframework/go-tuf/v2/metadata/updater"
 )
 
-type TUFSource string
+type Source string
 
 const (
-	HTTPSource TUFSource = "http"
-	OCISource  TUFSource = "oci"
+	HTTPSource Source = "http"
+	OCISource  Source = "oci"
+	LatestTag  string = "latest"
 )
 
 var (
@@ -34,18 +35,18 @@ var (
 	DockerTUFRootDefault = embed.RootDefault
 )
 
-type TUFDownloader interface {
+type Downloader interface {
 	DownloadTarget(target, filePath string) (actualFilePath string, data []byte, err error)
 }
 
-type TUFClient struct {
+type Client struct {
 	updater *updater.Updater
 	cfg     *config.UpdaterConfig
 }
 
-// NewTUFClient creates a new TUF client
-func NewTUFClient(initialRoot []byte, tufPath, metadataSource, targetsSource string, versionChecker VersionChecker) (*TUFClient, error) {
-	var tufSource TUFSource
+// NewClient creates a new TUF client.
+func NewClient(initialRoot []byte, tufPath, metadataSource, targetsSource string, versionChecker VersionChecker) (*Client, error) {
+	var tufSource Source
 	if strings.HasPrefix(metadataSource, "https://") || strings.HasPrefix(metadataSource, "http://") {
 		tufSource = HTTPSource
 	} else {
@@ -88,7 +89,7 @@ func NewTUFClient(initialRoot []byte, tufPath, metadataSource, targetsSource str
 		metadataRepo, metadataTag, found := strings.Cut(metadataSource, ":")
 		if !found {
 			fmt.Printf("metadata tag not found in URL, using latest\n")
-			metadataTag = "latest"
+			metadataTag = LatestTag
 		}
 		cfg.Fetcher = NewRegistryFetcher(metadataRepo, metadataTag, targetsSource)
 	}
@@ -105,7 +106,7 @@ func NewTUFClient(initialRoot []byte, tufPath, metadataSource, targetsSource str
 		return nil, fmt.Errorf("failed to refresh trusted metadata: %w", err)
 	}
 
-	client := &TUFClient{
+	client := &Client{
 		updater: up,
 		cfg:     cfg,
 	}
@@ -121,7 +122,7 @@ func NewTUFClient(initialRoot []byte, tufPath, metadataSource, targetsSource str
 // DownloadTarget downloads the target file using Updater. The Updater gets the target
 // information, verifies if the target is already cached, and if it is not cached,
 // downloads the target file.
-func (t *TUFClient) DownloadTarget(target string, filePath string) (actualFilePath string, data []byte, err error) {
+func (t *Client) DownloadTarget(target string, filePath string) (actualFilePath string, data []byte, err error) {
 	// search if the desired target is available
 	targetInfo, err := t.updater.GetTargetInfo(target)
 	if err != nil {
@@ -154,15 +155,15 @@ func (t *TUFClient) DownloadTarget(target string, filePath string) (actualFilePa
 	return actualFilePath, data, err
 }
 
-func (t *TUFClient) GetMetadata() trustedmetadata.TrustedMetadata {
+func (t *Client) GetMetadata() trustedmetadata.TrustedMetadata {
 	return t.updater.GetTrustedMetadataSet()
 }
 
-func (t *TUFClient) MaxRootLength() int64 {
+func (t *Client) MaxRootLength() int64 {
 	return t.cfg.RootMaxLength
 }
 
-func (t *TUFClient) GetPriorRoots(metadataURL string) (map[string][]byte, error) {
+func (t *Client) GetPriorRoots(metadataURL string) (map[string][]byte, error) {
 	rootMetadata := map[string][]byte{}
 	trustedMetadata := t.GetMetadata()
 	client := fetcher.DefaultFetcher{}
@@ -176,12 +177,12 @@ func (t *TUFClient) GetPriorRoots(metadataURL string) (map[string][]byte, error)
 	return rootMetadata, nil
 }
 
-func (t *TUFClient) SetRemoteTargetsURL(url string) {
+func (t *Client) SetRemoteTargetsURL(url string) {
 	t.cfg.RemoteTargetsURL = url
 }
 
-// Derived from updater.loadTargets() in theupdateframework/go-tuf
-func (t *TUFClient) LoadDelegatedTargets(roleName, parentName string) (*metadata.Metadata[metadata.TargetsType], error) {
+// Derived from updater.loadTargets() in theupdateframework/go-tuf.
+func (t *Client) LoadDelegatedTargets(roleName, parentName string) (*metadata.Metadata[metadata.TargetsType], error) {
 	// extract the targets meta from the trusted snapshot metadata
 	meta := t.updater.GetTrustedMetadataSet()
 	metaInfo := meta.Snapshot.Signed.Meta[fmt.Sprintf("%s.json", roleName)]
@@ -208,8 +209,8 @@ func (t *TUFClient) LoadDelegatedTargets(roleName, parentName string) (*metadata
 	return delegatedTargets, nil
 }
 
-// downloadMetadata download a metadata file and return it as bytes
-func (t *TUFClient) downloadMetadata(roleName string, length int64, version string) ([]byte, error) {
+// downloadMetadata download a metadata file and return it as bytes.
+func (t *Client) downloadMetadata(roleName string, length int64, version string) ([]byte, error) {
 	urlPath := ensureTrailingSlash(t.cfg.RemoteMetadataURL)
 	// build urlPath
 	if version == "" {
@@ -220,7 +221,7 @@ func (t *TUFClient) downloadMetadata(roleName string, length int64, version stri
 	return t.cfg.Fetcher.DownloadFile(urlPath, length, time.Second*15)
 }
 
-// ensureTrailingSlash ensures url ends with a slash
+// ensureTrailingSlash ensures url ends with a slash.
 func ensureTrailingSlash(url string) string {
 	if updater.IsWindowsPath(url) {
 		slash := string(filepath.Separator)
@@ -235,7 +236,7 @@ func ensureTrailingSlash(url string) string {
 	return url + "/"
 }
 
-// GetEmbeddedTufRoot returns the embedded TUF root based on the given root name
-func GetEmbeddedTufRoot(root string) (*embed.EmbeddedRoot, error) {
+// GetEmbeddedRoot returns the embedded TUF root based on the given root name.
+func GetEmbeddedRoot(root string) (*embed.EmbeddedRoot, error) {
 	return embed.GetRootFromName(root)
 }

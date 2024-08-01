@@ -9,18 +9,18 @@ import (
 	awssigner "github.com/sigstore/sigstore/pkg/signature/kms/aws"
 )
 
-// using AWS KMS
+// using AWS KMS.
 func GetAWSSigner(ctx context.Context, keyARN string, region string) (dsse.SignerVerifier, error) {
 	keyPath := fmt.Sprintf("awskms:///%s", keyARN)
 	sv, err := awssigner.LoadSignerVerifier(ctx, keyPath, config.WithRegion(region))
 	if err != nil {
 		return nil, fmt.Errorf("error loading aws signer verifier: %w", err)
 	}
-	cs, _, err := sv.CryptoSigner(context.Background(), func(err error) {})
+	cs, _, err := sv.CryptoSigner(context.Background(), func(_ error) {})
 	if err != nil {
 		return nil, fmt.Errorf("error getting aws crypto signer: %w", err)
 	}
-	signer := &ECDSA256_SignerVerifier{
+	signer := &ECDSA256SignerVerifier{
 		Signer: cs,
 	}
 	return signer, nil

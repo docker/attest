@@ -1,6 +1,7 @@
 package tlog
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
@@ -33,12 +34,12 @@ type tlCtxKeyType struct{}
 
 var TLCtxKey tlCtxKeyType
 
-// sets TL in context
+// sets TL in context.
 func WithTL(ctx context.Context, tl TL) context.Context {
 	return context.WithValue(ctx, TLCtxKey, tl)
 }
 
-// gets TL from context, defaults to Rekor TL if not set
+// gets TL from context, defaults to Rekor TL if not set.
 func GetTL(ctx context.Context) TL {
 	t, ok := ctx.Value(TLCtxKey).(TL)
 	if !ok {
@@ -98,7 +99,7 @@ func (tl *MockTL) UnmarshalEntry(entryBytes []byte) (any, error) {
 
 type RekorTL struct{}
 
-// UploadLogEntry submits a PK token signature to the transparency log
+// UploadLogEntry submits a PK token signature to the transparency log.
 func (tl *RekorTL) UploadLogEntry(ctx context.Context, subject string, payload, signature []byte, signer dsse.SignerVerifier) ([]byte, error) {
 	// generate self-signed x509 cert
 	pubCert, err := CreateX509Cert(subject, signer)
@@ -121,12 +122,12 @@ func (tl *RekorTL) UploadLogEntry(ctx context.Context, subject string, payload, 
 	}
 	entryBytes, err := entry.MarshalBinary()
 	if err != nil {
-		return nil, fmt.Errorf("error marshalling TL entry: %w", err)
+		return nil, fmt.Errorf("error marshaling TL entry: %w", err)
 	}
 	return entryBytes, nil
 }
 
-// VerifyLogEntry verifies a transparency log entry
+// VerifyLogEntry verifies a transparency log entry.
 func (tl *RekorTL) VerifyLogEntry(ctx context.Context, entryBytes []byte) (time.Time, error) {
 	zeroTime := time.Time{}
 	entry, err := tl.UnmarshalEntry(entryBytes)
@@ -157,12 +158,12 @@ func (tl *RekorTL) VerifyLogEntry(ctx context.Context, entryBytes []byte) (time.
 	return integratedTime, nil
 }
 
-// CreateX509Cert generates a self-signed x509 cert for TL submission
+// CreateX509Cert generates a self-signed x509 cert for TL submission.
 func CreateX509Cert(subject string, signer dsse.SignerVerifier) ([]byte, error) {
 	// encode ephemeral public key
 	ecPub, err := x509.MarshalPKIXPublicKey(signer.Public())
 	if err != nil {
-		return nil, fmt.Errorf("error marshalling public key: %w", err)
+		return nil, fmt.Errorf("error marshaling public key: %w", err)
 	}
 
 	template := x509.Certificate{
@@ -180,7 +181,7 @@ func CreateX509Cert(subject string, signer dsse.SignerVerifier) ([]byte, error) 
 
 	// dsse.SignerVerifier doesn't implement cypto.Signer exactly
 
-	csigner, ok := signer.(*signerverifier.ECDSA256_SignerVerifier)
+	csigner, ok := signer.(*signerverifier.ECDSA256SignerVerifier)
 	if !ok {
 		return nil, fmt.Errorf("expected signer to be of type *signerverifier.ECDSA_SignerVerifier, got %T", signer)
 	}
@@ -193,7 +194,7 @@ func CreateX509Cert(subject string, signer dsse.SignerVerifier) ([]byte, error) 
 	return pem.EncodeToMemory(certBlock), nil
 }
 
-// VerifyEntryPayload checks that the TL entry payload matches envelope payload
+// VerifyEntryPayload checks that the TL entry payload matches envelope payload.
 func (tl *RekorTL) VerifyEntryPayload(entryBytes, payload, publicKey []byte) error {
 	entry, err := tl.UnmarshalEntry(entryBytes)
 	if err != nil {
@@ -228,7 +229,7 @@ func (tl *RekorTL) VerifyEntryPayload(entryBytes, payload, publicKey []byte) err
 	if err != nil {
 		return fmt.Errorf("failed to parse certificate: %w", err)
 	}
-	if string(result.RawSubjectPublicKeyInfo) != string(publicKey) {
+	if !bytes.Equal(result.RawSubjectPublicKeyInfo, publicKey) {
 		return fmt.Errorf("error payload and tl entry public key mismatch")
 	}
 	return nil
@@ -243,9 +244,9 @@ func (tl *RekorTL) UnmarshalEntry(entry []byte) (any, error) {
 	return le, nil
 }
 
-func extractHashedRekord(Body string) (*TLPayload, error) {
+func extractHashedRekord(body string) (*TLPayload, error) {
 	sig := new(TLPayload)
-	pe, err := models.UnmarshalProposedEntry(base64.NewDecoder(base64.StdEncoding, strings.NewReader(Body)), runtime.JSONConsumer())
+	pe, err := models.UnmarshalProposedEntry(base64.NewDecoder(base64.StdEncoding, strings.NewReader(body)), runtime.JSONConsumer())
 	if err != nil {
 		return nil, err
 	}

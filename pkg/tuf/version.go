@@ -12,7 +12,7 @@ const ThisModulePath = "github.com/docker/attest"
 
 type VersionChecker interface {
 	// CheckVersion checks if the current version of this library meets the constraints from the TUF repo
-	CheckVersion(tufClient TUFDownloader) error
+	CheckVersion(tufClient Downloader) error
 }
 
 type InvalidVersionError struct {
@@ -32,13 +32,13 @@ func (e *InvalidVersionError) Error() string {
 	return fmt.Sprintf("%s version %s does not satisfy constraints %s: %s", ThisModulePath, e.AttestVersion, e.VersionConstraint, errsStr.String())
 }
 
-func NewVersionChecker() *versionChecker {
-	return &versionChecker{}
+func NewDefaultVersionChecker() *DefaultVersionChecker {
+	return &DefaultVersionChecker{}
 }
 
-type versionChecker struct{}
+type DefaultVersionChecker struct{}
 
-func (vc *versionChecker) CheckVersion(client TUFDownloader) error {
+func (vc *DefaultVersionChecker) CheckVersion(client Downloader) error {
 	var attestMod *debug.Module
 	bi, ok := debug.ReadBuildInfo()
 	if !ok {

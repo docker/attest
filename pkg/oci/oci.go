@@ -18,7 +18,7 @@ import (
 )
 
 // ParsePlatform parses the provided platform string or attempts to obtain
-// the platform of the current host system
+// the platform of the current host system.
 func ParsePlatform(platformStr string) (*v1.Platform, error) {
 	if platformStr == "" {
 		cdp := platforms.Normalize(platforms.DefaultSpec())
@@ -30,9 +30,8 @@ func ParsePlatform(platformStr string) (*v1.Platform, error) {
 			Architecture: cdp.Architecture,
 			Variant:      cdp.Variant,
 		}, nil
-	} else {
-		return v1.ParsePlatform(platformStr)
 	}
+	return v1.ParsePlatform(platformStr)
 }
 
 func WithOptions(ctx context.Context, platform *v1.Platform) []remote.Option {
@@ -46,7 +45,7 @@ func WithOptions(ctx context.Context, platform *v1.Platform) []remote.Option {
 	return options
 }
 
-func ExtractEnvelopes(manifest *attestation.AttestationManifest, predicateType string) ([]*att.Envelope, error) {
+func ExtractEnvelopes(manifest *attestation.Manifest, predicateType string) ([]*att.Envelope, error) {
 	var envs []*att.Envelope
 	dsseMediaType, err := attestation.DSSEMediaType(predicateType)
 	if err != nil {
@@ -76,16 +75,18 @@ func ExtractEnvelopes(manifest *attestation.AttestationManifest, predicateType s
 }
 
 func imageDescriptor(ix *v1.IndexManifest, platform *v1.Platform) (*v1.Descriptor, error) {
-	for _, m := range ix.Manifests {
+	for i := range ix.Manifests {
+		m := &ix.Manifests[i]
 		if (m.MediaType == ocispec.MediaTypeImageManifest || m.MediaType == "application/vnd.docker.distribution.manifest.v2+json") && m.Platform.Equals(*platform) {
-			return &m, nil
+			return m, nil
 		}
 	}
 	return nil, fmt.Errorf("no image found for platform %v", platform)
 }
 
 func attestationDigestForDigest(ix *v1.IndexManifest, imageDigest string, attestType string) (string, error) {
-	for _, m := range ix.Manifests {
+	for i := range ix.Manifests {
+		m := &ix.Manifests[i]
 		if v, ok := m.Annotations[att.DockerReferenceType]; ok && v == attestType {
 			if d, ok := m.Annotations[att.DockerReferenceDigest]; ok && d == imageDigest {
 				return m.Digest.String(), nil
@@ -160,7 +161,7 @@ func ReplaceTagInSpec(src *ImageSpec, digest v1.Hash) (*ImageSpec, error) {
 	}, nil
 }
 
-// so that the index tag is replaced with a tag unique to the image digest and doesn't overwrite it
+// so that the index tag is replaced with a tag unique to the image digest and doesn't overwrite it.
 func replaceTag(image string, digest v1.Hash) (string, error) {
 	if strings.HasPrefix(image, LocalPrefix) {
 		return image, nil

@@ -30,7 +30,7 @@ func (o Outcome) StringForVSA() (string, error) {
 type VerificationResult struct {
 	Outcome           Outcome
 	Policy            *policy.Policy
-	Input             *policy.PolicyInput
+	Input             *policy.Input
 	VSA               *intoto.Statement
 	Violations        []policy.Violation
 	SubjectDescriptor *v1.Descriptor

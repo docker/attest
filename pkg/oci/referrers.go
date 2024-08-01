@@ -35,7 +35,7 @@ func WithReferrersRepo(repo string) func(*ReferrersResolver) error {
 	}
 }
 
-func (r *ReferrersResolver) resolveAttestations(ctx context.Context, predicateType string) ([]*attestation.AttestationManifest, error) {
+func (r *ReferrersResolver) resolveAttestations(ctx context.Context, predicateType string) ([]*attestation.Manifest, error) {
 	dsseMediaType, err := attestation.DSSEMediaType(predicateType)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get DSSE media type for predicate '%s': %w", predicateType, err)
@@ -75,8 +75,9 @@ func (r *ReferrersResolver) resolveAttestations(ctx context.Context, predicateTy
 	if err != nil {
 		return nil, fmt.Errorf("failed to get index manifest: %w", err)
 	}
-	aManifests := make([]*attestation.AttestationManifest, 0)
-	for _, m := range referrersIndexManifest.Manifests {
+	aManifests := make([]*attestation.Manifest, 0)
+	for i := range referrersIndexManifest.Manifests {
+		m := referrersIndexManifest.Manifests[i]
 		remoteRef := referrersSubjectRef.Context().Digest(m.Digest.String())
 		options = WithOptions(ctx, nil)
 		attestationImage, err := remote.Image(remoteRef, options...)
@@ -97,7 +98,7 @@ func (r *ReferrersResolver) resolveAttestations(ctx context.Context, predicateTy
 		if string(mt) != dsseMediaType {
 			return nil, fmt.Errorf("expected layer media type %s, got %s", dsseMediaType, mt)
 		}
-		attest := &attestation.AttestationManifest{
+		attest := &attestation.Manifest{
 			SubjectName:        imageName,
 			OriginalLayers:     layers,
 			OriginalDescriptor: &m,

@@ -9,8 +9,8 @@ import (
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 )
 
-// this is only relevant if there are (unsigned) in-toto statements
-func SignStatements(ctx context.Context, idx v1.ImageIndex, signer dsse.SignerVerifier, opts *attestation.SigningOptions) ([]*attestation.AttestationManifest, error) {
+// this is only relevant if there are (unsigned) in-toto statements.
+func SignStatements(ctx context.Context, idx v1.ImageIndex, signer dsse.SignerVerifier, opts *attestation.SigningOptions) ([]*attestation.Manifest, error) {
 	// extract attestation manifests from index
 	attestationManifests, err := attestation.GetAttestationManifestsFromIndex(idx)
 	if err != nil {

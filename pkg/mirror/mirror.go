@@ -20,7 +20,7 @@ func NewTUFMirror(root []byte, tufPath, metadataURL, targetsURL string, versionC
 	if root == nil {
 		root = embed.RootDefault.Data
 	}
-	tufClient, err := tuf.NewTUFClient(root, tufPath, metadataURL, targetsURL, versionChecker)
+	tufClient, err := tuf.NewClient(root, tufPath, metadataURL, targetsURL, versionChecker)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create TUF client: %w", err)
 	}
@@ -127,7 +127,7 @@ func SaveImage(output *oci.ImageSpec, image v1.Image, imageName string) error {
 	return nil
 }
 
-func SaveReferrers(manifest *attestation.AttestationManifest, outputs []*oci.ImageSpec) error {
+func SaveReferrers(manifest *attestation.Manifest, outputs []*oci.ImageSpec) error {
 	for _, output := range outputs {
 		if output.Type == oci.OCI {
 			continue

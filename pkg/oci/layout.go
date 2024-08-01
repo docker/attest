@@ -11,14 +11,14 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/layout"
 )
 
-// implementation of AttestationResolver that closes over attestations from an oci layout
-type OCILayoutResolver struct {
-	*attestation.AttestationManifest
+// implementation of AttestationResolver that closes over attestations from an oci layout.
+type LayoutResolver struct {
+	*attestation.Manifest
 	*ImageSpec
 }
 
-func NewOCILayoutAttestationResolver(src *ImageSpec) (*OCILayoutResolver, error) {
-	r := &OCILayoutResolver{
+func NewOCILayoutAttestationResolver(src *ImageSpec) (*LayoutResolver, error) {
+	r := &LayoutResolver{
 		ImageSpec: src,
 	}
 	_, err := r.fetchAttestationManifest()
@@ -28,25 +28,25 @@ func NewOCILayoutAttestationResolver(src *ImageSpec) (*OCILayoutResolver, error)
 	return r, nil
 }
 
-func (r *OCILayoutResolver) fetchAttestationManifest() (*attestation.AttestationManifest, error) {
-	if r.AttestationManifest == nil {
+func (r *LayoutResolver) fetchAttestationManifest() (*attestation.Manifest, error) {
+	if r.Manifest == nil {
 		m, err := attestationManifestFromOCILayout(r.Identifier, r.ImageSpec.Platform)
 		if err != nil {
 			return nil, err
 		}
-		r.AttestationManifest = m
+		r.Manifest = m
 	}
 
-	return r.AttestationManifest, nil
+	return r.Manifest, nil
 }
 
-func (r *OCILayoutResolver) Attestations(ctx context.Context, predicateType string) ([]*att.Envelope, error) {
+func (r *LayoutResolver) Attestations(_ context.Context, predicateType string) ([]*att.Envelope, error) {
 	var envs []*att.Envelope
 	dsseMediaType, err := attestation.DSSEMediaType(predicateType)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get DSSE media type for predicate '%s': %w", predicateType, err)
 	}
-	for _, attestationLayer := range r.AttestationManifest.OriginalLayers {
+	for _, attestationLayer := range r.Manifest.OriginalLayers {
 		mt, err := attestationLayer.Layer.MediaType()
 		if err != nil {
 			return nil, fmt.Errorf("failed to get layer media type: %w", err)
@@ -71,19 +71,19 @@ func (r *OCILayoutResolver) Attestations(ctx context.Context, predicateType stri
 	return envs, nil
 }
 
-func (r *OCILayoutResolver) ImageName(ctx context.Context) (string, error) {
+func (r *LayoutResolver) ImageName(_ context.Context) (string, error) {
 	return r.SubjectName, nil
 }
 
-func (r *OCILayoutResolver) ImageDescriptor(ctx context.Context) (*v1.Descriptor, error) {
+func (r *LayoutResolver) ImageDescriptor(_ context.Context) (*v1.Descriptor, error) {
 	return r.SubjectDescriptor, nil
 }
 
-func (r *OCILayoutResolver) ImagePlatform(ctx context.Context) (*v1.Platform, error) {
+func (r *LayoutResolver) ImagePlatform(_ context.Context) (*v1.Platform, error) {
 	return r.ImageSpec.Platform, nil
 }
 
-func attestationManifestFromOCILayout(path string, platform *v1.Platform) (*attestation.AttestationManifest, error) {
+func attestationManifestFromOCILayout(path string, platform *v1.Platform) (*attestation.Manifest, error) {
 	idx, err := layout.ImageIndexFromPath(path)
 	if err != nil {
 		return nil, err
@@ -107,13 +107,15 @@ func attestationManifestFromOCILayout(path string, platform *v1.Platform) (*atte
 		return nil, fmt.Errorf("failed to extract IndexManifest from ImageIndex: %w", err)
 	}
 	var subjectDescriptor *v1.Descriptor
-	for _, mf := range mfs2.Manifests {
-		if mf.Platform.Equals(*platform) {
-			subjectDescriptor = &mf
+	for i := range mfs2.Manifests {
+		manifest := &mfs2.Manifests[i]
+		if manifest.Platform.Equals(*platform) {
+			subjectDescriptor = manifest
 			break
 		}
 	}
-	for _, mf := range mfs2.Manifests {
+	for i := range mfs2.Manifests {
+		mf := &mfs2.Manifests[i]
 		if mf.Annotations[att.DockerReferenceType] != attestation.AttestationManifestType {
 			continue
 		}
@@ -130,9 +132,9 @@ func attestationManifestFromOCILayout(path string, platform *v1.Platform) (*atte
 		if err != nil {
 			return nil, fmt.Errorf("failed to get attestations from image: %w", err)
 		}
-		attest := &attestation.AttestationManifest{
+		attest := &attestation.Manifest{
 			OriginalLayers:     layers,
-			OriginalDescriptor: &mf,
+			OriginalDescriptor: mf,
 			SubjectName:        name,
 			SubjectDescriptor:  subjectDescriptor,
 		}

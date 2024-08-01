@@ -14,12 +14,12 @@ import (
 
 type TufMirrorOutput struct {
 	metadata          v1.Image
-	delegatedMetadata []*mirror.MirrorImage
-	targets           []*mirror.MirrorImage
-	delegatedTargets  []*mirror.MirrorIndex
+	delegatedMetadata []*mirror.Image
+	targets           []*mirror.Image
+	delegatedTargets  []*mirror.Index
 }
 
-func ExampleNewTufMirror() {
+func ExampleNewTUFMirror() {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		panic(err)

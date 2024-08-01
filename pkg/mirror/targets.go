@@ -13,9 +13,9 @@ import (
 	"github.com/theupdateframework/go-tuf/v2/metadata"
 )
 
-// GetTUFTargetMirrors returns a list of top-level target files as MirrorImages (image with tag)
-func (m *TUFMirror) GetTUFTargetMirrors() ([]*MirrorImage, error) {
-	targetMirrors := []*MirrorImage{}
+// GetTUFTargetMirrors returns a list of top-level target files as MirrorImages (image with tag).
+func (m *TUFMirror) GetTUFTargetMirrors() ([]*Image, error) {
+	targetMirrors := []*Image{}
 	md := m.TUFClient.GetMetadata()
 
 	// for each top-level target file, create an image with the target file as a layer
@@ -42,15 +42,15 @@ func (m *TUFMirror) GetTUFTargetMirrors() ([]*MirrorImage, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to append role layer to image: %w", err)
 		}
-		targetMirrors = append(targetMirrors, &MirrorImage{Image: img, Tag: name})
+		targetMirrors = append(targetMirrors, &Image{Image: img, Tag: name})
 	}
 	return targetMirrors, nil
 }
 
 // GetDelegatedTargetMirrors returns a list of delegated target files as MirrorIndexes (image index with tag)
-// each image in the index contains a delegated target file
-func (m *TUFMirror) GetDelegatedTargetMirrors() ([]*MirrorIndex, error) {
-	mirror := []*MirrorIndex{}
+// each image in the index contains a delegated target file.
+func (m *TUFMirror) GetDelegatedTargetMirrors() ([]*Index, error) {
+	mirror := []*Index{}
 	md := m.TUFClient.GetMetadata()
 
 	// for each delegated role, create an image index with target files as images
@@ -103,7 +103,7 @@ func (m *TUFMirror) GetDelegatedTargetMirrors() ([]*MirrorIndex, error) {
 				},
 			})
 		}
-		mirror = append(mirror, &MirrorIndex{Index: index, Tag: role.Name})
+		mirror = append(mirror, &Index{Index: index, Tag: role.Name})
 	}
 	return mirror, nil
 }

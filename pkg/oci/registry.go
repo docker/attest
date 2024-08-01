@@ -13,7 +13,7 @@ import (
 
 type RegistryResolver struct {
 	*RegistryImageDetailsResolver
-	*attestation.AttestationManifest
+	*attestation.Manifest
 }
 
 type RegistryImageDetailsResolver struct {
@@ -33,11 +33,11 @@ func NewRegistryAttestationResolver(src *RegistryImageDetailsResolver) (*Registr
 	}, nil
 }
 
-func (r *RegistryImageDetailsResolver) ImageName(ctx context.Context) (string, error) {
+func (r *RegistryImageDetailsResolver) ImageName(_ context.Context) (string, error) {
 	return r.Identifier, nil
 }
 
-func (r *RegistryImageDetailsResolver) ImagePlatform(ctx context.Context) (*v1.Platform, error) {
+func (r *RegistryImageDetailsResolver) ImagePlatform(_ context.Context) (*v1.Platform, error) {
 	return r.Platform, nil
 }
 
@@ -74,17 +74,17 @@ func (r *RegistryImageDetailsResolver) ImageDescriptor(ctx context.Context) (*v1
 }
 
 func (r *RegistryResolver) Attestations(ctx context.Context, predicateType string) ([]*att.Envelope, error) {
-	if r.AttestationManifest == nil {
+	if r.Manifest == nil {
 		attest, err := FetchAttestationManifest(ctx, r.Identifier, r.ImageSpec.Platform)
 		if err != nil {
 			return nil, err
 		}
-		r.AttestationManifest = attest
+		r.Manifest = attest
 	}
-	return ExtractEnvelopes(r.AttestationManifest, predicateType)
+	return ExtractEnvelopes(r.Manifest, predicateType)
 }
 
-func FetchAttestationManifest(ctx context.Context, image string, platform *v1.Platform) (*attestation.AttestationManifest, error) {
+func FetchAttestationManifest(ctx context.Context, image string, platform *v1.Platform) (*attestation.Manifest, error) {
 	// we want to get to the image index, so ignoring platform for now
 	options := WithOptions(ctx, nil)
 	ref, err := name.ParseReference(image)
@@ -131,7 +131,7 @@ func FetchAttestationManifest(ctx context.Context, image string, platform *v1.Pl
 	if err != nil {
 		return nil, fmt.Errorf("failed to get attestations from image: %w", err)
 	}
-	attest := &attestation.AttestationManifest{
+	attest := &attestation.Manifest{
 		OriginalLayers:     layers,
 		OriginalDescriptor: &remoteDescriptor.Descriptor,
 		SubjectName:        image,

@@ -47,13 +47,13 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 		expectSuccess bool
 		isCanonical   bool
 		resolver      oci.AttestationResolver
-		policy        *policy.PolicyOptions
-		policyId      string
+		policy        *policy.Options
+		policyID      string
 		errorStr      string
 	}{
 		{repo: "testdata/mock-tuf-allow", expectSuccess: true, isCanonical: false, resolver: defaultResolver},
-		{repo: "testdata/mock-tuf-allow", expectSuccess: true, isCanonical: false, resolver: defaultResolver, policyId: "docker-official-images"},
-		{repo: "testdata/mock-tuf-allow", expectSuccess: false, isCanonical: false, resolver: defaultResolver, policyId: "non-existent-policy-id", errorStr: errorStr},
+		{repo: "testdata/mock-tuf-allow", expectSuccess: true, isCanonical: false, resolver: defaultResolver, policyID: "docker-official-images"},
+		{repo: "testdata/mock-tuf-allow", expectSuccess: false, isCanonical: false, resolver: defaultResolver, policyID: "non-existent-policy-id", errorStr: errorStr},
 		{repo: "testdata/mock-tuf-deny", expectSuccess: false, isCanonical: false, resolver: defaultResolver},
 		{repo: "testdata/mock-tuf-verify-sig", expectSuccess: true, isCanonical: false, resolver: defaultResolver},
 		{repo: "testdata/mock-tuf-wrong-key", expectSuccess: false, isCanonical: false, resolver: defaultResolver},
@@ -63,7 +63,7 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.repo, func(t *testing.T) {
-			input := &policy.PolicyInput{
+			input := &policy.Input{
 				Digest:      "sha256:test-digest",
 				PURL:        "test-purl",
 				IsCanonical: tc.isCanonical,
@@ -71,10 +71,10 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 
 			tufClient := tuf.NewMockTufClient(tc.repo, test.CreateTempDir(t, "", "tuf-dest"))
 			if tc.policy == nil {
-				tc.policy = &policy.PolicyOptions{
+				tc.policy = &policy.Options{
 					TUFClient:       tufClient,
 					LocalTargetsDir: test.CreateTempDir(t, "", "tuf-targets"),
-					PolicyID:        tc.policyId,
+					PolicyID:        tc.policyID,
 				}
 			}
 			imageName, err := tc.resolver.ImageName(ctx)

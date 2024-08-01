@@ -15,8 +15,8 @@ import (
 )
 
 var (
-	HttpTufTestDataPath = filepath.Join("..", "..", "test", "testdata", "tuf", "test-repo")
-	OciTufTestDataPath  = filepath.Join("..", "..", "test", "testdata", "tuf", "test-repo-oci")
+	HTTPTUFTestDataPath = filepath.Join("..", "..", "test", "testdata", "tuf", "test-repo")
+	OCITUFTestDataPath  = filepath.Join("..", "..", "test", "testdata", "tuf", "test-repo-oci")
 )
 
 func CreateTempDir(t *testing.T, dir, pattern string) string {
@@ -35,12 +35,12 @@ func CreateTempDir(t *testing.T, dir, pattern string) string {
 	return tempDir
 }
 
-// NewTufClient creates a new TUF client
+// NewTufClient creates a new TUF client.
 func TestRootInit(t *testing.T) {
 	tufPath := CreateTempDir(t, "", "tuf_temp")
 
 	// Start a test HTTP server to serve data from /test/testdata/tuf/test-repo/ paths
-	server := httptest.NewServer(http.FileServer(http.Dir(HttpTufTestDataPath)))
+	server := httptest.NewServer(http.FileServer(http.Dir(HTTPTUFTestDataPath)))
 	defer server.Close()
 
 	// run local registry
@@ -50,10 +50,10 @@ func TestRootInit(t *testing.T) {
 			t.Fatalf("failed to terminate container: %s", err) // nolint:gocritic
 		}
 	}()
-	LoadRegistryTestData(t, regAddr, OciTufTestDataPath)
+	LoadRegistryTestData(t, regAddr, OCITUFTestDataPath)
 
-	alwaysGoodVersionChecker := &mockVersionChecker{err: nil}
-	alwaysBadVersionChecker := &mockVersionChecker{err: assert.AnError}
+	alwaysGoodVersionChecker := &MockVersionChecker{err: nil}
+	alwaysBadVersionChecker := &MockVersionChecker{err: assert.AnError}
 
 	testCases := []struct {
 		name           string
@@ -65,17 +65,17 @@ func TestRootInit(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		_, err := NewTUFClient(embed.RootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker)
+		_, err := NewClient(embed.RootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker)
 		assert.NoErrorf(t, err, "Failed to create TUF client: %v", err)
 
 		// recreation should work with same root
-		_, err = NewTUFClient(embed.RootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker)
+		_, err = NewClient(embed.RootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker)
 		assert.NoErrorf(t, err, "Failed to recreate TUF client: %v", err)
 
-		_, err = NewTUFClient([]byte("broken"), tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker)
+		_, err = NewClient([]byte("broken"), tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker)
 		assert.Errorf(t, err, "Expected error recreating TUF client with broken root: %v", err)
 
-		_, err = NewTUFClient(embed.RootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysBadVersionChecker)
+		_, err = NewClient(embed.RootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysBadVersionChecker)
 		assert.Errorf(t, err, "Expected error creating TUF client with bad attest version: %v", err)
 	}
 }
@@ -83,11 +83,11 @@ func TestRootInit(t *testing.T) {
 func TestDownloadTarget(t *testing.T) {
 	tufPath := CreateTempDir(t, "", "tuf_temp")
 	targetFile := "test.txt"
-	delegatedRole := "test-role"
+	delegatedRole := testRole
 	delegatedTargetFile := fmt.Sprintf("%s/%s", delegatedRole, targetFile)
 
 	// Start a test HTTP server to serve data from /test/testdata/tuf/test-repo/ paths
-	server := httptest.NewServer(http.FileServer(http.Dir(HttpTufTestDataPath)))
+	server := httptest.NewServer(http.FileServer(http.Dir(HTTPTUFTestDataPath)))
 	defer server.Close()
 
 	// run local registry
@@ -97,9 +97,9 @@ func TestDownloadTarget(t *testing.T) {
 			t.Fatalf("failed to terminate container: %s", err) // nolint:gocritic
 		}
 	}()
-	LoadRegistryTestData(t, regAddr, OciTufTestDataPath)
+	LoadRegistryTestData(t, regAddr, OCITUFTestDataPath)
 
-	alwaysGoodVersionChecker := &mockVersionChecker{err: nil}
+	alwaysGoodVersionChecker := &MockVersionChecker{err: nil}
 
 	testCases := []struct {
 		name           string
@@ -111,7 +111,7 @@ func TestDownloadTarget(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tufClient, err := NewTUFClient(embed.RootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker)
+		tufClient, err := NewClient(embed.RootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker)
 		assert.NoErrorf(t, err, "Failed to create TUF client: %v", err)
 
 		// get trusted tuf metadata
@@ -135,22 +135,22 @@ func TestDownloadTarget(t *testing.T) {
 }
 
 func TestGetEmbeddedTufRootBytes(t *testing.T) {
-	dev, err := GetEmbeddedTufRoot("dev")
+	dev, err := GetEmbeddedRoot("dev")
 	assert.NoError(t, err)
 
-	staging, err := GetEmbeddedTufRoot("staging")
+	staging, err := GetEmbeddedRoot("staging")
 	assert.NoError(t, err)
 	assert.NotEqual(t, dev.Data, staging.Data)
 
-	prod, err := GetEmbeddedTufRoot("prod")
+	prod, err := GetEmbeddedRoot("prod")
 	assert.NoError(t, err)
 	assert.NotEqual(t, dev.Data, prod.Data)
 	assert.NotEqual(t, staging.Data, prod.Data)
 
-	def, err := GetEmbeddedTufRoot("")
+	def, err := GetEmbeddedRoot("")
 	assert.NoError(t, err)
 	assert.Equal(t, def.Data, prod.Data)
 
-	_, err = GetEmbeddedTufRoot("invalid")
+	_, err = GetEmbeddedRoot("invalid")
 	assert.Error(t, err)
 }

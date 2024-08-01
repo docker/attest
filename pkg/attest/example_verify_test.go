@@ -13,7 +13,7 @@ import (
 	"github.com/docker/attest/pkg/tuf"
 )
 
-func createTufClient(outputPath string) (*tuf.TUFClient, error) {
+func createTufClient(outputPath string) (*tuf.Client, error) {
 	// using oci tuf metadata and targets
 	metadataURI := "registry-1.docker.io/docker/tuf-metadata:latest"
 	targetsURI := "registry-1.docker.io/docker/tuf-targets"
@@ -21,7 +21,7 @@ func createTufClient(outputPath string) (*tuf.TUFClient, error) {
 	// metadataURI := "https://docker.github.io/tuf-staging/metadata"
 	// targetsURI := "https://docker.github.io/tuf-staging/targets"
 
-	return tuf.NewTUFClient(embed.RootStaging.Data, outputPath, metadataURI, targetsURI, tuf.NewMockVersionChecker())
+	return tuf.NewClient(embed.RootStaging.Data, outputPath, metadataURI, targetsURI, tuf.NewMockVersionChecker())
 }
 
 func ExampleVerify_remote() {
@@ -41,7 +41,7 @@ func ExampleVerify_remote() {
 	platform := "linux/amd64"
 
 	// configure policy options
-	opts := &policy.PolicyOptions{
+	opts := &policy.Options{
 		TUFClient:       tufClient,
 		LocalTargetsDir: filepath.Join(home, ".docker", "policy"), // location to store policy files downloaded from TUF
 		LocalPolicyDir:  "",                                       // overrides TUF policy for local policy files if set

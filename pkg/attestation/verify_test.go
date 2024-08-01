@@ -35,7 +35,7 @@ func TestVerifyUnsignedAttestation(t *testing.T) {
 	payload := []byte("payload")
 	env := &attestation.Envelope{
 		// no signatures
-		Signatures:  []attestation.Signature{},
+		Signatures:  []*attestation.Signature{},
 		Payload:     base64.StdEncoding.EncodeToString(payload),
 		PayloadType: intoto.PayloadType,
 	}

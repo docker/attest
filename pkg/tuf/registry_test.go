@@ -30,6 +30,8 @@ import (
 
 const (
 	tufTargetMediaType = "application/vnd.tuf.target"
+	testRole           = "test-role"
+	tufMetadataRepo    = "tuf-metadata"
 )
 
 func TestRegistryFetcher(t *testing.T) {
@@ -40,13 +42,13 @@ func TestRegistryFetcher(t *testing.T) {
 			t.Fatalf("failed to terminate container: %s", err) // nolint:gocritic
 		}
 	}()
-	LoadRegistryTestData(t, regAddr, OciTufTestDataPath)
+	LoadRegistryTestData(t, regAddr, OCITUFTestDataPath)
 
 	metadataRepo := regAddr.Host + "/tuf-metadata"
-	metadataImgTag := "latest"
+	metadataImgTag := LatestTag
 	targetsRepo := regAddr.Host + "/tuf-targets"
 	targetFile := "test.txt"
-	delegatedRole := "test-role"
+	delegatedRole := testRole
 	dir := CreateTempDir(t, "", "tuf_temp")
 	delegatedDir := CreateTempDir(t, dir, delegatedRole)
 	delegatedTargetFile := fmt.Sprintf("%s/%s", delegatedRole, targetFile)
@@ -130,7 +132,7 @@ func TestFindFileInManifest(t *testing.T) {
 	layer := mutate.Addendum{Layer: static.NewLayer(data, tufTargetMediaType), Annotations: ann}
 	img, err := mutate.Append(img, layer)
 	assert.NoError(t, err)
-	image_manifest, err := img.RawManifest()
+	imageManifest, err := img.RawManifest()
 	assert.NoError(t, err)
 
 	// make test index manifest
@@ -145,7 +147,7 @@ func TestFindFileInManifest(t *testing.T) {
 			},
 		},
 	})
-	index_manifest, err := idx.RawManifest()
+	indexManifest, err := idx.RawManifest()
 	assert.NoError(t, err)
 	// cache image layer
 	targetsRepo := "test/tuf-targets"
@@ -155,7 +157,7 @@ func TestFindFileInManifest(t *testing.T) {
 	}
 	imgHash, err := img.Digest()
 	assert.NoError(t, err)
-	d.cache.Put(fmt.Sprintf("%s@%s", targetsRepo, imgHash.String()), image_manifest)
+	d.cache.Put(fmt.Sprintf("%s@%s", targetsRepo, imgHash.String()), imageManifest)
 
 	testCases := []struct {
 		name     string
@@ -163,9 +165,9 @@ func TestFindFileInManifest(t *testing.T) {
 		file     string
 		expected string
 	}{
-		{"consistent filename image", image_manifest, fmt.Sprintf("%s.%s", hash.Hex, file), hash.Hex},
-		{"filename image", image_manifest, file, ""},
-		{"consistent filename index", index_manifest, fmt.Sprintf("%s.%s", hash.Hex, file), hash.Hex},
+		{"consistent filename image", imageManifest, fmt.Sprintf("%s.%s", hash.Hex, file), hash.Hex},
+		{"filename image", imageManifest, file, ""},
+		{"consistent filename index", indexManifest, fmt.Sprintf("%s.%s", hash.Hex, file), hash.Hex},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -182,9 +184,9 @@ func TestFindFileInManifest(t *testing.T) {
 
 func TestParseImgRef(t *testing.T) {
 	metadataRepo := "test/tuf-metadata"
-	metadataTag := "latest"
+	metadataTag := LatestTag
 	targetsRepo := "test/tuf-targets"
-	delegatedRole := "test-role"
+	delegatedRole := testRole
 	testCases := []struct {
 		name         string
 		ref          string
@@ -200,7 +202,7 @@ func TestParseImgRef(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			d := &RegistryFetcher{
 				metadataRepo: metadataRepo,
-				metadataTag:  "latest",
+				metadataTag:  LatestTag,
 				targetsRepo:  targetsRepo,
 			}
 			imgRef, file, err := d.parseImgRef(tc.ref)
@@ -246,7 +248,7 @@ func TestPullFileLayer(t *testing.T) {
 	}()
 
 	// make test layer
-	repo := "tuf-metadata"
+	repo := tufMetadataRepo
 	data := []byte("test")
 	testLayer := static.NewLayer(data, tufTargetMediaType)
 	hash, err := testLayer.Digest()
@@ -303,7 +305,7 @@ func TestGetManifest(t *testing.T) {
 	}()
 
 	// make test manifest
-	repo := "tuf-metadata"
+	repo := tufMetadataRepo
 	img := empty.Image
 	img = mutate.MediaType(img, types.OCIManifestSchema1)
 	img = mutate.ConfigMediaType(img, types.OCIConfigJSON)
@@ -339,7 +341,7 @@ func TestGetManifest(t *testing.T) {
 	}
 }
 
-// RunTestRegistry starts a registry testcontainer for TUF on OCI testdata
+// RunTestRegistry starts a registry testcontainer for TUF on OCI testdata.
 func RunTestRegistry(t *testing.T) (*registry.RegistryContainer, *url.URL) {
 	registryContainer, err := registry.Run(context.Background(), "registry:2.8.3")
 	if err != nil {
@@ -359,22 +361,21 @@ func RunTestRegistry(t *testing.T) (*registry.RegistryContainer, *url.URL) {
 	return registryContainer, addr
 }
 
-// LoadRegistryTestData pushes TUF metadata and targets to an OCI registry
+// LoadRegistryTestData pushes TUF metadata and targets to an OCI registry.
 func LoadRegistryTestData(t *testing.T, registry *url.URL, path string) {
 	// push tuf metadata and targets to local registry
-	METADATA_REPO := "tuf-metadata"
-	METADATA_TAG := "latest"
-	TARGETS_REPO := "tuf-targets"
-	DELEGATED_ROLE := "test-role"
+	MetadataRepo := tufMetadataRepo
+	TargetsRepo := "tuf-targets"
+	DelegatedRole := testRole
 
 	// push top-level metadata -> metadata:latest
-	err := LoadMetadata(filepath.Join(path, "metadata"), registry.Host, METADATA_REPO, METADATA_TAG)
+	err := LoadMetadata(filepath.Join(path, "metadata"), registry.Host, MetadataRepo, LatestTag)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// push delegated metadata -> metadata:<DELEGATED_ROLE>
-	err = LoadMetadata(filepath.Join(path, "metadata", DELEGATED_ROLE), registry.Host, METADATA_REPO, DELEGATED_ROLE)
+	err = LoadMetadata(filepath.Join(path, "metadata", DelegatedRole), registry.Host, MetadataRepo, DelegatedRole)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -392,7 +393,7 @@ func LoadRegistryTestData(t *testing.T, registry *url.URL, path string) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		ref, err := name.ParseReference(fmt.Sprintf("%s/%s:%s", registry.Host, TARGETS_REPO, dir.Name()))
+		ref, err := name.ParseReference(fmt.Sprintf("%s/%s:%s", registry.Host, TargetsRepo, dir.Name()))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -400,7 +401,8 @@ func LoadRegistryTestData(t *testing.T, registry *url.URL, path string) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(mf.Manifests) == 1 {
+		switch len(mf.Manifests) {
+		case 1:
 			// top-level target
 			img, err := tIdx.Image(mf.Manifests[0].Digest)
 			if err != nil {
@@ -410,19 +412,19 @@ func LoadRegistryTestData(t *testing.T, registry *url.URL, path string) {
 			if err != nil {
 				t.Fatal(err)
 			}
-		} else if len(mf.Manifests) > 1 {
+		case 2:
 			// delegated target
 			err = remote.WriteIndex(ref, tIdx, oci.MultiKeychainOption())
 			if err != nil {
 				t.Fatal(err)
 			}
-		} else {
+		default:
 			t.Fatal("no manifests found")
 		}
 	}
 }
 
-// LoadMetadata loads TUF metadata from a local path and pushes to a registry
+// LoadMetadata loads TUF metadata from a local path and pushes to a registry.
 func LoadMetadata(path, host, repo, tag string) error {
 	mIdx, err := layout.ImageIndexFromPath(path)
 	if err != nil {

@@ -85,9 +85,8 @@ func IndexFromRemote(image string) (*NamedIndex, error) {
 func LoadIndex(input *ImageSpec) (*NamedIndex, error) {
 	if input.Type == OCI {
 		return IndexFromPath(input.Identifier)
-	} else {
-		return IndexFromRemote(input.Identifier)
 	}
+	return IndexFromRemote(input.Identifier)
 }
 
 func (i *ImageSpec) ForPlatforms(platform string) ([]*ImageSpec, error) {

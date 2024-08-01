@@ -22,11 +22,11 @@ const (
 	TUFFileNameAnnotation = "tuf.io/filename"
 )
 
-type TUFRole string
+type Role string
 
-var TUFRoles = []TUFRole{metadata.ROOT, metadata.SNAPSHOT, metadata.TARGETS, metadata.TIMESTAMP}
+var Roles = []Role{metadata.ROOT, metadata.SNAPSHOT, metadata.TARGETS, metadata.TIMESTAMP}
 
-// RegistryFetcher implements Fetcher
+// RegistryFetcher implements Fetcher.
 type RegistryFetcher struct {
 	httpUserAgent string
 	metadataRepo  string
@@ -46,13 +46,13 @@ func NewImageCache() *ImageCache {
 	}
 }
 
-// Get image from cache
+// Get image from cache.
 func (c *ImageCache) Get(imgRef string) ([]byte, bool) {
 	img, found := c.cache[imgRef]
 	return img, found
 }
 
-// Add image to cache
+// Add image to cache.
 func (c *ImageCache) Put(imgRef string, img []byte) {
 	c.cache[imgRef] = img
 }
@@ -113,7 +113,7 @@ func (d *RegistryFetcher) DownloadFile(urlPath string, maxLength int64, timeout 
 	}
 }
 
-// getManifest returns the manifest for an image or index
+// getManifest returns the manifest for an image or index.
 func (d *RegistryFetcher) getManifest(ref string) ([]byte, error) {
 	// Pull image manifest
 	var err error
@@ -135,7 +135,7 @@ func (d *RegistryFetcher) getManifest(ref string) ([]byte, error) {
 	return mf, nil
 }
 
-// pullFileLayer pulls a layer for an image or index and returns its data
+// pullFileLayer pulls a layer for an image or index and returns its data.
 func (d *RegistryFetcher) pullFileLayer(ref string, maxLength int64) ([]byte, error) {
 	var data []byte
 	var found bool
@@ -159,7 +159,7 @@ func (d *RegistryFetcher) pullFileLayer(ref string, maxLength int64) ([]byte, er
 	return data, nil
 }
 
-// getDataFromLayer returns the data from a layer in an image
+// getDataFromLayer returns the data from a layer in an image.
 func getDataFromLayer(fileLayer v1.Layer, maxLength int64) ([]byte, error) {
 	length, err := fileLayer.Size()
 	if err != nil {
@@ -185,7 +185,7 @@ func getDataFromLayer(fileLayer v1.Layer, maxLength int64) ([]byte, error) {
 	return data, nil
 }
 
-// parseImgRef maintains the Fetcher interface by parsing a URL path to an image reference and file name
+// parseImgRef maintains the Fetcher interface by parsing a URL path to an image reference and file name.
 func (d *RegistryFetcher) parseImgRef(urlPath string) (imgRef, fileName string, err error) {
 	// Check if repo is target or metadata
 	if strings.Contains(urlPath, d.targetsRepo) {
@@ -208,12 +208,11 @@ func (d *RegistryFetcher) parseImgRef(urlPath string) (imgRef, fileName string, 
 			return fmt.Sprintf("%s:%s", d.metadataRepo, role), fileName, nil
 		}
 		return fmt.Sprintf("%s:%s", d.metadataRepo, d.metadataTag), fileName, nil
-	} else {
-		return "", "", fmt.Errorf("urlPath: %s must be in metadata or targets repo", urlPath)
 	}
+	return "", "", fmt.Errorf("urlPath: %s must be in metadata or targets repo", urlPath)
 }
 
-// findFileInManifest searches the image or index manifest for a file with the given name and returns its digest
+// findFileInManifest searches the image or index manifest for a file with the given name and returns its digest.
 func (d *RegistryFetcher) findFileInManifest(mf []byte, name string) (*v1.Hash, error) {
 	var index bool
 
@@ -226,13 +225,14 @@ func (d *RegistryFetcher) findFileInManifest(mf []byte, name string) (*v1.Hash, 
 
 	// determine image or index manifest
 	var layers []Layer
-	if l.MediaType == string(types.OCIImageIndex) {
+	switch l.MediaType {
+	case string(types.OCIImageIndex):
 		layers = l.Manifests
 		index = true
-	} else if l.MediaType == string(types.OCIManifestSchema1) {
+	case string(types.OCIManifestSchema1):
 		layers = l.Layers
 		index = false
-	} else {
+	default:
 		return nil, fmt.Errorf("invalid manifest media type: %s", l.MediaType)
 	}
 
@@ -267,7 +267,7 @@ func (d *RegistryFetcher) findFileInManifest(mf []byte, name string) (*v1.Hash, 
 	return hash, nil
 }
 
-// transportWithTimeout returns a http.RoundTripper with a specified timeout
+// transportWithTimeout returns a http.RoundTripper with a specified timeout.
 func transportWithTimeout(timeout time.Duration) http.RoundTripper {
 	// transport is based on go-containerregistry remote.DefaultTransport
 	// with modifications to include a specified timeout
@@ -286,9 +286,9 @@ func transportWithTimeout(timeout time.Duration) http.RoundTripper {
 	}
 }
 
-// isDelegatedRole returns true if the role is a delegated role
+// isDelegatedRole returns true if the role is a delegated role.
 func isDelegatedRole(role string) bool {
-	for _, r := range TUFRoles {
+	for _, r := range Roles {
 		if role == string(r) {
 			return false // role is not a delegated role
 		}
@@ -296,7 +296,7 @@ func isDelegatedRole(role string) bool {
 	return true // role is a delegated role
 }
 
-// roleFromConsistentName returns the role name from a consistent snapshot file name
+// roleFromConsistentName returns the role name from a consistent snapshot file name.
 func roleFromConsistentName(filename string) string {
 	name := strings.TrimSuffix(filename, ".json")
 	role := strings.Split(name, ".")

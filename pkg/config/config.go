@@ -31,7 +31,7 @@ func LoadLocalMappings(configDir string) (*PolicyMappings, error) {
 	return expandMappingFile(mappings)
 }
 
-func LoadTUFMappings(tufClient tuf.TUFDownloader, localTargetsDir string) (*PolicyMappings, error) {
+func LoadTUFMappings(tufClient tuf.Downloader, localTargetsDir string) (*PolicyMappings, error) {
 	if tufClient == nil {
 		return nil, fmt.Errorf("tuf client not set")
 	}

@@ -26,10 +26,10 @@ func GetMockTL() TL {
 	}
 
 	return &MockTL{
-		UploadLogEntryFunc: func(ctx context.Context, subject string, payload []byte, signature []byte, signer dsse.SignerVerifier) ([]byte, error) {
+		UploadLogEntryFunc: func(_ context.Context, _ string, _ []byte, _ []byte, _ dsse.SignerVerifier) ([]byte, error) {
 			return []byte(TestEntry), nil
 		},
-		VerifyLogEntryFunc: func(ctx context.Context, entryBytes []byte) (time.Time, error) {
+		VerifyLogEntryFunc: func(_ context.Context, entryBytes []byte) (time.Time, error) {
 			// return the integrated time in the log entry without any checking
 			le, err := unmarshalEntry(entryBytes)
 			if err != nil {
@@ -40,7 +40,7 @@ func GetMockTL() TL {
 			}
 			return time.Unix(*le.IntegratedTime, 0), nil
 		},
-		VerifyEntryPayloadFunc: func(entryBytes, payload, pkToken []byte) error {
+		VerifyEntryPayloadFunc: func(_, _, _ []byte) error {
 			return nil
 		},
 		UnmarshalEntryFunc: func(entry []byte) (any, error) {

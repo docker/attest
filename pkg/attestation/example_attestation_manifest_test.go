@@ -14,7 +14,7 @@ import (
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 )
 
-func ExampleAttestationManifest() {
+func ExampleManifest() {
 	// configure signerverifier
 	// local signer (unsafe for production)
 	signer, err := signerverifier.GenKeyPair()

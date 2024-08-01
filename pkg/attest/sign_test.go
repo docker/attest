@@ -52,7 +52,7 @@ func TestSignVerifyOCILayout(t *testing.T) {
 		{"no provenance (replace)", NoProvenanceImage, 0, 2, true},
 		{"no provenance (no replace)", NoProvenanceImage, 2, 2, false},
 	}
-	policyOpts := &policy.PolicyOptions{
+	policyOpts := &policy.Options{
 		LocalPolicyDir: PassPolicyDir,
 	}
 	for _, tc := range testCases {
@@ -120,7 +120,7 @@ func TestAddSignedLayerAnnotations(t *testing.T) {
 			testLayer := static.NewLayer(data, types.MediaType(intoto.PayloadType))
 			mediaType := types.OCIManifestSchema1
 			opts := &attestation.SigningOptions{}
-			originalLayer := &attestation.AttestationLayer{
+			originalLayer := &attestation.Layer{
 				Layer: testLayer,
 				Statement: &intoto.Statement{
 					StatementHeader: intoto.StatementHeader{
@@ -130,11 +130,11 @@ func TestAddSignedLayerAnnotations(t *testing.T) {
 				Annotations: map[string]string{"test": "test"},
 			}
 
-			manifest := &attestation.AttestationManifest{
+			manifest := &attestation.Manifest{
 				OriginalDescriptor: &v1.Descriptor{
 					MediaType: mediaType,
 				},
-				OriginalLayers: []*attestation.AttestationLayer{
+				OriginalLayers: []*attestation.Layer{
 					originalLayer,
 				},
 				SubjectDescriptor: &v1.Descriptor{},

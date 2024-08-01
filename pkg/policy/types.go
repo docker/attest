@@ -26,8 +26,8 @@ type Result struct {
 	Summary    Summary     `json:"summary"`
 }
 
-type PolicyOptions struct {
-	TUFClient        tuf.TUFDownloader
+type Options struct {
+	TUFClient        tuf.Downloader
 	LocalTargetsDir  string
 	LocalPolicyDir   string
 	PolicyID         string
@@ -36,19 +36,19 @@ type PolicyOptions struct {
 }
 
 type Policy struct {
-	InputFiles   []*PolicyFile
+	InputFiles   []*File
 	Query        string
 	Mapping      *config.PolicyMapping
 	ResolvedName string
 }
 
-type PolicyInput struct {
+type Input struct {
 	Digest      string `json:"digest"`
 	PURL        string `json:"purl"`
 	IsCanonical bool   `json:"isCanonical"`
 }
 
-type PolicyFile struct {
+type File struct {
 	Path    string
 	Content []byte
 }

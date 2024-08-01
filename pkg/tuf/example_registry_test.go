@@ -9,7 +9,7 @@ import (
 	"github.com/theupdateframework/go-tuf/v2/metadata"
 )
 
-func ExampleNewTufClient_registry() {
+func ExampleNewClient_registry() {
 	// create a tuf client
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -21,7 +21,7 @@ func ExampleNewTufClient_registry() {
 	metadataURI := "registry-1.docker.io/docker/tuf-metadata:latest"
 	targetsURI := "registry-1.docker.io/docker/tuf-targets"
 
-	registryClient, err := tuf.NewTUFClient(embed.RootStaging.Data, tufOutputPath, metadataURI, targetsURI, tuf.NewMockVersionChecker())
+	registryClient, err := tuf.NewClient(embed.RootStaging.Data, tufOutputPath, metadataURI, targetsURI, tuf.NewMockVersionChecker())
 	if err != nil {
 		panic(err)
 	}

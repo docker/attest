@@ -46,7 +46,7 @@ func TestSignVerifyAttestation(t *testing.T) {
 	assert.True(t, ok)
 	pem, err := signerverifier.ConvertToPEM(ecPub)
 	assert.NoError(t, err)
-	keyId, err := signerverifier.KeyID(ecPub)
+	keyID, err := signerverifier.KeyID(ecPub)
 	assert.NoError(t, err)
 
 	badKeyPriv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
@@ -57,7 +57,7 @@ func TestSignVerifyAttestation(t *testing.T) {
 
 	testCases := []struct {
 		name          string
-		keyId         string
+		keyID         string
 		pem           []byte
 		distrust      bool
 		from          time.Time
@@ -67,7 +67,7 @@ func TestSignVerifyAttestation(t *testing.T) {
 	}{
 		{
 			name:          "all OK",
-			keyId:         keyId,
+			keyID:         keyID,
 			pem:           pem,
 			distrust:      false,
 			from:          time.Time{},
@@ -77,17 +77,17 @@ func TestSignVerifyAttestation(t *testing.T) {
 		},
 		{
 			name:          "key not found",
-			keyId:         "someotherkey",
+			keyID:         "someotherkey",
 			pem:           pem,
 			distrust:      false,
 			from:          time.Time{},
 			to:            nil,
 			status:        "active",
-			expectedError: fmt.Sprintf("key not found: %s", keyId),
+			expectedError: fmt.Sprintf("key not found: %s", keyID),
 		},
 		{
 			name:          "key distrusted",
-			keyId:         keyId,
+			keyID:         keyID,
 			pem:           pem,
 			distrust:      true,
 			from:          time.Time{},
@@ -97,7 +97,7 @@ func TestSignVerifyAttestation(t *testing.T) {
 		},
 		{
 			name:          "key not yet valid",
-			keyId:         keyId,
+			keyID:         keyID,
 			pem:           pem,
 			distrust:      false,
 			from:          time.Now().Add(time.Hour),
@@ -107,7 +107,7 @@ func TestSignVerifyAttestation(t *testing.T) {
 		},
 		{
 			name:          "key already revoked",
-			keyId:         keyId,
+			keyID:         keyID,
 			pem:           pem,
 			distrust:      false,
 			from:          time.Time{},
@@ -117,7 +117,7 @@ func TestSignVerifyAttestation(t *testing.T) {
 		},
 		{
 			name:          "bad key",
-			keyId:         keyId,
+			keyID:         keyID,
 			pem:           badPEM,
 			distrust:      false,
 			from:          time.Time{},
@@ -129,8 +129,8 @@ func TestSignVerifyAttestation(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			keyMeta := attestation.KeyMetadata{
-				ID:       tc.keyId,
+			keyMeta := &attestation.KeyMetadata{
+				ID:       tc.keyID,
 				PEM:      string(tc.pem),
 				Distrust: tc.distrust,
 				From:     tc.from,

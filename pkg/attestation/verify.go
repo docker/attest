@@ -28,8 +28,8 @@ type KeyMetadata struct {
 }
 
 type (
-	Keys    []KeyMetadata
-	KeysMap map[string]KeyMetadata
+	Keys    []*KeyMetadata
+	KeysMap map[string]*KeyMetadata
 )
 
 func VerifyDSSE(ctx context.Context, env *Envelope, opts *VerifyOptions) ([]byte, error) {
@@ -60,8 +60,8 @@ func VerifyDSSE(ctx context.Context, env *Envelope, opts *VerifyOptions) ([]byte
 	return payload, nil
 }
 
-func verifySignature(ctx context.Context, sig Signature, payload []byte, opts *VerifyOptions) error {
-	keys := make(map[string]KeyMetadata, len(opts.Keys))
+func verifySignature(ctx context.Context, sig *Signature, payload []byte, opts *VerifyOptions) error {
+	keys := make(map[string]*KeyMetadata, len(opts.Keys))
 	for _, key := range opts.Keys {
 		keys[key.ID] = key
 	}
@@ -81,9 +81,8 @@ func verifySignature(ctx context.Context, sig Signature, payload []byte, opts *V
 
 	if !opts.SkipTL {
 		t := tlog.GetTL(ctx)
-
-		if sig.Extension.Kind == "" {
-			return fmt.Errorf("error missing signature extension kind")
+		if sig.Extension == nil || sig.Extension.Kind == "" {
+			return fmt.Errorf("error missing signature extension")
 		}
 		if sig.Extension.Kind != DockerDSSEExtKind {
 			return fmt.Errorf("error unsupported signature extension kind: %s", sig.Extension.Kind)

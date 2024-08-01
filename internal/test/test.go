@@ -55,7 +55,7 @@ func Setup(t *testing.T) (context.Context, dsse.SignerVerifier) {
 
 	ctx := tlog.WithTL(context.Background(), tl)
 
-	var policyEvaluator policy.PolicyEvaluator
+	var policyEvaluator policy.Evaluator
 	if UseMockPolicy {
 		policyEvaluator = policy.GetMockPolicy()
 	} else {
@@ -95,7 +95,8 @@ func ExtractStatementsFromIndex(idx v1.ImageIndex, mediaType string) ([]*Annotat
 
 	var statements []*AnnotatedStatement
 
-	for _, mf := range mfs2.Manifests {
+	for i := range mfs2.Manifests {
+		mf := &mfs2.Manifests[i]
 		if mf.Annotations[attestation.DockerReferenceType] != "attestation-manifest" {
 			continue
 		}

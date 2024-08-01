@@ -31,18 +31,18 @@ type DelegatedTargetMetadata struct {
 	Data    []byte
 }
 
-type MirrorImage struct {
+type Image struct {
 	Image v1.Image
 	Tag   string
 }
 
-type MirrorIndex struct {
+type Index struct {
 	Index v1.ImageIndex
 	Tag   string
 }
 
 type TUFMirror struct {
-	TUFClient   *tuf.TUFClient
+	TUFClient   *tuf.Client
 	tufPath     string
 	metadataURL string
 	targetsURL  string

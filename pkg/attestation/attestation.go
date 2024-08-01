@@ -17,19 +17,21 @@ import (
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 )
 
-// GetAttestationManifestsFromIndex extracts all attestation manifests from an index
-func GetAttestationManifestsFromIndex(index v1.ImageIndex) ([]*AttestationManifest, error) {
+// GetAttestationManifestsFromIndex extracts all attestation manifests from an index.
+func GetAttestationManifestsFromIndex(index v1.ImageIndex) ([]*Manifest, error) {
 	idx, err := index.IndexManifest()
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract IndexManifest from ImageIndex: %w", err)
 	}
 	subjects := make(map[string]*v1.Descriptor)
-	for _, subject := range idx.Manifests {
-		subjects[subject.Digest.String()] = &subject
+	for i := range idx.Manifests {
+		subject := &idx.Manifests[i]
+		subjects[subject.Digest.String()] = subject
 	}
 
-	var attestationManifests []*AttestationManifest
-	for _, desc := range idx.Manifests {
+	var attestationManifests []*Manifest
+	for i := range idx.Manifests {
+		desc := idx.Manifests[i]
 		if desc.Annotations[DockerReferenceType] == AttestationManifestType {
 			subject := subjects[desc.Annotations[DockerReferenceDigest]]
 			if subject == nil {
@@ -44,7 +46,7 @@ func GetAttestationManifestsFromIndex(index v1.ImageIndex) ([]*AttestationManife
 				return nil, fmt.Errorf("failed to get attestations from image: %w", err)
 			}
 			attestationManifests = append(attestationManifests,
-				&AttestationManifest{
+				&Manifest{
 					OriginalDescriptor: &desc,
 					SubjectDescriptor:  subject,
 					OriginalLayers:     attestationLayers,
@@ -54,13 +56,13 @@ func GetAttestationManifestsFromIndex(index v1.ImageIndex) ([]*AttestationManife
 	return attestationManifests, nil
 }
 
-// GetAttestationsFromImage extracts all attestation layers from an image
-func GetAttestationsFromImage(image v1.Image) ([]*AttestationLayer, error) {
+// GetAttestationsFromImage extracts all attestation layers from an image.
+func GetAttestationsFromImage(image v1.Image) ([]*Layer, error) {
 	layers, err := image.Layers()
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract layers from image: %w", err)
 	}
-	var attestationLayers []*AttestationLayer
+	var attestationLayers []*Layer
 	for _, layer := range layers {
 		// parse layer blob as json
 		r, err := layer.Uncompressed()
@@ -86,12 +88,12 @@ func GetAttestationsFromImage(image v1.Image) ([]*AttestationLayer, error) {
 				return nil, fmt.Errorf("failed to decode statement layer contents: %w", err)
 			}
 		}
-		attestationLayers = append(attestationLayers, &AttestationLayer{Layer: layer, Statement: stmt, Annotations: ann})
+		attestationLayers = append(attestationLayers, &Layer{Layer: layer, Statement: stmt, Annotations: ann})
 	}
 	return attestationLayers, nil
 }
 
-func (manifest *AttestationManifest) AddAttestation(ctx context.Context, signer dsse.SignerVerifier, statement *intoto.Statement, opts *SigningOptions) error {
+func (manifest *Manifest) AddAttestation(ctx context.Context, signer dsse.SignerVerifier, statement *intoto.Statement, opts *SigningOptions) error {
 	layer, err := createSignedImageLayer(ctx, statement, signer, opts)
 	if err != nil {
 		return fmt.Errorf("failed to create signed layer: %w", err)
@@ -100,7 +102,7 @@ func (manifest *AttestationManifest) AddAttestation(ctx context.Context, signer 
 	return nil
 }
 
-func createSignedImageLayer(ctx context.Context, statement *intoto.Statement, signer dsse.SignerVerifier, opts *SigningOptions) (*AttestationLayer, error) {
+func createSignedImageLayer(ctx context.Context, statement *intoto.Statement, signer dsse.SignerVerifier, opts *SigningOptions) (*Layer, error) {
 	// sign the statement
 	env, err := SignInTotoStatement(ctx, statement, signer, opts)
 	if err != nil {
@@ -115,7 +117,7 @@ func createSignedImageLayer(ctx context.Context, statement *intoto.Statement, si
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal envelope: %w", err)
 	}
-	return &AttestationLayer{
+	return &Layer{
 		Statement: statement,
 		Annotations: map[string]string{
 			InTotoPredicateType:           statement.PredicateType,
@@ -139,8 +141,8 @@ func SignInTotoStatement(ctx context.Context, statement *intoto.Statement, signe
 
 func UpdateIndexImage(
 	idx v1.ImageIndex,
-	manifest *AttestationManifest,
-	options ...func(*AttestationManifestImageOptions) error,
+	manifest *Manifest,
+	options ...func(*ManifestImageOptions) error,
 ) (v1.ImageIndex, error) {
 	image, err := manifest.BuildAttestationImage(options...)
 	if err != nil {
@@ -164,7 +166,7 @@ func UpdateIndexImage(
 	return idx, nil
 }
 
-func UpdateIndexImages(idx v1.ImageIndex, manifest []*AttestationManifest, options ...func(*AttestationManifestImageOptions) error) (v1.ImageIndex, error) {
+func UpdateIndexImages(idx v1.ImageIndex, manifest []*Manifest, options ...func(*ManifestImageOptions) error) (v1.ImageIndex, error) {
 	var err error
 	for _, m := range manifest {
 		idx, err = UpdateIndexImage(idx, m, options...)
@@ -175,8 +177,8 @@ func UpdateIndexImages(idx v1.ImageIndex, manifest []*AttestationManifest, optio
 	return idx, nil
 }
 
-func newOptions(options ...func(*AttestationManifestImageOptions) error) (*AttestationManifestImageOptions, error) {
-	opts := &AttestationManifestImageOptions{}
+func newOptions(options ...func(*ManifestImageOptions) error) (*ManifestImageOptions, error) {
+	opts := &ManifestImageOptions{}
 	for _, opt := range options {
 		err := opt(opts)
 		if err != nil {
@@ -186,22 +188,22 @@ func newOptions(options ...func(*AttestationManifestImageOptions) error) (*Attes
 	return opts, nil
 }
 
-func WithoutSubject(skipSubject bool) func(*AttestationManifestImageOptions) error {
-	return func(r *AttestationManifestImageOptions) error {
+func WithoutSubject(skipSubject bool) func(*ManifestImageOptions) error {
+	return func(r *ManifestImageOptions) error {
 		r.skipSubject = skipSubject
 		return nil
 	}
 }
 
-func WithReplacedLayers(replaceLayers bool) func(*AttestationManifestImageOptions) error {
-	return func(r *AttestationManifestImageOptions) error {
+func WithReplacedLayers(replaceLayers bool) func(*ManifestImageOptions) error {
+	return func(r *ManifestImageOptions) error {
 		r.replaceLayers = replaceLayers
 		return nil
 	}
 }
 
-// build an image with signed attestations, optionally replacing existing layers with signed layers
-func (manifest *AttestationManifest) BuildAttestationImage(options ...func(*AttestationManifestImageOptions) error) (v1.Image, error) {
+// build an image with signed attestations, optionally replacing existing layers with signed layers.
+func (manifest *Manifest) BuildAttestationImage(options ...func(*ManifestImageOptions) error) (v1.Image, error) {
 	opts, err := newOptions(options...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create options: %w", err)
@@ -224,7 +226,7 @@ func (manifest *AttestationManifest) BuildAttestationImage(options ...func(*Atte
 			resultLayers = append(resultLayers, existingLayer)
 		}
 	}
-	// so taht we attach all attestations to a single attestations image - as per current buildkit
+	// so that we attach all attestations to a single attestations image - as per current buildkit
 	opts.laxReferrers = true
 	newImg, err := buildImage(resultLayers, manifest.OriginalDescriptor, manifest.SubjectDescriptor, opts)
 	if err != nil {
@@ -233,12 +235,12 @@ func (manifest *AttestationManifest) BuildAttestationImage(options ...func(*Atte
 	return newImg, nil
 }
 
-// build an image per attestation (layer) suitable for use as Referrers
-func (manifest *AttestationManifest) BuildReferringArtifacts() ([]v1.Image, error) {
+// build an image per attestation (layer) suitable for use as Referrers.
+func (manifest *Manifest) BuildReferringArtifacts() ([]v1.Image, error) {
 	var images []v1.Image
 	for _, layer := range manifest.SignedLayers {
-		opts := &AttestationManifestImageOptions{}
-		newImg, err := buildImage([]*AttestationLayer{layer}, manifest.OriginalDescriptor, manifest.SubjectDescriptor, opts)
+		opts := &ManifestImageOptions{}
+		newImg, err := buildImage([]*Layer{layer}, manifest.OriginalDescriptor, manifest.SubjectDescriptor, opts)
 		if err != nil {
 			return nil, fmt.Errorf("failed to build image: %w", err)
 		}
@@ -247,14 +249,14 @@ func (manifest *AttestationManifest) BuildReferringArtifacts() ([]v1.Image, erro
 	return images, nil
 }
 
-// build and image containing only layers
-func buildImage(layers []*AttestationLayer, manifest *v1.Descriptor, subject *v1.Descriptor, opts *AttestationManifestImageOptions) (v1.Image, error) {
+// build and image containing only layers.
+func buildImage(layers []*Layer, manifest *v1.Descriptor, subject *v1.Descriptor, opts *ManifestImageOptions) (v1.Image, error) {
 	newImg := empty.Image
 	var err error
 	if len(layers) == 0 {
 		return nil, fmt.Errorf("no layers supplied to build image")
 	}
-	// NB: if we add the subject before the layers, it does not end up being computed/serialised in the output for some reason
+	// NB: if we add the subject before the layers, it does not end up being computed/serialized in the output for some reason
 	// TODO - recreate this bug and push upstream
 	for _, layer := range layers {
 		add := mutate.Addendum{
@@ -285,7 +287,11 @@ func buildImage(layers []*AttestationLayer, manifest *v1.Descriptor, subject *v1
 	// see note above - must be added after the layers!
 	if !opts.skipSubject {
 		subject.Platform = nil
-		newImg = mutate.Subject(newImg, *subject).(v1.Image)
+		ok := false
+		newImg, ok = mutate.Subject(newImg, *subject).(v1.Image)
+		if !ok {
+			return nil, fmt.Errorf("failed to set subject: %w", err)
+		}
 	}
 	if !opts.laxReferrers {
 		// as per https://github.com/opencontainers/image-spec/blob/main/manifest.md#guidance-for-an-empty-descriptor

@@ -6,25 +6,25 @@ import (
 	"path/filepath"
 )
 
-type mockTufClient struct {
+type MockTufClient struct {
 	srcPath string
 	dstPath string
 }
 
-func NewMockTufClient(srcPath string, dstPath string) *mockTufClient {
+func NewMockTufClient(srcPath string, dstPath string) *MockTufClient {
 	if srcPath == "" {
 		panic("srcPath must be set")
 	}
 	if dstPath == "" {
 		panic("dstPath must be set")
 	}
-	return &mockTufClient{
+	return &MockTufClient{
 		srcPath: srcPath,
 		dstPath: dstPath,
 	}
 }
 
-func (dc *mockTufClient) DownloadTarget(target string, filePath string) (actualFilePath string, data []byte, err error) {
+func (dc *MockTufClient) DownloadTarget(target string, filePath string) (actualFilePath string, data []byte, err error) {
 	src, err := os.Open(filepath.Join(dc.srcPath, target))
 	if err != nil {
 		return "", nil, err
@@ -59,14 +59,14 @@ func (dc *mockTufClient) DownloadTarget(target string, filePath string) (actualF
 	return dstFilePath, b, nil
 }
 
-type mockVersionChecker struct {
+type MockVersionChecker struct {
 	err error
 }
 
-func NewMockVersionChecker() *mockVersionChecker {
-	return &mockVersionChecker{}
+func NewMockVersionChecker() *MockVersionChecker {
+	return &MockVersionChecker{}
 }
 
-func (vc *mockVersionChecker) CheckVersion(client TUFDownloader) error {
+func (vc *MockVersionChecker) CheckVersion(_ Downloader) error {
 	return vc.err
 }

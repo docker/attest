@@ -148,6 +148,7 @@ func VerifyAttestations(ctx context.Context, resolver attestation.Resolver, pctx
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert ref to purl: %w", err)
 	}
+	// unlike the function name indicates, this adds latest if no tag is present
 	ref = reference.TagNameOnly(ref)
 	var tag string
 	if tagged, ok := ref.(reference.Tagged); ok {

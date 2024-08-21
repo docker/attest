@@ -24,8 +24,8 @@ atts := union({
 
 success if {
 	input.domain == "docker.io"
-	input.familiarName == "test-image"
-	input.normalizedName == "library/test-image"
+	input.familiar_name == "test-image"
+	input.normalized_name == "library/test-image"
 	input.platform == "linux/amd64"
 	input.tag == "test"
 }

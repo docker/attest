@@ -27,8 +27,7 @@ success if {
 	input.familiarName == "test-image"
 	input.normalizedName == "library/test-image"
 	input.platform == "linux/amd64"
-	input.tag = "test"
-	true
+	input.tag == "test"
 }
 
 result := {

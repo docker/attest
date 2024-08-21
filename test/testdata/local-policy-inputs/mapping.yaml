@@ -1,0 +1,18 @@
+version: v1
+kind: policy-mapping
+policies:
+  - id: docker-official-images
+    description: Docker Official Images
+    files:
+      - path: doi/policy.rego
+rules:
+  - pattern: "^docker[.]io/library/(.*)$"
+    policy-id: docker-official-images
+  - pattern: "repo$"
+    policy-id: docker-official-images
+  - pattern: "test-image$"
+    policy-id: docker-official-images
+  - pattern: "image-signer-verifier-test$"
+    policy-id: docker-official-images
+  - pattern: "library/(.*)$"
+    rewrite: docker.io/library/$1

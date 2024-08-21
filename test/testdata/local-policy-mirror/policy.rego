@@ -38,7 +38,7 @@ subjects contains subject if {
 }
 
 success if {
-	print("input:",input)
+	# print("input:",input)
 	true
 }
 

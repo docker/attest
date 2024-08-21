@@ -20,6 +20,7 @@ var (
 	PassMirrorPolicyDir = filepath.Join("..", "..", "test", "testdata", "local-policy-mirror")
 	PassNoTLPolicyDir   = filepath.Join("..", "..", "test", "testdata", "local-policy-no-tl")
 	FailPolicyDir       = filepath.Join("..", "..", "test", "testdata", "local-policy-fail")
+	InputsPolicyDir     = filepath.Join("..", "..", "test", "testdata", "local-policy-inputs")
 	TestTempDir         = "attest-sign-test"
 )
 

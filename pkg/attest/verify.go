@@ -140,14 +140,28 @@ func VerifyAttestations(ctx context.Context, resolver attestation.Resolver, pctx
 		name = strings.Replace(name, oldName, pctx.ResolvedName, 1)
 	}
 
-	purl, canonical, err := oci.RefToPURL(name, platform)
+	ref, err := reference.ParseNormalizedNamed(name)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse ref %q: %w", ref, err)
+	}
+	purl, canonical, err := oci.RefToPURL(ref, platform)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert ref to purl: %w", err)
 	}
+	ref = reference.TagNameOnly(ref)
+	var tag string
+	if tagged, ok := ref.(reference.Tagged); ok {
+		tag = tagged.Tag()
+	}
 	input := &policy.Input{
-		Digest:      digest,
-		PURL:        purl,
-		IsCanonical: canonical,
+		Digest:         digest,
+		PURL:           purl,
+		IsCanonical:    canonical,
+		Platform:       platform.String(),
+		Domain:         reference.Domain(ref),
+		NormalizedName: reference.Path(ref),
+		FamiliarName:   reference.FamiliarName(ref),
+		Tag:            tag,
 	}
 
 	evaluator, err := policy.GetPolicyEvaluator(ctx)

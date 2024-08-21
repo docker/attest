@@ -51,23 +51,25 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 		policyID        string
 		resolveErrorStr string
 	}{
-		{repo: "testdata/mock-tuf-allow", expectSuccess: true, isCanonical: false, resolver: defaultResolver},
-		{repo: "testdata/mock-tuf-allow", expectSuccess: true, isCanonical: false, resolver: defaultResolver, policyID: "docker-official-images"},
-		{repo: "testdata/mock-tuf-allow", expectSuccess: false, isCanonical: false, resolver: defaultResolver, policyID: "non-existent-policy-id", resolveErrorStr: resolveErrorStr},
-		{repo: "testdata/mock-tuf-deny", expectSuccess: false, isCanonical: false, resolver: defaultResolver},
-		{repo: "testdata/mock-tuf-verify-sig", expectSuccess: true, isCanonical: false, resolver: defaultResolver},
-		{repo: "testdata/mock-tuf-wrong-key", expectSuccess: false, isCanonical: false, resolver: defaultResolver},
+		{repo: "testdata/mock-tuf-allow", expectSuccess: true, resolver: defaultResolver},
+		{repo: "testdata/mock-tuf-allow", expectSuccess: true, resolver: defaultResolver, policyID: "docker-official-images"},
+		{repo: "testdata/mock-tuf-allow", resolver: defaultResolver, policyID: "non-existent-policy-id", resolveErrorStr: resolveErrorStr},
+		{repo: "testdata/mock-tuf-deny", resolver: defaultResolver},
+		{repo: "testdata/mock-tuf-verify-sig", expectSuccess: true, resolver: defaultResolver},
+		{repo: "testdata/mock-tuf-wrong-key", resolver: defaultResolver},
 		{repo: "testdata/mock-tuf-allow-canonical", expectSuccess: true, isCanonical: true, resolver: defaultResolver},
-		{repo: "testdata/mock-tuf-allow-canonical", expectSuccess: false, isCanonical: false, resolver: defaultResolver},
-		{repo: "testdata/mock-tuf-no-rego", expectSuccess: false, isCanonical: false, resolver: defaultResolver, resolveErrorStr: "no policy file found in policy mapping"},
+		{repo: "testdata/mock-tuf-allow-canonical", resolver: defaultResolver},
+		{repo: "testdata/mock-tuf-no-rego", resolver: defaultResolver, resolveErrorStr: "no policy file found in policy mapping"},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.repo, func(t *testing.T) {
 			input := &policy.Input{
-				Digest:      "sha256:test-digest",
-				PURL:        "test-purl",
-				IsCanonical: tc.isCanonical,
+				Digest: "sha256:test-digest",
+				PURL:   "test-purl",
+			}
+			if !tc.isCanonical {
+				input.Tag = "test"
 			}
 
 			tufClient := tuf.NewMockTufClient(tc.repo, test.CreateTempDir(t, "", "tuf-dest"))

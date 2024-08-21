@@ -99,7 +99,7 @@ func TestVSA(t *testing.T) {
 
 	if assert.NotNil(t, results.Input) {
 		assert.Equal(t, "sha256:da8b190665956ea07890a0273e2a9c96bfe291662f08e2860e868eef69c34620", results.Input.Digest)
-		assert.False(t, results.Input.IsCanonical)
+		assert.NotNil(t, results.Input.Tag)
 	}
 
 	assert.Equal(t, intoto.StatementInTotoV01, results.VSA.Type)

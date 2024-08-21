@@ -148,21 +148,26 @@ func VerifyAttestations(ctx context.Context, resolver attestation.Resolver, pctx
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert ref to purl: %w", err)
 	}
-	// unlike the function name indicates, this adds latest if no tag is present
-	ref = reference.TagNameOnly(ref)
 	var tag string
+	if !canonical {
+		// unlike the function name indicates, this adds latest if no tag is present
+		ref = reference.TagNameOnly(ref)
+	}
+
 	if tagged, ok := ref.(reference.Tagged); ok {
 		tag = tagged.Tag()
 	}
 	input := &policy.Input{
 		Digest:         digest,
 		PURL:           purl,
-		IsCanonical:    canonical,
 		Platform:       platform.String(),
 		Domain:         reference.Domain(ref),
 		NormalizedName: reference.Path(ref),
 		FamiliarName:   reference.FamiliarName(ref),
-		Tag:            tag,
+	}
+	// rego has null strings
+	if tag != "" {
+		input.Tag = tag
 	}
 
 	evaluator, err := policy.GetPolicyEvaluator(ctx)

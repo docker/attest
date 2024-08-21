@@ -2,6 +2,10 @@ package attest
 
 import rego.v1
 
-result := {
-  "success": input.is_canonical,
+default canonical = false
+
+canonical if {
+  not input.tag
 }
+
+result := {"success": canonical}

@@ -22,7 +22,7 @@ require (
 	github.com/sigstore/sigstore/pkg/signature/kms/aws v1.8.8
 	github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.8.8
 	github.com/stretchr/testify v1.9.0
-	github.com/testcontainers/testcontainers-go/modules/registry v0.32.0
+	github.com/testcontainers/testcontainers-go/modules/registry v0.33.0
 	github.com/theupdateframework/go-tuf/v2 v2.0.0
 	google.golang.org/api v0.192.0
 	sigs.k8s.io/yaml v1.4.0
@@ -42,7 +42,6 @@ require (
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
-	github.com/Microsoft/hcsshim v0.12.3 // indirect
 	github.com/OneOfOne/xxhash v1.2.8 // indirect
 	github.com/ProtonMail/go-crypto v1.0.0 // indirect
 	github.com/agnivade/levenshtein v1.1.1 // indirect
@@ -161,7 +160,7 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d // indirect
 	github.com/tchap/go-patricia/v2 v2.3.1 // indirect
-	github.com/testcontainers/testcontainers-go v0.32.0 // indirect
+	github.com/testcontainers/testcontainers-go v0.33.0 // indirect
 	github.com/theupdateframework/go-tuf v0.7.0 // indirect
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399 // indirect
 	github.com/tklauser/go-sysconf v0.3.14 // indirect

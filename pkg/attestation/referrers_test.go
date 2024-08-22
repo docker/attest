@@ -13,6 +13,7 @@ import (
 	"github.com/docker/attest/pkg/config"
 	"github.com/docker/attest/pkg/oci"
 	"github.com/docker/attest/pkg/policy"
+	"github.com/docker/attest/pkg/tuf"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/registry"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
@@ -27,12 +28,14 @@ var (
 	LocalPolicyAttached = filepath.Join("..", "..", "test", "testdata", "local-policy-attached")
 	PassNoTLPolicyDir   = filepath.Join("..", "..", "test", "testdata", "local-policy-no-tl")
 	FailPolicyDir       = filepath.Join("..", "..", "test", "testdata", "local-policy-fail")
+	EmptyTUFDir         = filepath.Join("..", "..", "test", "testdata", "local-policy-no-policies")
 	TestTempDir         = "attest-sign-test"
 )
 
 func TestAttestationReferenceTypes(t *testing.T) {
 	ctx, signer := test.Setup(t)
 	ctx = policy.WithPolicyEvaluator(ctx, policy.NewRegoEvaluator(true))
+	ctx = tuf.WithDownloader(ctx, tuf.NewMockTufClient(EmptyTUFDir, test.CreateTempDir(t, "", "tuf-dest")))
 	platforms := []string{"linux/amd64", "linux/arm64"}
 	for _, tc := range []struct {
 		name              string
@@ -182,6 +185,7 @@ func TestAttestationReferenceTypes(t *testing.T) {
 
 func TestReferencesInDifferentRepo(t *testing.T) {
 	ctx, signer := test.Setup(t)
+	ctx = tuf.WithDownloader(ctx, tuf.NewMockTufClient(EmptyTUFDir, test.CreateTempDir(t, "", "tuf-dest")))
 	repoName := "repo"
 	for _, tc := range []struct {
 		name      string

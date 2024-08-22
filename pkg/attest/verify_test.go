@@ -70,6 +70,7 @@ func TestVerifyAttestations(t *testing.T) {
 func TestVSA(t *testing.T) {
 	ctx, signer := test.Setup(t)
 	ctx = policy.WithPolicyEvaluator(ctx, policy.NewRegoEvaluator(true))
+	ctx = tuf.WithDownloader(ctx, tuf.NewMockTufClient(EmptyPolicyDir, test.CreateTempDir(t, "", "tuf-dest")))
 	// setup an image with signed attestations
 	outputLayout := test.CreateTempDir(t, "", TestTempDir)
 
@@ -122,6 +123,7 @@ func TestVSA(t *testing.T) {
 func TestVerificationFailure(t *testing.T) {
 	ctx, signer := test.Setup(t)
 	ctx = policy.WithPolicyEvaluator(ctx, policy.NewRegoEvaluator(true))
+	ctx = tuf.WithDownloader(ctx, tuf.NewMockTufClient(EmptyPolicyDir, test.CreateTempDir(t, "", "tuf-dest")))
 	// setup an image with signed attestations
 	outputLayout := test.CreateTempDir(t, "", TestTempDir)
 
@@ -174,6 +176,7 @@ func TestVerificationFailure(t *testing.T) {
 func TestSignVerify(t *testing.T) {
 	ctx, signer := test.Setup(t)
 	ctx = policy.WithPolicyEvaluator(ctx, policy.NewRegoEvaluator(true))
+	ctx = tuf.WithDownloader(ctx, tuf.NewMockTufClient(EmptyPolicyDir, test.CreateTempDir(t, "", "tuf-dest")))
 	// setup an image with signed attestations
 	outputLayout := test.CreateTempDir(t, "", TestTempDir)
 

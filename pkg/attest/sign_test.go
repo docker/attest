@@ -8,6 +8,7 @@ import (
 	"github.com/docker/attest/pkg/attestation"
 	"github.com/docker/attest/pkg/oci"
 	"github.com/docker/attest/pkg/policy"
+	"github.com/docker/attest/pkg/tuf"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	v02 "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/stretchr/testify/assert"
@@ -21,11 +22,13 @@ var (
 	PassNoTLPolicyDir   = filepath.Join("..", "..", "test", "testdata", "local-policy-no-tl")
 	FailPolicyDir       = filepath.Join("..", "..", "test", "testdata", "local-policy-fail")
 	InputsPolicyDir     = filepath.Join("..", "..", "test", "testdata", "local-policy-inputs")
+	EmptyPolicyDir      = filepath.Join("..", "..", "test", "testdata", "local-policy-no-policies")
 	TestTempDir         = "attest-sign-test"
 )
 
 func TestSignVerifyOCILayout(t *testing.T) {
 	ctx, signer := test.Setup(t)
+	ctx = tuf.WithDownloader(ctx, tuf.NewMockTufClient(EmptyPolicyDir, test.CreateTempDir(t, "", "tuf-dest")))
 
 	testCases := []struct {
 		name                 string

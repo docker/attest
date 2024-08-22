@@ -28,9 +28,12 @@ func Verify(ctx context.Context, src *oci.ImageSpec, opts *policy.Options) (resu
 		return nil, err
 	}
 
-	tufClient, err := tuf.NewClient(opts.TUFClientOptions.InitialRoot, opts.LocalTargetsDir, opts.TUFClientOptions.MetadataSource, opts.TUFClientOptions.TargetsSource, opts.TUFClientOptions.VersionChecker)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create TUF client: %w", err)
+	tufClient, ok := tuf.GetDownloader(ctx)
+	if !ok {
+		tufClient, err = tuf.NewClient(opts.TUFClientOptions.InitialRoot, opts.LocalTargetsDir, opts.TUFClientOptions.MetadataSource, opts.TUFClientOptions.TargetsSource, opts.TUFClientOptions.VersionChecker)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create TUF client: %w", err)
+		}
 	}
 
 	pctx, err := policy.ResolvePolicy(ctx, tufClient, detailsResolver, opts)

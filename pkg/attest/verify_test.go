@@ -243,14 +243,14 @@ func TestSignVerify(t *testing.T) {
 func TestDefaultOptions(t *testing.T) {
 	testCases := []struct {
 		name             string
-		tufClient        tuf.Downloader
+		tufOpts          *tuf.ClientOptions
 		localTargetsDir  string
 		attestationStyle config.AttestationStyle
 		referrersRepo    string
 		expectedError    string
 	}{
 		{name: "empty"},
-		{name: "tufClient provided", tufClient: tuf.NewMockTufClient("a", "b")},
+		{name: "tufClient provided", tufOpts: &tuf.ClientOptions{MetadataSource: "a", TargetsSource: "b"}},
 		{name: "localTargetsDir provided", localTargetsDir: test.CreateTempDir(t, "", TestTempDir)},
 		{name: "attestationStyle provided", attestationStyle: config.AttestationStyleAttached},
 		{name: "referrersRepo provided", referrersRepo: "referrers"},
@@ -262,7 +262,7 @@ func TestDefaultOptions(t *testing.T) {
 			require.NoError(t, err)
 
 			opts := &policy.Options{
-				TUFClient:        tc.tufClient,
+				TUFClientOptions: tc.tufOpts,
 				LocalTargetsDir:  tc.localTargetsDir,
 				AttestationStyle: tc.attestationStyle,
 				ReferrersRepo:    tc.referrersRepo,
@@ -289,10 +289,10 @@ func TestDefaultOptions(t *testing.T) {
 				assert.Equal(t, config.AttestationStyleReferrers, opts.AttestationStyle)
 			}
 
-			if tc.tufClient != nil {
-				assert.Equal(t, tc.tufClient, opts.TUFClient)
+			if tc.tufOpts != nil {
+				assert.Equal(t, tc.tufOpts, opts.TUFClientOptions)
 			} else {
-				assert.NotNil(t, opts.TUFClient)
+				assert.NotNil(t, opts.TUFClientOptions)
 			}
 
 			if tc.referrersRepo != "" {

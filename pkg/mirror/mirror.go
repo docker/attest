@@ -14,9 +14,5 @@ func NewTUFMirror(root []byte, tufPath, metadataURL, targetsURL string, versionC
 	if err != nil {
 		return nil, fmt.Errorf("failed to create TUF client: %w", err)
 	}
-	err = tufClient.Initialize()
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize TUF client: %w", err)
-	}
 	return &TUFMirror{TUFClient: tufClient, tufPath: tufPath, metadataURL: metadataURL, targetsURL: targetsURL}, nil
 }

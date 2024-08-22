@@ -75,7 +75,6 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 			tufClient := tuf.NewMockTufClient(tc.repo, test.CreateTempDir(t, "", "tuf-dest"))
 			if tc.policy == nil {
 				tc.policy = &policy.Options{
-					TUFClient:       tufClient,
 					LocalTargetsDir: test.CreateTempDir(t, "", "tuf-targets"),
 					PolicyID:        tc.policyID,
 				}
@@ -88,7 +87,7 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 			require.NoError(t, err)
 			resolver, err := policy.CreateImageDetailsResolver(src)
 			require.NoError(t, err)
-			policy, err := policy.ResolvePolicy(ctx, resolver, tc.policy)
+			policy, err := policy.ResolvePolicy(ctx, tufClient, resolver, tc.policy)
 			if tc.resolveErrorStr != "" {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tc.resolveErrorStr)

@@ -65,10 +65,8 @@ func TestRootInit(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		client, err := NewClient(DockerTUFRootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker)
+		_, err := NewClient(DockerTUFRootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker)
 		assert.NoErrorf(t, err, "Failed to create TUF client: %v", err)
-		err = client.Initialize()
-		assert.NoErrorf(t, err, "Failed to initialize TUF client")
 
 		// recreation should work with same root
 		_, err = NewClient(DockerTUFRootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker)
@@ -77,11 +75,8 @@ func TestRootInit(t *testing.T) {
 		_, err = NewClient([]byte("broken"), tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker)
 		assert.Errorf(t, err, "Expected error recreating TUF client with broken root: %v", err)
 
-		client, err = NewClient(DockerTUFRootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysBadVersionChecker)
-		assert.NoErrorf(t, err, "Failed to create TUF client with bad version checker")
-
-		err = client.Initialize()
-		assert.Errorf(t, err, "Expected error intializing TUF client with bad attest version")
+		_, err = NewClient(DockerTUFRootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysBadVersionChecker)
+		assert.Errorf(t, err, "Expected error recreating TUF client with bad version checker")
 	}
 }
 
@@ -107,32 +102,18 @@ func TestDownloadTarget(t *testing.T) {
 	alwaysGoodVersionChecker := &MockVersionChecker{err: nil}
 
 	testCases := []struct {
-		name               string
-		metadataSource     string
-		targetsSource      string
-		downloadBeforeInit bool
+		name           string
+		metadataSource string
+		targetsSource  string
 	}{
-		{"http", server.URL + "/metadata", server.URL + "/targets", false},
-		{"oci", regAddr.Host + "/tuf-metadata:latest", regAddr.Host + "/tuf-targets", false},
-		{"http, download before init", server.URL + "/metadata", server.URL + "/targets", true},
+		{"http", server.URL + "/metadata", server.URL + "/targets"},
+		{"oci", regAddr.Host + "/tuf-metadata:latest", regAddr.Host + "/tuf-targets"},
+		{"http, download before init", server.URL + "/metadata", server.URL + "/targets"},
 	}
 
 	for _, tc := range testCases {
 		tufClient, err := NewClient(DockerTUFRootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker)
-		assert.NoErrorf(t, err, "Failed to create TUF client: %v", err)
-
-		if tc.downloadBeforeInit {
-			assert.False(t, tufClient.initialized, "Expected TUF client to be uninitialized")
-			// this download should initialize the client
-			_, err = tufClient.DownloadTarget("mapping.yaml", filepath.Join(tufPath, "download"))
-			assert.NoError(t, err)
-			require.True(t, tufClient.initialized, "Expected TUF client to be initialized")
-		}
-
-		// this should succeed even if the client is already initialized
-		err = tufClient.Initialize()
-		require.NoError(t, err)
-		require.True(t, tufClient.initialized, "Expected TUF client to be initialized")
+		require.NoErrorf(t, err, "Failed to create TUF client: %v", err)
 		require.NotNil(t, tufClient.updater, "Failed to create updater")
 
 		// get trusted tuf metadata

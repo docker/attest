@@ -12,6 +12,7 @@ import (
 	"github.com/docker/attest/pkg/attestation"
 	"github.com/docker/attest/pkg/config"
 	"github.com/docker/attest/pkg/oci"
+	"github.com/docker/attest/pkg/tuf"
 )
 
 func resolveLocalPolicy(opts *Options, mapping *config.PolicyMapping, imageName string, matchedName string) (*Policy, error) {
@@ -57,13 +58,13 @@ func resolveLocalPolicy(opts *Options, mapping *config.PolicyMapping, imageName 
 	return policy, nil
 }
 
-func resolveTUFPolicy(opts *Options, mapping *config.PolicyMapping, imageName string, matchedName string) (*Policy, error) {
+func resolveTUFPolicy(opts *Options, tufClient tuf.Downloader, mapping *config.PolicyMapping, imageName string, matchedName string) (*Policy, error) {
 	var URI string
 	var digest map[string]string
 	files := make([]*File, 0, len(mapping.Files))
 	for _, f := range mapping.Files {
 		filename := f.Path
-		file, err := opts.TUFClient.DownloadTarget(filename, filepath.Join(opts.LocalTargetsDir, filename))
+		file, err := tufClient.DownloadTarget(filename, filepath.Join(opts.LocalTargetsDir, filename))
 		if err != nil {
 			return nil, fmt.Errorf("failed to download policy file %s: %w", filename, err)
 		}
@@ -154,7 +155,7 @@ func findPolicyMatchImpl(imageName string, mappings *config.PolicyMappings, matc
 	return &policyMatch{matchType: matchTypeNoMatch, matchedName: imageName}, nil
 }
 
-func resolvePolicyByID(opts *Options) (*Policy, error) {
+func resolvePolicyByID(opts *Options, tufClient tuf.Downloader) (*Policy, error) {
 	if opts.PolicyID != "" {
 		localMappings, err := config.LoadLocalMappings(opts.LocalPolicyDir)
 		if err != nil {
@@ -168,21 +169,21 @@ func resolvePolicyByID(opts *Options) (*Policy, error) {
 		}
 
 		// must check tuf
-		tufMappings, err := config.LoadTUFMappings(opts.TUFClient, opts.LocalTargetsDir)
+		tufMappings, err := config.LoadTUFMappings(tufClient, opts.LocalTargetsDir)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load tuf policy mappings by id: %w", err)
 		}
 		policy := tufMappings.Policies[opts.PolicyID]
 		if policy != nil {
-			return resolveTUFPolicy(opts, policy, "", "")
+			return resolveTUFPolicy(opts, tufClient, policy, "", "")
 		}
 		return nil, fmt.Errorf("policy with id %s not found", opts.PolicyID)
 	}
 	return nil, nil
 }
 
-func ResolvePolicy(ctx context.Context, detailsResolver oci.ImageDetailsResolver, opts *Options) (*Policy, error) {
-	p, err := resolvePolicyByID(opts)
+func ResolvePolicy(ctx context.Context, tufClient tuf.Downloader, detailsResolver oci.ImageDetailsResolver, opts *Options) (*Policy, error) {
+	p, err := resolvePolicyByID(opts, tufClient)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve policy by id: %w", err)
 	}
@@ -209,7 +210,7 @@ func ResolvePolicy(ctx context.Context, detailsResolver oci.ImageDetailsResolver
 		return resolveLocalPolicy(opts, match.policy, imageName, match.matchedName)
 	}
 	// must check tuf
-	tufMappings, err := config.LoadTUFMappings(opts.TUFClient, opts.LocalTargetsDir)
+	tufMappings, err := config.LoadTUFMappings(tufClient, opts.LocalTargetsDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tuf policy mappings as fallback: %w", err)
 	}
@@ -218,7 +219,7 @@ func ResolvePolicy(ctx context.Context, detailsResolver oci.ImageDetailsResolver
 	if match.matchType == matchTypeMatchNoPolicy {
 		for _, mapping := range tufMappings.Policies {
 			if mapping.ID == match.rule.PolicyID {
-				return resolveTUFPolicy(opts, mapping, imageName, match.matchedName)
+				return resolveTUFPolicy(opts, tufClient, mapping, imageName, match.matchedName)
 			}
 		}
 	}
@@ -229,7 +230,7 @@ func ResolvePolicy(ctx context.Context, detailsResolver oci.ImageDetailsResolver
 		return nil, err
 	}
 	if match.matchType == matchTypePolicy {
-		return resolveTUFPolicy(opts, match.policy, imageName, match.matchedName)
+		return resolveTUFPolicy(opts, tufClient, match.policy, imageName, match.matchedName)
 	}
 	return nil, nil
 }

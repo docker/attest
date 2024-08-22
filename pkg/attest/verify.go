@@ -27,7 +27,13 @@ func Verify(ctx context.Context, src *oci.ImageSpec, opts *policy.Options) (resu
 	if err != nil {
 		return nil, err
 	}
-	pctx, err := policy.ResolvePolicy(ctx, detailsResolver, opts)
+
+	tufClient, err := tuf.NewClient(opts.TUFClientOptions.InitialRoot, opts.LocalTargetsDir, opts.TUFClientOptions.MetadataSource, opts.TUFClientOptions.TargetsSource, opts.TUFClientOptions.VersionChecker)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create TUF client: %w", err)
+	}
+
+	pctx, err := policy.ResolvePolicy(ctx, tufClient, detailsResolver, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve policy: %w", err)
 	}
@@ -68,11 +74,9 @@ func populateDefaultOptions(opts *policy.Options) (err error) {
 			return err
 		}
 	}
-	if opts.TUFClient == nil {
-		opts.TUFClient, err = tuf.NewDockerDefaultTUFClient(opts.LocalTargetsDir)
-		if err != nil {
-			return fmt.Errorf("failed to create default TUF client: %w", err)
-		}
+
+	if opts.TUFClientOptions == nil {
+		opts.TUFClientOptions = tuf.NewDockerDefaultClientOptions(opts.LocalTargetsDir)
 	}
 
 	if opts.AttestationStyle == "" {

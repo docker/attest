@@ -12,17 +12,6 @@ import (
 	"github.com/docker/attest/pkg/tuf"
 )
 
-func createTufClient(outputPath string) (*tuf.Client, error) {
-	// using oci tuf metadata and targets
-	metadataURI := "registry-1.docker.io/docker/tuf-metadata:latest"
-	targetsURI := "registry-1.docker.io/docker/tuf-targets"
-	// example using http tuf metadata and targets
-	// metadataURI := "https://docker.github.io/tuf-staging/metadata"
-	// targetsURI := "https://docker.github.io/tuf-staging/targets"
-
-	return tuf.NewClient(tuf.DockerTUFRootStaging.Data, outputPath, metadataURI, targetsURI, tuf.NewMockVersionChecker())
-}
-
 func ExampleVerify_remote() {
 	// create a tuf client
 	home, err := os.UserHomeDir()
@@ -30,10 +19,7 @@ func ExampleVerify_remote() {
 		panic(err)
 	}
 	tufOutputPath := filepath.Join(home, ".docker", "tuf")
-	tufClient, err := createTufClient(tufOutputPath)
-	if err != nil {
-		panic(err)
-	}
+	tufClientOpts := tuf.NewDockerDefaultClientOptions(tufOutputPath)
 
 	// create a resolver for remote attestations
 	image := "registry-1.docker.io/library/notary:server"
@@ -41,10 +27,10 @@ func ExampleVerify_remote() {
 
 	// configure policy options
 	opts := &policy.Options{
-		TUFClient:       tufClient,
-		LocalTargetsDir: filepath.Join(home, ".docker", "policy"), // location to store policy files downloaded from TUF
-		LocalPolicyDir:  "",                                       // overrides TUF policy for local policy files if set
-		PolicyID:        "",                                       // set to ignore policy mapping and select a policy by id
+		TUFClientOptions: tufClientOpts,
+		LocalTargetsDir:  filepath.Join(home, ".docker", "policy"), // location to store policy files downloaded from TUF
+		LocalPolicyDir:   "",                                       // overrides TUF policy for local policy files if set
+		PolicyID:         "",                                       // set to ignore policy mapping and select a policy by id
 	}
 
 	src, err := oci.ParseImageSpec(image, oci.WithPlatform(platform))

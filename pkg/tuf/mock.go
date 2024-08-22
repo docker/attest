@@ -26,10 +26,6 @@ func NewMockTufClient(srcPath string, dstPath string) *MockTufClient {
 	}
 }
 
-func (dc *MockTufClient) Initialize() error {
-	return nil
-}
-
 func (dc *MockTufClient) DownloadTarget(target string, filePath string) (file *TargetFile, err error) {
 	targetPath := filepath.Join(dc.srcPath, target)
 	src, err := os.Open(targetPath)

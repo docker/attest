@@ -41,14 +41,10 @@ const (
 )
 
 type Downloader interface {
-	Initialize() (err error)
 	DownloadTarget(target, filePath string) (file *TargetFile, err error)
 }
 
 type Client struct {
-	initialized bool
-	vc          VersionChecker
-
 	updater *updater.Updater
 	cfg     *config.UpdaterConfig
 }
@@ -60,8 +56,22 @@ type TargetFile struct {
 	Data           []byte
 }
 
-func NewDockerDefaultTUFClient(tufPath string) (*Client, error) {
-	return NewClient(DockerTUFRootDefault.Data, tufPath, defaultMetadataSource, defaultTargetsSource, NewDefaultVersionChecker())
+type ClientOptions struct {
+	InitialRoot    []byte
+	Path           string
+	MetadataSource string
+	TargetsSource  string
+	VersionChecker VersionChecker
+}
+
+func NewDockerDefaultClientOptions(tufPath string) *ClientOptions {
+	return &ClientOptions{
+		InitialRoot:    DockerTUFRootDefault.Data,
+		Path:           tufPath,
+		MetadataSource: defaultMetadataSource,
+		TargetsSource:  defaultTargetsSource,
+		VersionChecker: NewDefaultVersionChecker(),
+	}
 }
 
 // NewClient creates a new TUF client.
@@ -120,10 +130,20 @@ func NewClient(initialRoot []byte, tufPath, metadataSource, targetsSource string
 		return nil, fmt.Errorf("failed to create TUF updater instance: %w", err)
 	}
 
+	// try to build the top-level metadata
+	err = up.Refresh()
+	if err != nil {
+		return nil, fmt.Errorf("failed to refresh trusted metadata: %w", err)
+	}
+
 	client := &Client{
 		updater: up,
 		cfg:     cfg,
-		vc:      versionChecker,
+	}
+
+	err = versionChecker.CheckVersion(client)
+	if err != nil {
+		return nil, err
 	}
 
 	return client, nil
@@ -155,37 +175,10 @@ func (t *Client) generateTargetURI(target *metadata.TargetFiles, digest string) 
 	}
 }
 
-func (t *Client) Initialize() (err error) {
-	if t.initialized {
-		return nil
-	}
-
-	// try to build the top-level metadata
-	err = t.updater.Refresh()
-	if err != nil {
-		return fmt.Errorf("failed to refresh trusted metadata: %w", err)
-	}
-
-	err = t.vc.CheckVersion(t)
-	if err != nil {
-		return err
-	}
-
-	t.initialized = true
-	return nil
-}
-
 // DownloadTarget downloads the target file using Updater. The Updater gets the target
 // information, verifies if the target is already cached, and if it is not cached,
 // downloads the target file.
 func (t *Client) DownloadTarget(target string, filePath string) (file *TargetFile, err error) {
-	if !t.initialized {
-		err = t.Initialize()
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	// search if the desired target is available
 	targetInfo, err := t.updater.GetTargetInfo(target)
 	if err != nil {

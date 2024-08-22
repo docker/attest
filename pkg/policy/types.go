@@ -27,7 +27,7 @@ type Result struct {
 }
 
 type Options struct {
-	TUFClient        tuf.Downloader
+	TUFClientOptions *tuf.ClientOptions
 	LocalTargetsDir  string
 	LocalPolicyDir   string
 	PolicyID         string

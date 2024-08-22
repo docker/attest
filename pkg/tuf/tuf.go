@@ -94,18 +94,18 @@ func NewDockerDefaultClientOptions(tufPath string) *ClientOptions {
 }
 
 // NewClient creates a new TUF client.
-func NewClient(initialRoot []byte, tufPath, metadataSource, targetsSource string, versionChecker VersionChecker) (*Client, error) {
+func NewClient(opts *ClientOptions) (*Client, error) {
 	var tufSource Source
-	if strings.HasPrefix(metadataSource, "https://") || strings.HasPrefix(metadataSource, "http://") {
+	if strings.HasPrefix(opts.MetadataSource, "https://") || strings.HasPrefix(opts.MetadataSource, "http://") {
 		tufSource = HTTPSource
 	} else {
 		tufSource = OCISource
 	}
 
-	tufRootDigest := util.SHA256Hex(initialRoot)
+	tufRootDigest := util.SHA256Hex(opts.InitialRoot)
 
 	// create a directory for each initial root.json
-	metadataPath := filepath.Join(tufPath, tufRootDigest)
+	metadataPath := filepath.Join(opts.Path, tufRootDigest)
 	err := os.MkdirAll(metadataPath, os.ModePerm)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create directory '%s': %w", metadataPath, err)
@@ -118,29 +118,29 @@ func NewClient(initialRoot []byte, tufPath, metadataSource, targetsSource string
 			return nil, fmt.Errorf("failed to read root.json: %w", err)
 		}
 		// write the root.json file to the metadata directory
-		err = os.WriteFile(rootFile, initialRoot, 0o666) // #nosec G306
+		err = os.WriteFile(rootFile, opts.InitialRoot, 0o666) // #nosec G306
 		if err != nil {
 			return nil, fmt.Errorf("Failed to write root.json %w", err)
 		}
-		rootBytes = initialRoot
+		rootBytes = opts.InitialRoot
 	}
 
 	// create updater configuration
-	cfg, err := config.New(metadataSource, rootBytes) // default config
+	cfg, err := config.New(opts.MetadataSource, rootBytes) // default config
 	if err != nil {
 		return nil, fmt.Errorf("failed to create TUF updater configuration: %w", err)
 	}
 	cfg.LocalMetadataDir = metadataPath
 	cfg.LocalTargetsDir = filepath.Join(metadataPath, "download")
-	cfg.RemoteTargetsURL = targetsSource
+	cfg.RemoteTargetsURL = opts.TargetsSource
 
 	if tufSource == OCISource {
-		metadataRepo, metadataTag, found := strings.Cut(metadataSource, ":")
+		metadataRepo, metadataTag, found := strings.Cut(opts.MetadataSource, ":")
 		if !found {
 			fmt.Printf("metadata tag not found in URL, using latest\n")
 			metadataTag = LatestTag
 		}
-		cfg.Fetcher = NewRegistryFetcher(metadataRepo, metadataTag, targetsSource)
+		cfg.Fetcher = NewRegistryFetcher(metadataRepo, metadataTag, opts.TargetsSource)
 	}
 
 	// create a new Updater instance
@@ -160,7 +160,7 @@ func NewClient(initialRoot []byte, tufPath, metadataSource, targetsSource string
 		cfg:     cfg,
 	}
 
-	err = versionChecker.CheckVersion(client)
+	err = opts.VersionChecker.CheckVersion(client)
 	if err != nil {
 		return nil, err
 	}

@@ -65,17 +65,17 @@ func TestRootInit(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		_, err := NewClient(DockerTUFRootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker)
+		_, err := NewClient(&ClientOptions{DockerTUFRootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker})
 		assert.NoErrorf(t, err, "Failed to create TUF client: %v", err)
 
 		// recreation should work with same root
-		_, err = NewClient(DockerTUFRootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker)
+		_, err = NewClient(&ClientOptions{DockerTUFRootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker})
 		assert.NoErrorf(t, err, "Failed to recreate TUF client: %v", err)
 
-		_, err = NewClient([]byte("broken"), tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker)
+		_, err = NewClient(&ClientOptions{[]byte("broken"), tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker})
 		assert.Errorf(t, err, "Expected error recreating TUF client with broken root: %v", err)
 
-		_, err = NewClient(DockerTUFRootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysBadVersionChecker)
+		_, err = NewClient(&ClientOptions{DockerTUFRootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysBadVersionChecker})
 		assert.Errorf(t, err, "Expected error recreating TUF client with bad version checker")
 	}
 }
@@ -112,7 +112,7 @@ func TestDownloadTarget(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tufClient, err := NewClient(DockerTUFRootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker)
+		tufClient, err := NewClient(&ClientOptions{DockerTUFRootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker})
 		require.NoErrorf(t, err, "Failed to create TUF client: %v", err)
 		require.NotNil(t, tufClient.updater, "Failed to create updater")
 

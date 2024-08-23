@@ -46,7 +46,7 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 		expectSuccess   bool
 		isCanonical     bool
 		resolver        attestation.Resolver
-		policy          *policy.Options
+		opts            *policy.Options
 		policyID        string
 		resolveErrorStr string
 	}{
@@ -71,8 +71,8 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 				input.Tag = "test"
 			}
 
-			if tc.policy == nil {
-				tc.policy = &policy.Options{
+			if tc.opts == nil {
+				tc.opts = &policy.Options{
 					LocalTargetsDir: test.CreateTempDir(t, "", "tuf-targets"),
 					PolicyID:        tc.policyID,
 					LocalPolicyDir:  tc.repo,
@@ -85,9 +85,10 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 			require.NoError(t, err)
 			src, err := oci.ParseImageSpec(imageName, oci.WithPlatform(platform.String()))
 			require.NoError(t, err)
-			resolver, err := policy.CreateImageDetailsResolver(src)
+			imageDetailsResolver, err := policy.CreateImageDetailsResolver(src)
 			require.NoError(t, err)
-			policy, err := policy.ResolvePolicy(ctx, nil, resolver, tc.policy)
+			resolver := policy.NewResolver(nil, tc.opts)
+			policy, err := resolver.ResolvePolicy(ctx, imageDetailsResolver)
 			if tc.resolveErrorStr != "" {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tc.resolveErrorStr)

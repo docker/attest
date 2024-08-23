@@ -81,14 +81,8 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 			}
 			imageName, err := tc.resolver.ImageName(ctx)
 			require.NoError(t, err)
-			platform, err := tc.resolver.ImagePlatform(ctx)
-			require.NoError(t, err)
-			src, err := oci.ParseImageSpec(imageName, oci.WithPlatform(platform.String()))
-			require.NoError(t, err)
-			imageDetailsResolver, err := policy.CreateImageDetailsResolver(src)
-			require.NoError(t, err)
 			resolver := policy.NewResolver(nil, tc.opts)
-			policy, err := resolver.ResolvePolicy(ctx, imageDetailsResolver)
+			policy, err := resolver.ResolvePolicy(ctx, imageName)
 			if tc.resolveErrorStr != "" {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tc.resolveErrorStr)

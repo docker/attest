@@ -50,9 +50,12 @@ func (v *tufVerifier) Verify(ctx context.Context, src *oci.ImageSpec) (result *V
 	if err != nil {
 		return nil, fmt.Errorf("failed to create image details resolver: %w", err)
 	}
-
+	imageName, err := detailsResolver.ImageName(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve image name: %w", err)
+	}
 	policyResolver := policy.NewResolver(v.tufClient, v.opts)
-	pctx, err := policyResolver.ResolvePolicy(ctx, detailsResolver)
+	pctx, err := policyResolver.ResolvePolicy(ctx, imageName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve policy: %w", err)
 	}

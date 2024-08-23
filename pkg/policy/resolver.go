@@ -10,7 +10,6 @@ import (
 	"github.com/distribution/reference"
 	"github.com/docker/attest/internal/util"
 	"github.com/docker/attest/pkg/config"
-	"github.com/docker/attest/pkg/oci"
 	"github.com/docker/attest/pkg/tuf"
 )
 
@@ -26,17 +25,13 @@ func NewResolver(tufClient tuf.Downloader, opts *Options) *Resolver {
 	}
 }
 
-func (r *Resolver) ResolvePolicy(ctx context.Context, detailsResolver oci.ImageDetailsResolver) (*Policy, error) {
+func (r *Resolver) ResolvePolicy(_ context.Context, imageName string) (*Policy, error) {
 	p, err := r.resolvePolicyByID()
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve policy by id: %w", err)
 	}
 	if p != nil {
 		return p, nil
-	}
-	imageName, err := detailsResolver.ImageName(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get image name: %w", err)
 	}
 	imageName, err = normalizeImageName(imageName)
 	if err != nil {

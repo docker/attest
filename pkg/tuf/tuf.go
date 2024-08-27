@@ -1,6 +1,7 @@
 package tuf
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -298,4 +299,22 @@ func ensureTrailingSlash(url string) string {
 // GetEmbeddedRoot returns the embedded TUF root based on the given root name.
 func GetEmbeddedRoot(root string) (*embed.EmbeddedRoot, error) {
 	return embed.GetRootFromName(root)
+}
+
+type tufCtxKeyType struct{}
+
+var DownloaderCtxKey tufCtxKeyType
+
+// WithDownloader sets Downloader in context.
+func WithDownloader(ctx context.Context, downloader Downloader) context.Context {
+	return context.WithValue(ctx, DownloaderCtxKey, downloader)
+}
+
+// GetDownloader returns the Downloader from context or `nil` if it doesn't exist
+func GetDownloader(ctx context.Context) Downloader {
+	t, ok := ctx.Value(DownloaderCtxKey).(Downloader)
+	if !ok {
+		return nil
+	}
+	return t
 }

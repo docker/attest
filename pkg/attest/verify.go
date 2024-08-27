@@ -17,6 +17,8 @@ import (
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 )
 
+var cachedTUFClient *tuf.Client
+
 func Verify(ctx context.Context, src *oci.ImageSpec, opts *policy.Options) (result *VerificationResult, err error) {
 	// so that we can resolve mapping from the image name earlier
 	detailsResolver, err := policy.CreateImageDetailsResolver(src)
@@ -28,11 +30,15 @@ func Verify(ctx context.Context, src *oci.ImageSpec, opts *policy.Options) (resu
 		return nil, err
 	}
 
-	var tufClient *tuf.Client
-	if opts.TUFClientOptions != nil {
-		tufClient, err = tuf.NewClient(opts.TUFClientOptions)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create TUF client: %w", err)
+	var tufClient tuf.Downloader
+	if !opts.DisableTUF {
+		// use client from context if available
+		tufClient = tuf.GetDownloader(ctx)
+		if tufClient == nil {
+			tufClient, err = tuf.NewClient(opts.TUFClientOptions)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create TUF client: %w", err)
+			}
 		}
 	}
 
@@ -71,14 +77,18 @@ func Verify(ctx context.Context, src *oci.ImageSpec, opts *policy.Options) (resu
 }
 
 func populateDefaultOptions(opts *policy.Options) (err error) {
+	if opts.LocalPolicyDir == "" && opts.DisableTUF {
+		return fmt.Errorf("local policy dir must be set if not using TUF")
+	}
 	if opts.LocalTargetsDir == "" {
 		opts.LocalTargetsDir, err = defaultLocalTargetsDir()
 		if err != nil {
 			return err
 		}
 	}
-
-	if opts.TUFClientOptions == nil {
+	if opts.DisableTUF {
+		opts.TUFClientOptions = nil
+	} else if opts.TUFClientOptions == nil {
 		opts.TUFClientOptions = tuf.NewDockerDefaultClientOptions(opts.LocalTargetsDir)
 	}
 
@@ -88,7 +98,6 @@ func populateDefaultOptions(opts *policy.Options) (err error) {
 	if opts.ReferrersRepo != "" && opts.AttestationStyle != config.AttestationStyleReferrers {
 		return fmt.Errorf("referrers repo specified but attestation source not set to referrers")
 	}
-
 	return nil
 }
 

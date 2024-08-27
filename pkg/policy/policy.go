@@ -210,7 +210,7 @@ func ResolvePolicy(ctx context.Context, tufClient tuf.Downloader, detailsResolve
 	if match.matchType == matchTypePolicy {
 		return resolveLocalPolicy(opts, match.policy, imageName, match.matchedName)
 	}
-	if tufClient != nil {
+	if !opts.DisableTUF {
 		// must check tuf
 		tufMappings, err := config.LoadTUFMappings(tufClient, opts.LocalTargetsDir)
 		if err != nil {

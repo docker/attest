@@ -178,11 +178,10 @@ func TestSignVerify(t *testing.T) {
 	outputLayout := test.CreateTempDir(t, "", TestTempDir)
 
 	testCases := []struct {
-		name      string
-		signTL    bool
-		policyDir string
-		imageName string
-
+		name               string
+		signTL             bool
+		policyDir          string
+		imageName          string
 		expectedNonSuccess Outcome
 	}{
 		{name: "happy path", signTL: true, policyDir: PassNoTLPolicyDir},
@@ -248,6 +247,7 @@ func TestDefaultOptions(t *testing.T) {
 		attestationStyle config.AttestationStyle
 		referrersRepo    string
 		expectedError    string
+		disableTuf       bool
 	}{
 		{name: "empty"},
 		{name: "tufClient provided", tufOpts: &tuf.ClientOptions{MetadataSource: "a", TargetsSource: "b"}},
@@ -255,6 +255,7 @@ func TestDefaultOptions(t *testing.T) {
 		{name: "attestationStyle provided", attestationStyle: config.AttestationStyleAttached},
 		{name: "referrersRepo provided", referrersRepo: "referrers"},
 		{name: "referrersRepo provided with attached", referrersRepo: "referrers", attestationStyle: config.AttestationStyleAttached, expectedError: "referrers repo specified but attestation source not set to referrers"},
+		{name: "tuf disabled and no local-policy-dir", disableTuf: true, expectedError: "local policy dir must be set if not using TUF"},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -266,6 +267,7 @@ func TestDefaultOptions(t *testing.T) {
 				LocalTargetsDir:  tc.localTargetsDir,
 				AttestationStyle: tc.attestationStyle,
 				ReferrersRepo:    tc.referrersRepo,
+				DisableTUF:       tc.disableTuf,
 			}
 
 			err = populateDefaultOptions(opts)

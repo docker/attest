@@ -17,32 +17,42 @@ import (
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 )
 
-var cachedTUFClient *tuf.Client
+type Verifier interface {
+	Verify(ctx context.Context, src *oci.ImageSpec) (result *VerificationResult, err error)
+}
 
-func Verify(ctx context.Context, src *oci.ImageSpec, opts *policy.Options) (result *VerificationResult, err error) {
+type tufVerifier struct {
+	opts      *policy.Options
+	tufClient tuf.Downloader
+}
+
+func NewVerifier(opts *policy.Options) (Verifier, error) {
+	err := populateDefaultOptions(opts)
+	if err != nil {
+		return nil, err
+	}
+	var tufClient tuf.Downloader
+	if !opts.DisableTUF {
+		// use client from context if available
+		tufClient, err = tuf.NewClient(opts.TUFClientOptions)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create TUF client: %w", err)
+		}
+	}
+	return &tufVerifier{
+		opts:      opts,
+		tufClient: tufClient,
+	}, nil
+}
+
+func (v *tufVerifier) Verify(ctx context.Context, src *oci.ImageSpec) (result *VerificationResult, err error) {
 	// so that we can resolve mapping from the image name earlier
 	detailsResolver, err := policy.CreateImageDetailsResolver(src)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create image details resolver: %w", err)
 	}
-	err = populateDefaultOptions(opts)
-	if err != nil {
-		return nil, err
-	}
 
-	var tufClient tuf.Downloader
-	if !opts.DisableTUF {
-		// use client from context if available
-		tufClient = tuf.GetDownloader(ctx)
-		if tufClient == nil {
-			tufClient, err = tuf.NewClient(opts.TUFClientOptions)
-			if err != nil {
-				return nil, fmt.Errorf("failed to create TUF client: %w", err)
-			}
-		}
-	}
-
-	pctx, err := policy.ResolvePolicy(ctx, tufClient, detailsResolver, opts)
+	pctx, err := policy.ResolvePolicy(ctx, v.tufClient, detailsResolver, v.opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve policy: %w", err)
 	}
@@ -53,14 +63,14 @@ func Verify(ctx context.Context, src *oci.ImageSpec, opts *policy.Options) (resu
 		}, nil
 	}
 	// this is overriding the mapping with a referrers config. Useful for testing if nothing else
-	if opts.ReferrersRepo != "" {
+	if v.opts.ReferrersRepo != "" {
 		pctx.Mapping.Attestations = &config.AttestationConfig{
-			Repo:  opts.ReferrersRepo,
+			Repo:  v.opts.ReferrersRepo,
 			Style: config.AttestationStyleReferrers,
 		}
-	} else if opts.AttestationStyle == config.AttestationStyleAttached {
+	} else if v.opts.AttestationStyle == config.AttestationStyleAttached {
 		pctx.Mapping.Attestations = &config.AttestationConfig{
-			Repo:  opts.ReferrersRepo,
+			Repo:  v.opts.ReferrersRepo,
 			Style: config.AttestationStyleAttached,
 		}
 	}
@@ -74,6 +84,14 @@ func Verify(ctx context.Context, src *oci.ImageSpec, opts *policy.Options) (resu
 		return nil, fmt.Errorf("failed to evaluate policy: %w", err)
 	}
 	return result, nil
+}
+
+func Verify(ctx context.Context, src *oci.ImageSpec, opts *policy.Options) (result *VerificationResult, err error) {
+	verifier, err := NewVerifier(opts)
+	if err != nil {
+		return nil, err
+	}
+	return verifier.Verify(ctx, src)
 }
 
 func populateDefaultOptions(opts *policy.Options) (err error) {

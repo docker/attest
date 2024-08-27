@@ -167,15 +167,16 @@ func resolvePolicyByID(opts *Options, tufClient tuf.Downloader) (*Policy, error)
 				return resolveLocalPolicy(opts, policy, "", "")
 			}
 		}
-
-		// must check tuf
-		tufMappings, err := config.LoadTUFMappings(tufClient, opts.LocalTargetsDir)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load tuf policy mappings by id: %w", err)
-		}
-		policy := tufMappings.Policies[opts.PolicyID]
-		if policy != nil {
-			return resolveTUFPolicy(opts, tufClient, policy, "", "")
+		if tufClient != nil {
+			// must check tuf
+			tufMappings, err := config.LoadTUFMappings(tufClient, opts.LocalTargetsDir)
+			if err != nil {
+				return nil, fmt.Errorf("failed to load tuf policy mappings by id: %w", err)
+			}
+			policy := tufMappings.Policies[opts.PolicyID]
+			if policy != nil {
+				return resolveTUFPolicy(opts, tufClient, policy, "", "")
+			}
 		}
 		return nil, fmt.Errorf("policy with id %s not found", opts.PolicyID)
 	}
@@ -209,29 +210,31 @@ func ResolvePolicy(ctx context.Context, tufClient tuf.Downloader, detailsResolve
 	if match.matchType == matchTypePolicy {
 		return resolveLocalPolicy(opts, match.policy, imageName, match.matchedName)
 	}
-	// must check tuf
-	tufMappings, err := config.LoadTUFMappings(tufClient, opts.LocalTargetsDir)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load tuf policy mappings as fallback: %w", err)
-	}
+	if tufClient != nil {
+		// must check tuf
+		tufMappings, err := config.LoadTUFMappings(tufClient, opts.LocalTargetsDir)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load tuf policy mappings as fallback: %w", err)
+		}
 
-	// it's a mirror of a tuf policy
-	if match.matchType == matchTypeMatchNoPolicy {
-		for _, mapping := range tufMappings.Policies {
-			if mapping.ID == match.rule.PolicyID {
-				return resolveTUFPolicy(opts, tufClient, mapping, imageName, match.matchedName)
+		// it's a mirror of a tuf policy
+		if match.matchType == matchTypeMatchNoPolicy {
+			for _, mapping := range tufMappings.Policies {
+				if mapping.ID == match.rule.PolicyID {
+					return resolveTUFPolicy(opts, tufClient, mapping, imageName, match.matchedName)
+				}
 			}
+		}
+		// try to resolve a tuf policy directly
+		match, err = findPolicyMatch(imageName, tufMappings)
+		if err != nil {
+			return nil, err
+		}
+		if match.matchType == matchTypePolicy {
+			return resolveTUFPolicy(opts, tufClient, match.policy, imageName, match.matchedName)
 		}
 	}
 
-	// try to resolve a tuf policy directly
-	match, err = findPolicyMatch(imageName, tufMappings)
-	if err != nil {
-		return nil, err
-	}
-	if match.matchType == matchTypePolicy {
-		return resolveTUFPolicy(opts, tufClient, match.policy, imageName, match.matchedName)
-	}
 	return nil, nil
 }
 

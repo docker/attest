@@ -1,7 +1,6 @@
 package tuf
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -20,24 +19,6 @@ import (
 	"github.com/theupdateframework/go-tuf/v2/metadata/trustedmetadata"
 	"github.com/theupdateframework/go-tuf/v2/metadata/updater"
 )
-
-type tufCtxKeyType struct{}
-
-var DownloaderCtxKey tufCtxKeyType
-
-// WithDownloader sets Downloader in context.
-func WithDownloader(ctx context.Context, downloader Downloader) context.Context {
-	return context.WithValue(ctx, DownloaderCtxKey, downloader)
-}
-
-// GetDownloader returns the Downloader from context and `true` if it exists, otherwise `nil` and `false`.
-func GetDownloader(ctx context.Context) (Downloader, bool) {
-	t, ok := ctx.Value(DownloaderCtxKey).(Downloader)
-	if !ok {
-		return nil, false
-	}
-	return t, true
-}
 
 type Source string
 

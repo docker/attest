@@ -52,12 +52,8 @@ func ImageDescriptor(ix *v1.IndexManifest, platform *v1.Platform) (*v1.Descripto
 	return nil, fmt.Errorf("no image found for platform %v", platform)
 }
 
-func RefToPURL(ref string, platform *v1.Platform) (string, bool, error) {
+func RefToPURL(named reference.Named, platform *v1.Platform) (string, bool, error) {
 	var isCanonical bool
-	named, err := reference.ParseNormalizedNamed(ref)
-	if err != nil {
-		return "", false, fmt.Errorf("failed to parse ref %q: %w", ref, err)
-	}
 	var qualifiers []packageurl.Qualifier
 
 	if canonical, ok := named.(reference.Canonical); ok {

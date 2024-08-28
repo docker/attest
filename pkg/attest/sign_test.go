@@ -20,6 +20,8 @@ var (
 	PassMirrorPolicyDir = filepath.Join("..", "..", "test", "testdata", "local-policy-mirror")
 	PassNoTLPolicyDir   = filepath.Join("..", "..", "test", "testdata", "local-policy-no-tl")
 	FailPolicyDir       = filepath.Join("..", "..", "test", "testdata", "local-policy-fail")
+	InputsPolicyDir     = filepath.Join("..", "..", "test", "testdata", "local-policy-inputs")
+	EmptyPolicyDir      = filepath.Join("..", "..", "test", "testdata", "local-policy-no-policies")
 	TestTempDir         = "attest-sign-test"
 )
 
@@ -41,6 +43,7 @@ func TestSignVerifyOCILayout(t *testing.T) {
 	}
 	policyOpts := &policy.Options{
 		LocalPolicyDir: PassPolicyDir,
+		DisableTUF:     true,
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {

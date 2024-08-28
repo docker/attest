@@ -128,7 +128,10 @@ The input to the policy is an object with the following fields:
 
 - `digest` (string): the digest of the image being verified
 - `purl` (string): the package URL of the image being verified
-- `is_canonical` (bool): whether the image being verified was referenced by a 'canonical' name, i.e. one that contains a digest
+- `platform` (string): the platform of the image being verified
+- `normalized_name` (string): defaults are filled out. e.g. if the image is `alpine`, this would be `library/alpine`
+- `familiar_name` (string): short version of above (e.g. `alpine`)
+- `tag`: (string): tag of the image being verified (if present)
 
 ### Builtin Functions
 

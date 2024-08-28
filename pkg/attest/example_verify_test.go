@@ -6,23 +6,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/docker/attest/internal/embed"
 	"github.com/docker/attest/pkg/attest"
 	"github.com/docker/attest/pkg/oci"
 	"github.com/docker/attest/pkg/policy"
 	"github.com/docker/attest/pkg/tuf"
 )
-
-func createTufClient(outputPath string) (*tuf.Client, error) {
-	// using oci tuf metadata and targets
-	metadataURI := "registry-1.docker.io/docker/tuf-metadata:latest"
-	targetsURI := "registry-1.docker.io/docker/tuf-targets"
-	// example using http tuf metadata and targets
-	// metadataURI := "https://docker.github.io/tuf-staging/metadata"
-	// targetsURI := "https://docker.github.io/tuf-staging/targets"
-
-	return tuf.NewClient(embed.RootStaging.Data, outputPath, metadataURI, targetsURI, tuf.NewMockVersionChecker())
-}
 
 func ExampleVerify_remote() {
 	// create a tuf client
@@ -31,10 +19,7 @@ func ExampleVerify_remote() {
 		panic(err)
 	}
 	tufOutputPath := filepath.Join(home, ".docker", "tuf")
-	tufClient, err := createTufClient(tufOutputPath)
-	if err != nil {
-		panic(err)
-	}
+	tufClientOpts := tuf.NewDockerDefaultClientOptions(tufOutputPath)
 
 	// create a resolver for remote attestations
 	image := "registry-1.docker.io/library/notary:server"
@@ -42,10 +27,11 @@ func ExampleVerify_remote() {
 
 	// configure policy options
 	opts := &policy.Options{
-		TUFClient:       tufClient,
-		LocalTargetsDir: filepath.Join(home, ".docker", "policy"), // location to store policy files downloaded from TUF
-		LocalPolicyDir:  "",                                       // overrides TUF policy for local policy files if set
-		PolicyID:        "",                                       // set to ignore policy mapping and select a policy by id
+		TUFClientOptions: tufClientOpts,
+		LocalTargetsDir:  filepath.Join(home, ".docker", "policy"), // location to store policy files downloaded from TUF
+		LocalPolicyDir:   "",                                       // overrides TUF policy for local policy files if set
+		PolicyID:         "",                                       // set to ignore policy mapping and select a policy by id
+		DisableTUF:       false,                                    // set to disable TUF and rely on local policy files
 	}
 
 	src, err := oci.ParseImageSpec(image, oci.WithPlatform(platform))

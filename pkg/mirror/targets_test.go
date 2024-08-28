@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/docker/attest/internal/embed"
 	"github.com/docker/attest/internal/test"
 	"github.com/docker/attest/pkg/tuf"
 	"github.com/stretchr/testify/assert"
@@ -27,7 +26,7 @@ func TestGetTufTargetsMirror(t *testing.T) {
 	defer server.Close()
 
 	path := test.CreateTempDir(t, "", "tuf_temp")
-	m, err := NewTUFMirror(embed.RootDev.Data, path, server.URL+metadataPath, server.URL+targetsPath, tuf.NewMockVersionChecker())
+	m, err := NewTUFMirror(tuf.DockerTUFRootDev.Data, path, server.URL+metadataPath, server.URL+targetsPath, tuf.NewMockVersionChecker())
 	assert.NoError(t, err)
 
 	targets, err := m.GetTUFTargetMirrors()
@@ -61,7 +60,7 @@ func TestTargetDelegationMetadata(t *testing.T) {
 	defer server.Close()
 
 	path := test.CreateTempDir(t, "", "tuf_temp")
-	tm, err := NewTUFMirror(embed.RootDev.Data, path, server.URL+metadataPath, server.URL+targetsPath, tuf.NewMockVersionChecker())
+	tm, err := NewTUFMirror(tuf.DockerTUFRootDev.Data, path, server.URL+metadataPath, server.URL+targetsPath, tuf.NewMockVersionChecker())
 	assert.NoError(t, err)
 
 	targets, err := tm.TUFClient.LoadDelegatedTargets("test-role", "targets")
@@ -74,7 +73,7 @@ func TestGetDelegatedTargetMirrors(t *testing.T) {
 	defer server.Close()
 
 	path := test.CreateTempDir(t, "", "tuf_temp")
-	m, err := NewTUFMirror(embed.RootDev.Data, path, server.URL+metadataPath, server.URL+targetsPath, tuf.NewMockVersionChecker())
+	m, err := NewTUFMirror(tuf.DockerTUFRootDev.Data, path, server.URL+metadataPath, server.URL+targetsPath, tuf.NewMockVersionChecker())
 	assert.NoError(t, err)
 
 	mirrors, err := m.GetDelegatedTargetMirrors()

@@ -11,7 +11,6 @@ import (
 	"github.com/docker/attest/pkg/config"
 	"github.com/docker/attest/pkg/oci"
 	"github.com/docker/attest/pkg/policy"
-	"github.com/docker/attest/pkg/tuf"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -51,31 +50,33 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 		policyID        string
 		resolveErrorStr string
 	}{
-		{repo: "testdata/mock-tuf-allow", expectSuccess: true, isCanonical: false, resolver: defaultResolver},
-		{repo: "testdata/mock-tuf-allow", expectSuccess: true, isCanonical: false, resolver: defaultResolver, policyID: "docker-official-images"},
-		{repo: "testdata/mock-tuf-allow", expectSuccess: false, isCanonical: false, resolver: defaultResolver, policyID: "non-existent-policy-id", resolveErrorStr: resolveErrorStr},
-		{repo: "testdata/mock-tuf-deny", expectSuccess: false, isCanonical: false, resolver: defaultResolver},
-		{repo: "testdata/mock-tuf-verify-sig", expectSuccess: true, isCanonical: false, resolver: defaultResolver},
-		{repo: "testdata/mock-tuf-wrong-key", expectSuccess: false, isCanonical: false, resolver: defaultResolver},
-		{repo: "testdata/mock-tuf-allow-canonical", expectSuccess: true, isCanonical: true, resolver: defaultResolver},
-		{repo: "testdata/mock-tuf-allow-canonical", expectSuccess: false, isCanonical: false, resolver: defaultResolver},
-		{repo: "testdata/mock-tuf-no-rego", expectSuccess: false, isCanonical: false, resolver: defaultResolver, resolveErrorStr: "no policy file found in policy mapping"},
+		{repo: "testdata/policies/allow", expectSuccess: true, resolver: defaultResolver},
+		{repo: "testdata/policies/allow", expectSuccess: true, resolver: defaultResolver, policyID: "docker-official-images"},
+		{repo: "testdata/policies/allow", resolver: defaultResolver, policyID: "non-existent-policy-id", resolveErrorStr: resolveErrorStr},
+		{repo: "testdata/policies/deny", resolver: defaultResolver},
+		{repo: "testdata/policies/verify-sig", expectSuccess: true, resolver: defaultResolver},
+		{repo: "testdata/policies/wrong-key", resolver: defaultResolver},
+		{repo: "testdata/policies/allow-canonical", expectSuccess: true, isCanonical: true, resolver: defaultResolver},
+		{repo: "testdata/policies/allow-canonical", resolver: defaultResolver},
+		{repo: "testdata/policies/no-rego", resolver: defaultResolver, resolveErrorStr: "no policy file found in policy mapping"},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.repo, func(t *testing.T) {
 			input := &policy.Input{
-				Digest:      "sha256:test-digest",
-				PURL:        "test-purl",
-				IsCanonical: tc.isCanonical,
+				Digest: "sha256:test-digest",
+				PURL:   "test-purl",
+			}
+			if !tc.isCanonical {
+				input.Tag = "test"
 			}
 
-			tufClient := tuf.NewMockTufClient(tc.repo, test.CreateTempDir(t, "", "tuf-dest"))
 			if tc.policy == nil {
 				tc.policy = &policy.Options{
-					TUFClient:       tufClient,
 					LocalTargetsDir: test.CreateTempDir(t, "", "tuf-targets"),
 					PolicyID:        tc.policyID,
+					LocalPolicyDir:  tc.repo,
+					DisableTUF:      true,
 				}
 			}
 			imageName, err := tc.resolver.ImageName(ctx)
@@ -86,7 +87,7 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 			require.NoError(t, err)
 			resolver, err := policy.CreateImageDetailsResolver(src)
 			require.NoError(t, err)
-			policy, err := policy.ResolvePolicy(ctx, resolver, tc.policy)
+			policy, err := policy.ResolvePolicy(ctx, nil, resolver, tc.policy)
 			if tc.resolveErrorStr != "" {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tc.resolveErrorStr)
@@ -107,7 +108,7 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 }
 
 func TestLoadingMappings(t *testing.T) {
-	policyMappings, err := config.LoadLocalMappings(filepath.Join("testdata", "mock-tuf-allow"))
+	policyMappings, err := config.LoadLocalMappings(filepath.Join("testdata", "policies", "allow"))
 	require.NoError(t, err)
 	assert.Equal(t, len(policyMappings.Rules), 3)
 	for _, mirror := range policyMappings.Rules {

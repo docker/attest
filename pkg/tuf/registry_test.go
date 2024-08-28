@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/docker/attest/internal/embed"
 	"github.com/docker/attest/internal/util"
 	"github.com/docker/attest/pkg/oci"
 	"github.com/google/go-containerregistry/pkg/crane"
@@ -56,7 +55,7 @@ func TestRegistryFetcher(t *testing.T) {
 	delegatedDir := CreateTempDir(t, dir, delegatedRole)
 	delegatedTargetFile := fmt.Sprintf("%s/%s", delegatedRole, targetFile)
 
-	cfg, err := config.New(metadataRepo, embed.RootDev.Data)
+	cfg, err := config.New(metadataRepo, DockerTUFRootDev.Data)
 	assert.NoError(t, err)
 
 	cfg.Fetcher = NewRegistryFetcher(metadataRepo, metadataImgTag, targetsRepo)

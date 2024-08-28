@@ -3,6 +3,7 @@ package oci_test
 import (
 	"testing"
 
+	"github.com/distribution/reference"
 	"github.com/docker/attest/internal/test"
 	"github.com/docker/attest/pkg/oci"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
@@ -14,42 +15,51 @@ import (
 func TestRefToPurl(t *testing.T) {
 	arm, err := oci.ParsePlatform("arm64/linux")
 	require.NoError(t, err)
-	purl, canonical, err := oci.RefToPURL("alpine", arm)
+	ref, err := reference.ParseNormalizedNamed("alpine")
+	require.NoError(t, err)
+	purl, canonical, err := oci.RefToPURL(ref, arm)
 	assert.NoError(t, err)
 	assert.Equal(t, "pkg:docker/alpine@latest?platform=arm64%2Flinux", purl)
 	assert.False(t, canonical)
-
-	purl, canonical, err = oci.RefToPURL("alpine:123", arm)
+	ref, err = reference.ParseNormalizedNamed("alpine:123")
+	require.NoError(t, err)
+	purl, canonical, err = oci.RefToPURL(ref, arm)
 	assert.NoError(t, err)
 	assert.Equal(t, "pkg:docker/alpine@123?platform=arm64%2Flinux", purl)
 	assert.False(t, canonical)
-
-	purl, canonical, err = oci.RefToPURL("google/alpine:123", arm)
+	ref, err = reference.ParseNormalizedNamed("google/alpine:123")
+	require.NoError(t, err)
+	purl, canonical, err = oci.RefToPURL(ref, arm)
 	assert.NoError(t, err)
 	assert.Equal(t, "pkg:docker/google/alpine@123?platform=arm64%2Flinux", purl)
 	assert.False(t, canonical)
-
-	purl, canonical, err = oci.RefToPURL("library/alpine:123", arm)
+	ref, err = reference.ParseNormalizedNamed("library/alpine:123")
+	require.NoError(t, err)
+	purl, canonical, err = oci.RefToPURL(ref, arm)
 	assert.NoError(t, err)
 	assert.Equal(t, "pkg:docker/alpine@123?platform=arm64%2Flinux", purl)
 	assert.False(t, canonical)
-
-	purl, canonical, err = oci.RefToPURL("docker.io/library/alpine:123", arm)
+	ref, err = reference.ParseNormalizedNamed("docker.io/library/alpine:123")
+	require.NoError(t, err)
+	purl, canonical, err = oci.RefToPURL(ref, arm)
 	assert.NoError(t, err)
 	assert.Equal(t, "pkg:docker/alpine@123?platform=arm64%2Flinux", purl)
 	assert.False(t, canonical)
-
-	purl, canonical, err = oci.RefToPURL("localhost:5001/library/alpine:123", arm)
+	ref, err = reference.ParseNormalizedNamed("localhost:5001/library/alpine:123")
+	require.NoError(t, err)
+	purl, canonical, err = oci.RefToPURL(ref, arm)
 	assert.NoError(t, err)
 	assert.Equal(t, "pkg:docker/localhost%3A5001/library/alpine@123?platform=arm64%2Flinux", purl)
 	assert.False(t, canonical)
-
-	purl, canonical, err = oci.RefToPURL("localhost:5001/alpine:123", arm)
+	ref, err = reference.ParseNormalizedNamed("localhost:5001/alpine:123")
+	require.NoError(t, err)
+	purl, canonical, err = oci.RefToPURL(ref, arm)
 	assert.NoError(t, err)
 	assert.Equal(t, "pkg:docker/localhost%3A5001/alpine@123?platform=arm64%2Flinux", purl)
 	assert.False(t, canonical)
-
-	purl, canonical, err = oci.RefToPURL("localhost:5001/alpine@sha256:c5b1261d6d3e43071626931fc004f70149baeba2c8ec672bd4f27761f8e1ad6b", arm)
+	ref, err = reference.ParseNormalizedNamed("localhost:5001/alpine@sha256:c5b1261d6d3e43071626931fc004f70149baeba2c8ec672bd4f27761f8e1ad6b")
+	require.NoError(t, err)
+	purl, canonical, err = oci.RefToPURL(ref, arm)
 	assert.NoError(t, err)
 	assert.Equal(t, "pkg:docker/localhost%3A5001/alpine?digest=sha256%3Ac5b1261d6d3e43071626931fc004f70149baeba2c8ec672bd4f27761f8e1ad6b&platform=arm64%2Flinux", purl)
 	assert.True(t, canonical)

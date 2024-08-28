@@ -167,7 +167,7 @@ func resolvePolicyByID(opts *Options, tufClient tuf.Downloader) (*Policy, error)
 				return resolveLocalPolicy(opts, policy, "", "")
 			}
 		}
-		if tufClient != nil {
+		if !opts.DisableTUF {
 			// must check tuf
 			tufMappings, err := config.LoadTUFMappings(tufClient, opts.LocalTargetsDir)
 			if err != nil {

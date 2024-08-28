@@ -76,6 +76,7 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 					LocalTargetsDir: test.CreateTempDir(t, "", "tuf-targets"),
 					PolicyID:        tc.policyID,
 					LocalPolicyDir:  tc.repo,
+					DisableTUF:      true,
 				}
 			}
 			imageName, err := tc.resolver.ImageName(ctx)
@@ -86,7 +87,6 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 			require.NoError(t, err)
 			resolver, err := policy.CreateImageDetailsResolver(src)
 			require.NoError(t, err)
-			//nil below indicates TUF is disabled
 			policy, err := policy.ResolvePolicy(ctx, nil, resolver, tc.policy)
 			if tc.resolveErrorStr != "" {
 				require.Error(t, err)

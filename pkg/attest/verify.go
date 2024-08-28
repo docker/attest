@@ -33,7 +33,6 @@ func NewVerifier(opts *policy.Options) (Verifier, error) {
 	}
 	var tufClient tuf.Downloader
 	if !opts.DisableTUF {
-		// use client from context if available
 		tufClient, err = tuf.NewClient(opts.TUFClientOptions)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create TUF client: %w", err)
@@ -104,8 +103,8 @@ func populateDefaultOptions(opts *policy.Options) (err error) {
 			return err
 		}
 	}
-	if opts.DisableTUF {
-		opts.TUFClientOptions = nil
+	if opts.DisableTUF && opts.TUFClientOptions != nil {
+		return fmt.Errorf("TUF client options set but TUF disabled")
 	} else if opts.TUFClientOptions == nil {
 		opts.TUFClientOptions = tuf.NewDockerDefaultClientOptions(opts.LocalTargetsDir)
 	}

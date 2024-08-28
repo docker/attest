@@ -248,6 +248,7 @@ func TestDefaultOptions(t *testing.T) {
 		referrersRepo    string
 		expectedError    string
 		disableTuf       bool
+		localPolicyDir   string
 	}{
 		{name: "empty"},
 		{name: "tufClient provided", tufOpts: &tuf.ClientOptions{MetadataSource: "a", TargetsSource: "b"}},
@@ -256,6 +257,7 @@ func TestDefaultOptions(t *testing.T) {
 		{name: "referrersRepo provided", referrersRepo: "referrers"},
 		{name: "referrersRepo provided with attached", referrersRepo: "referrers", attestationStyle: config.AttestationStyleAttached, expectedError: "referrers repo specified but attestation source not set to referrers"},
 		{name: "tuf disabled and no local-policy-dir", disableTuf: true, expectedError: "local policy dir must be set if not using TUF"},
+		{name: "tuf disabled but options set", disableTuf: true, tufOpts: &tuf.ClientOptions{MetadataSource: "a", TargetsSource: "b"}, localPolicyDir: "foo", expectedError: "TUF client options set but TUF disabled"},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -268,6 +270,7 @@ func TestDefaultOptions(t *testing.T) {
 				AttestationStyle: tc.attestationStyle,
 				ReferrersRepo:    tc.referrersRepo,
 				DisableTUF:       tc.disableTuf,
+				LocalPolicyDir:   tc.localPolicyDir,
 			}
 
 			err = populateDefaultOptions(opts)

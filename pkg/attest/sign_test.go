@@ -43,6 +43,7 @@ func TestSignVerifyOCILayout(t *testing.T) {
 	}
 	policyOpts := &policy.Options{
 		LocalPolicyDir: PassPolicyDir,
+		DisableTUF:     true,
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {

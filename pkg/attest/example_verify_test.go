@@ -31,6 +31,7 @@ func ExampleVerify_remote() {
 		LocalTargetsDir:  filepath.Join(home, ".docker", "policy"), // location to store policy files downloaded from TUF
 		LocalPolicyDir:   "",                                       // overrides TUF policy for local policy files if set
 		PolicyID:         "",                                       // set to ignore policy mapping and select a policy by id
+		DisableTUF:       false,                                    // set to disable TUF and rely on local policy files
 	}
 
 	src, err := oci.ParseImageSpec(image, oci.WithPlatform(platform))

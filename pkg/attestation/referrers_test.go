@@ -139,6 +139,7 @@ func TestAttestationReferenceTypes(t *testing.T) {
 
 				policyOpts := &policy.Options{
 					LocalPolicyDir: LocalPolicy,
+					DisableTUF:     true,
 				}
 
 				if tc.referrersRepo != "" {
@@ -269,6 +270,7 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 				referencedImage := fmt.Sprintf("%s@%s", indexName, mf.Digest.String())
 				policyOpts := &policy.Options{
 					LocalPolicyDir: PassPolicyDir,
+					DisableTUF:     true,
 				}
 				src, err := oci.ParseImageSpec(referencedImage)
 				require.NoError(t, err)

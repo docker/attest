@@ -92,6 +92,7 @@ func TestVSA(t *testing.T) {
 	policyOpts := &policy.Options{
 		LocalPolicyDir:   PassPolicyDir,
 		AttestationStyle: config.AttestationStyleAttached,
+		DisableTUF:       true,
 	}
 	results, err := Verify(ctx, spec, policyOpts)
 	require.NoError(t, err)
@@ -144,6 +145,7 @@ func TestVerificationFailure(t *testing.T) {
 	policyOpts := &policy.Options{
 		LocalPolicyDir:   FailPolicyDir,
 		AttestationStyle: config.AttestationStyleAttached,
+		DisableTUF:       true,
 	}
 	results, err := Verify(ctx, spec, policyOpts)
 	require.NoError(t, err)
@@ -219,6 +221,7 @@ func TestSignVerify(t *testing.T) {
 
 			policyOpts := &policy.Options{
 				LocalPolicyDir: tc.policyDir,
+				DisableTUF:     true,
 			}
 			results, err := Verify(ctx, spec, policyOpts)
 			require.NoError(t, err)

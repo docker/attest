@@ -8,6 +8,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
+	buildkit "github.com/moby/buildkit/util/attestation"
 )
 
 type RegistryResolver struct {
@@ -35,8 +36,8 @@ func (r *RegistryResolver) Attestations(ctx context.Context, predicateType strin
 func attestationDigestForImage(ix *v1.IndexManifest, imageDigest string, attestType string) (string, error) {
 	for i := range ix.Manifests {
 		m := &ix.Manifests[i]
-		if v, ok := m.Annotations[DockerReferenceType]; ok && v == attestType {
-			if d, ok := m.Annotations[DockerReferenceDigest]; ok && d == imageDigest {
+		if v, ok := m.Annotations[buildkit.DockerAnnotationReferenceType]; ok && v == attestType {
+			if d, ok := m.Annotations[buildkit.DockerAnnotationReferenceDigest]; ok && d == imageDigest {
 				return m.Digest.String(), nil
 			}
 		}

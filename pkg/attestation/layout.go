@@ -8,6 +8,7 @@ import (
 	"github.com/docker/attest/pkg/oci"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/layout"
+	buildkit "github.com/moby/buildkit/util/attestation"
 )
 
 // implementation of Resolver that closes over attestations from an oci layout.
@@ -119,11 +120,11 @@ func manifestFromOCILayout(path string, platform *v1.Platform) (*Manifest, error
 	}
 	for i := range mfs2.Manifests {
 		mf := &mfs2.Manifests[i]
-		if mf.Annotations[DockerReferenceType] != AttestationManifestType {
+		if mf.Annotations[buildkit.DockerAnnotationReferenceType] != buildkit.DockerAnnotationReferenceTypeDefault {
 			continue
 		}
 
-		if mf.Annotations[DockerReferenceDigest] != subjectDescriptor.Digest.String() {
+		if mf.Annotations[buildkit.DockerAnnotationReferenceDigest] != subjectDescriptor.Digest.String() {
 			continue
 		}
 

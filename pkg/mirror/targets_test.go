@@ -46,7 +46,7 @@ func TestGetTufTargetsMirror(t *testing.T) {
 
 		// check that layers are annotated
 		for _, layer := range l.Layers {
-			ann, ok := layer.Annotations[tufFileAnnotation]
+			ann, ok := layer.Annotations[tuf.TUFFileNameAnnotation]
 			assert.True(t, ok)
 			parts := strings.Split(ann, ".")
 			// <digest>.filename.<ext|optional>
@@ -93,7 +93,7 @@ func TestGetDelegatedTargetMirrors(t *testing.T) {
 
 		// check that layers are annotated
 		for _, layer := range l.Layers {
-			ann, ok := layer.Annotations[tufFileAnnotation]
+			ann, ok := layer.Annotations[tuf.TUFFileNameAnnotation]
 			assert.True(t, ok)
 			parts := strings.Split(ann, ".")
 			// <subdir>/<digest>.filename.<ext|optional>

@@ -16,6 +16,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/registry"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
+	buildkit "github.com/moby/buildkit/util/attestation"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -263,7 +264,7 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 			require.NoError(t, err)
 			for _, mf := range mfs2.Manifests {
 				// skip signed/unsigned attestations
-				if mf.Annotations[attestation.DockerReferenceType] == attestation.AttestationManifestType {
+				if mf.Annotations[buildkit.DockerAnnotationReferenceType] == buildkit.DockerAnnotationReferenceTypeDefault {
 					continue
 				}
 				// can evaluate policy using referrers in a different repo

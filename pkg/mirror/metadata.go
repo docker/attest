@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/docker/attest/pkg/oci"
+	"github.com/docker/attest/pkg/tuf"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/empty"
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
@@ -99,7 +100,7 @@ func (m *TUFMirror) buildMetadataManifest(metadata *TUFMetadata) (v1.Image, erro
 // makeRoleLayers returns a list of layers for a given TUF role.
 func (m *TUFMirror) makeRoleLayers(role TUFRole, tufMetadata *TUFMetadata) ([]mutate.Addendum, error) {
 	var layers []mutate.Addendum
-	ann := map[string]string{tufFileAnnotation: ""}
+	ann := map[string]string{tuf.TUFFileNameAnnotation: ""}
 	switch role {
 	case metadata.ROOT:
 		layers = m.annotatedMetaLayers(tufMetadata.Root)
@@ -108,7 +109,7 @@ func (m *TUFMirror) makeRoleLayers(role TUFRole, tufMetadata *TUFMetadata) ([]mu
 	case metadata.TARGETS:
 		layers = m.annotatedMetaLayers(tufMetadata.Targets)
 	case metadata.TIMESTAMP:
-		ann[tufFileAnnotation] = fmt.Sprintf("%s.json", role)
+		ann[tuf.TUFFileNameAnnotation] = fmt.Sprintf("%s.json", role)
 		layers = append(layers, mutate.Addendum{Layer: static.NewLayer(tufMetadata.Timestamp, tufMetadataMediaType), Annotations: ann})
 	default:
 		return nil, fmt.Errorf("unsupported TUF role: %s", role)
@@ -120,7 +121,7 @@ func (m *TUFMirror) makeRoleLayers(role TUFRole, tufMetadata *TUFMetadata) ([]mu
 func (m *TUFMirror) annotatedMetaLayers(meta map[string][]byte) []mutate.Addendum {
 	var layers []mutate.Addendum
 	for name, data := range meta {
-		ann := map[string]string{tufFileAnnotation: name}
+		ann := map[string]string{tuf.TUFFileNameAnnotation: name}
 		layers = append(layers, mutate.Addendum{Layer: static.NewLayer(data, tufMetadataMediaType), Annotations: ann})
 	}
 	return layers
@@ -178,7 +179,7 @@ func (m *TUFMirror) buildDelegatedMetadataManifests(delegated []DelegatedTargetM
 		img := empty.Image
 		img = mutate.MediaType(img, types.OCIManifestSchema1)
 		img = mutate.ConfigMediaType(img, types.OCIConfigJSON)
-		ann := map[string]string{tufFileAnnotation: nameFromRole(role.Name, role.Version)}
+		ann := map[string]string{tuf.TUFFileNameAnnotation: nameFromRole(role.Name, role.Version)}
 		layer := mutate.Addendum{Layer: static.NewLayer(role.Data, tufMetadataMediaType), Annotations: ann}
 		img, err := mutate.Append(img, layer)
 		if err != nil {

@@ -72,7 +72,6 @@ func TestSignVerifyOCILayout(t *testing.T) {
 				allEnvelopes = append(allEnvelopes, statements...)
 
 				for _, stmt := range statements {
-					assert.Equalf(t, predicate, stmt.Annotations[attestation.InTotoPredicateType], "expected predicate-type annotation to be set to %s, got %s", predicate, stmt.Annotations[attestation.InTotoPredicateType])
 					assert.Equalf(t, attestation.LifecycleStageExperimental, stmt.Annotations[attestation.InTotoReferenceLifecycleStage], "expected reference lifecycle stage annotation to be set to %s, got %s", attestation.LifecycleStageExperimental, stmt.Annotations[attestation.InTotoReferenceLifecycleStage])
 				}
 			}

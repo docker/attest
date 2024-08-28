@@ -10,14 +10,14 @@ import (
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/layout"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
+	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 const (
-	OCIReferenceTarget            = "org.opencontainers.image.ref.name"
-	LocalPrefix                   = "oci://"
-	RegistryPrefix                = "docker://"
-	OCI                SourceType = "OCI"
-	Docker             SourceType = "Docker"
+	LocalPrefix               = "oci://"
+	RegistryPrefix            = "docker://"
+	OCI            SourceType = "OCI"
+	Docker         SourceType = "Docker"
 )
 
 type (
@@ -48,7 +48,7 @@ func IndexFromPath(path string) (*NamedIndex, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get digest: %w", err)
 	}
-	imageName := idxm.Manifests[0].Annotations[OCIReferenceTarget]
+	imageName := idxm.Manifests[0].Annotations[ociv1.AnnotationRefName]
 	idxDigest := idxm.Manifests[0].Digest
 
 	idx, err := wrapperIdx.ImageIndex(idxDigest)

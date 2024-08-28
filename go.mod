@@ -13,6 +13,7 @@ require (
 	github.com/google/go-containerregistry v0.20.1
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/in-toto/in-toto-golang v0.9.0
+	github.com/moby/buildkit v0.15.2
 	github.com/open-policy-agent/opa v0.67.1
 	github.com/opencontainers/image-spec v1.1.0
 	github.com/package-url/packageurl-go v0.1.3
@@ -77,7 +78,7 @@ require (
 	github.com/docker/cli v27.1.1+incompatible // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
 	github.com/docker/docker v27.1.1+incompatible // indirect
-	github.com/docker/docker-credential-helpers v0.8.1 // indirect
+	github.com/docker/docker-credential-helpers v0.8.2 // indirect
 	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
@@ -114,7 +115,7 @@ require (
 	github.com/jellydator/ttlcache/v3 v3.2.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
-	github.com/klauspost/compress v1.17.8 // indirect
+	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/letsencrypt/boulder v0.0.0-20240620165639-de9c06129bec // indirect
 	github.com/lufia/plan9stats v0.0.0-20240513124658-fba389f38bae // indirect
 	github.com/magiconair/properties v1.8.7 // indirect

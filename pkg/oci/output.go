@@ -10,6 +10,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/layout"
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
+	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // PushImageToRegistry pushes an image to the registry with the specified name.
@@ -75,7 +76,7 @@ func SaveIndex(outputs []*ImageSpec, index v1.ImageIndex, indexName string) erro
 				Add: index,
 				Descriptor: v1.Descriptor{
 					Annotations: map[string]string{
-						OCIReferenceTarget: indexName,
+						ociv1.AnnotationRefName: indexName,
 					},
 				},
 			})
@@ -101,7 +102,7 @@ func SaveImage(output *ImageSpec, image v1.Image, imageName string) error {
 			Add: image,
 			Descriptor: v1.Descriptor{
 				Annotations: map[string]string{
-					OCIReferenceTarget: imageName,
+					ociv1.AnnotationRefName: imageName,
 				},
 			},
 		})

@@ -11,6 +11,8 @@ import (
 	"github.com/docker/attest/pkg/oci"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/empty"
+	buildkit "github.com/moby/buildkit/util/attestation"
+
 	"github.com/google/go-containerregistry/pkg/v1/layout"
 	"github.com/google/go-containerregistry/pkg/v1/match"
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
@@ -47,8 +49,8 @@ func ManifestsFromIndex(index v1.ImageIndex) ([]*Manifest, error) {
 	var attestationManifests []*Manifest
 	for i := range idx.Manifests {
 		desc := idx.Manifests[i]
-		if desc.Annotations[DockerReferenceType] == AttestationManifestType {
-			subject := subjects[desc.Annotations[DockerReferenceDigest]]
+		if desc.Annotations[buildkit.DockerAnnotationReferenceType] == buildkit.DockerAnnotationReferenceTypeDefault {
+			subject := subjects[desc.Annotations[buildkit.DockerAnnotationReferenceDigest]]
 			if subject == nil {
 				return nil, fmt.Errorf("failed to find subject for attestation manifest: %w", err)
 			}
@@ -135,7 +137,6 @@ func createSignedImageLayer(ctx context.Context, statement *intoto.Statement, si
 	return &Layer{
 		Statement: statement,
 		Annotations: map[string]string{
-			InTotoPredicateType:           statement.PredicateType,
 			InTotoReferenceLifecycleStage: LifecycleStageExperimental,
 		},
 		Layer: static.NewLayer(data, types.MediaType(mediaType)),
@@ -354,7 +355,7 @@ func ExtractStatementsFromIndex(idx v1.ImageIndex, mediaType string) ([]*Annotat
 
 	for i := range mfs2.Manifests {
 		mf := &mfs2.Manifests[i]
-		if mf.Annotations[DockerReferenceType] != "attestation-manifest" {
+		if mf.Annotations[buildkit.DockerAnnotationReferenceType] != buildkit.DockerAnnotationReferenceTypeDefault {
 			continue
 		}
 

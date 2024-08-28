@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/docker/attest/pkg/oci"
+	"github.com/docker/attest/pkg/tuf"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/empty"
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
@@ -37,7 +38,7 @@ func (m *TUFMirror) GetTUFTargetMirrors() ([]*Image, error) {
 			return nil, fmt.Errorf("missing sha256 hash for target %s", t.Path)
 		}
 		name := hash.String() + "." + t.Path
-		ann := map[string]string{tufFileAnnotation: name}
+		ann := map[string]string{tuf.TUFFileNameAnnotation: name}
 		layer := mutate.Addendum{Layer: static.NewLayer(file.Data, tufTargetMediaType), Annotations: ann}
 		img, err = mutate.Append(img, layer)
 		if err != nil {
@@ -88,7 +89,7 @@ func (m *TUFMirror) GetDelegatedTargetMirrors() ([]*Index, error) {
 				return nil, fmt.Errorf("failed to find target subdirectory [%s] in path: %s", subdir, target.Path)
 			}
 			name := hash.String() + "." + filename
-			ann := map[string]string{tufFileAnnotation: name}
+			ann := map[string]string{tuf.TUFFileNameAnnotation: name}
 			layer := mutate.Addendum{Layer: static.NewLayer(file.Data, tufTargetMediaType), Annotations: ann}
 			img, err = mutate.Append(img, layer)
 			if err != nil {
@@ -100,7 +101,7 @@ func (m *TUFMirror) GetDelegatedTargetMirrors() ([]*Index, error) {
 				Add: emptyConfigImage,
 				Descriptor: v1.Descriptor{
 					Annotations: map[string]string{
-						tufFileAnnotation: fmt.Sprintf("%s/%s", subdir, name),
+						tuf.TUFFileNameAnnotation: fmt.Sprintf("%s/%s", subdir, name),
 					},
 				},
 			})

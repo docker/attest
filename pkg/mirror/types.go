@@ -12,7 +12,6 @@ const (
 	DefaultTargetsURL    = "https://docker.github.io/tuf/targets"
 	tufMetadataMediaType = "application/vnd.tuf.metadata+json"
 	tufTargetMediaType   = "application/vnd.tuf.target"
-	tufFileAnnotation    = "tuf.io/filename"
 )
 
 type TUFRole string

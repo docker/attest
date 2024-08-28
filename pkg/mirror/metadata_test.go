@@ -65,7 +65,7 @@ func TestGetMetadataManifest(t *testing.T) {
 
 	// check that layers are annotated and use consistent snapshot naming
 	for _, layer := range l.Layers {
-		ann, ok := layer.Annotations[tufFileAnnotation]
+		ann, ok := layer.Annotations[tuf.TUFFileNameAnnotation]
 		assert.True(t, ok)
 		// check for consistent snapshot version
 		parts := strings.Split(ann, ".")

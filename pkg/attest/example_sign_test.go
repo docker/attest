@@ -10,6 +10,7 @@ import (
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/empty"
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
+	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 func ExampleSignStatements_remote() {
@@ -65,7 +66,7 @@ func ExampleSignStatements_remote() {
 		Add: signedIndex,
 		Descriptor: v1.Descriptor{
 			Annotations: map[string]string{
-				oci.OCIReferenceTarget: attIdx.Name,
+				ociv1.AnnotationRefName: attIdx.Name,
 			},
 		},
 	})

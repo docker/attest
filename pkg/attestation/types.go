@@ -11,10 +11,6 @@ import (
 )
 
 const (
-	DockerReferenceType           = "vnd.docker.reference.type"
-	AttestationManifestType       = "attestation-manifest"
-	InTotoPredicateType           = "in-toto.io/predicate-type"
-	DockerReferenceDigest         = "vnd.docker.reference.digest"
 	DockerDSSEExtKind             = "application/vnd.docker.attestation-verification.v1+json"
 	RekorTLExtKind                = "Rekor"
 	OCIDescriptorDSSEMediaType    = ociv1.MediaTypeDescriptor + "+dsse"

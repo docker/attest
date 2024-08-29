@@ -358,9 +358,6 @@ func RunTestRegistry(t *testing.T) (*registry.RegistryContainer, *url.URL) {
 	if err != nil {
 		t.Fatalf("failed to parse container address: %s", err)
 	}
-	if addr.Hostname() == "127.0.0.1" {
-		addr.Host = "localhost:" + addr.Port()
-	}
 	return registryContainer, addr
 }
 

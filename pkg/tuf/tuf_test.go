@@ -106,7 +106,7 @@ func TestDownloadTarget(t *testing.T) {
 		metadataSource string
 		targetsSource  string
 	}{
-		//{"http", server.URL + "/metadata", server.URL + "/targets"},
+		{"http", server.URL + "/metadata", server.URL + "/targets"},
 		{"oci", regAddr.Host + "/tuf-metadata:latest", regAddr.Host + "/tuf-targets"},
 		{"http, download before init", server.URL + "/metadata", server.URL + "/targets"},
 	}

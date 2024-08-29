@@ -34,6 +34,7 @@ type Options struct {
 	PolicyID         string
 	ReferrersRepo    string
 	AttestationStyle config.AttestationStyle
+	Debug            bool
 }
 
 type Policy struct {

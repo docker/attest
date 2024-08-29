@@ -21,6 +21,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/static"
 	"github.com/google/go-containerregistry/pkg/v1/types"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go/modules/registry"
 	"github.com/theupdateframework/go-tuf/v2/metadata"
 	"github.com/theupdateframework/go-tuf/v2/metadata/config"
@@ -56,7 +57,7 @@ func TestRegistryFetcher(t *testing.T) {
 	delegatedTargetFile := fmt.Sprintf("%s/%s", delegatedRole, targetFile)
 
 	cfg, err := config.New(metadataRepo, DockerTUFRootDev.Data)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	cfg.Fetcher = NewRegistryFetcher(metadataRepo, metadataImgTag, targetsRepo)
 	cfg.LocalMetadataDir = dir
@@ -65,23 +66,23 @@ func TestRegistryFetcher(t *testing.T) {
 
 	// create a new Updater instance
 	up, err := updater.New(cfg)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// refresh the metadata
 	err = up.Refresh()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// download top-level target
 	targetInfo, err := up.GetTargetInfo(targetFile)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	_, _, err = up.DownloadTarget(targetInfo, filepath.Join(dir, targetInfo.Path), "")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// download delegated target
 	targetInfo, err = up.GetTargetInfo(delegatedTargetFile)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	_, _, err = up.DownloadTarget(targetInfo, filepath.Join(delegatedDir, targetFile), "")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestRoleFromConsistentName(t *testing.T) {

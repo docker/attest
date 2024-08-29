@@ -42,7 +42,7 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 	}
 
 	testCases := []struct {
-		repo            string
+		policyPath      string
 		expectSuccess   bool
 		isCanonical     bool
 		resolver        attestation.Resolver
@@ -50,19 +50,19 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 		policyID        string
 		resolveErrorStr string
 	}{
-		{repo: "testdata/policies/allow", expectSuccess: true, resolver: defaultResolver},
-		{repo: "testdata/policies/allow", expectSuccess: true, resolver: defaultResolver, policyID: "docker-official-images"},
-		{repo: "testdata/policies/allow", resolver: defaultResolver, policyID: "non-existent-policy-id", resolveErrorStr: resolveErrorStr},
-		{repo: "testdata/policies/deny", resolver: defaultResolver},
-		{repo: "testdata/policies/verify-sig", expectSuccess: true, resolver: defaultResolver},
-		{repo: "testdata/policies/wrong-key", resolver: defaultResolver},
-		{repo: "testdata/policies/allow-canonical", expectSuccess: true, isCanonical: true, resolver: defaultResolver},
-		{repo: "testdata/policies/allow-canonical", resolver: defaultResolver},
-		{repo: "testdata/policies/no-rego", resolver: defaultResolver, resolveErrorStr: "no policy file found in policy mapping"},
+		{policyPath: "testdata/policies/allow", expectSuccess: true, resolver: defaultResolver},
+		{policyPath: "testdata/policies/allow", expectSuccess: true, resolver: defaultResolver, policyID: "docker-official-images"},
+		{policyPath: "testdata/policies/allow", resolver: defaultResolver, policyID: "non-existent-policy-id", resolveErrorStr: resolveErrorStr},
+		{policyPath: "testdata/policies/deny", resolver: defaultResolver},
+		{policyPath: "testdata/policies/verify-sig", expectSuccess: true, resolver: defaultResolver},
+		{policyPath: "testdata/policies/wrong-key", resolver: defaultResolver},
+		{policyPath: "testdata/policies/allow-canonical", expectSuccess: true, isCanonical: true, resolver: defaultResolver},
+		{policyPath: "testdata/policies/allow-canonical", resolver: defaultResolver},
+		{policyPath: "testdata/policies/no-rego", resolver: defaultResolver, resolveErrorStr: "no policy file found in policy mapping"},
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.repo, func(t *testing.T) {
+		t.Run(tc.policyPath, func(t *testing.T) {
 			input := &policy.Input{
 				Digest: "sha256:test-digest",
 				PURL:   "test-purl",
@@ -75,7 +75,7 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 				tc.opts = &policy.Options{
 					LocalTargetsDir: test.CreateTempDir(t, "", "tuf-targets"),
 					PolicyID:        tc.policyID,
-					LocalPolicyDir:  tc.repo,
+					LocalPolicyDir:  tc.policyPath,
 					DisableTUF:      true,
 				}
 			}

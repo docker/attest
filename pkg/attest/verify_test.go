@@ -45,7 +45,7 @@ func TestVerifyAttestations(t *testing.T) {
 		{"policy ok", nil, nil},
 		{"policy error", fmt.Errorf("policy error"), fmt.Errorf("policy evaluation failed: policy error")},
 	}
-
+	ctx := context.Background()
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockPE := policy.MockPolicyEvaluator{
@@ -54,8 +54,7 @@ func TestVerifyAttestations(t *testing.T) {
 				},
 			}
 
-			ctx := policy.WithPolicyEvaluator(context.Background(), &mockPE)
-			_, err := VerifyAttestations(ctx, resolver, &policy.Policy{ResolvedName: ""})
+			_, err := VerifyAttestations(ctx, resolver, &mockPE, &policy.Policy{ResolvedName: ""})
 			if tc.expectedError != nil {
 				if assert.Error(t, err) {
 					assert.Equal(t, tc.expectedError.Error(), err.Error())
@@ -69,7 +68,6 @@ func TestVerifyAttestations(t *testing.T) {
 
 func TestVSA(t *testing.T) {
 	ctx, signer := test.Setup(t)
-	ctx = policy.WithPolicyEvaluator(ctx, policy.NewRegoEvaluator(true))
 	// setup an image with signed attestations
 	outputLayout := test.CreateTempDir(t, "", TestTempDir)
 
@@ -122,7 +120,6 @@ func TestVSA(t *testing.T) {
 
 func TestVerificationFailure(t *testing.T) {
 	ctx, signer := test.Setup(t)
-	ctx = policy.WithPolicyEvaluator(ctx, policy.NewRegoEvaluator(true))
 	// setup an image with signed attestations
 	outputLayout := test.CreateTempDir(t, "", TestTempDir)
 
@@ -175,7 +172,6 @@ func TestVerificationFailure(t *testing.T) {
 
 func TestSignVerify(t *testing.T) {
 	ctx, signer := test.Setup(t)
-	ctx = policy.WithPolicyEvaluator(ctx, policy.NewRegoEvaluator(true))
 	// setup an image with signed attestations
 	outputLayout := test.CreateTempDir(t, "", TestTempDir)
 

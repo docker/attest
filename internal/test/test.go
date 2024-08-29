@@ -12,9 +12,8 @@ import (
 )
 
 const (
-	UseMockTL     = true
-	UseMockKMS    = true
-	UseMockPolicy = true
+	UseMockTL  = true
+	UseMockKMS = true
 
 	AWSRegion    = "us-east-1"
 	AWSKMSKeyARN = "arn:aws:kms:us-east-1:175142243308:alias/doi-signing" // sandbox

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/distribution/reference"
 	"github.com/docker/attest/internal/embed"
 	"github.com/docker/attest/internal/util"
 	"github.com/theupdateframework/go-tuf/v2/metadata"
@@ -107,20 +108,28 @@ func NewClient(opts *ClientOptions) (*Client, error) {
 	}
 
 	// create updater configuration
-	cfg, err := config.New(opts.MetadataSource, rootBytes) // default config
+	// this is parsed as an HTTP url (which doesn't work for OCI). We're setting this to make TUF happy
+	// and overwriding the configuration below
+	cfg, err := config.New("http://127.0.0.1/tuf", rootBytes) // default config
 	if err != nil {
 		return nil, fmt.Errorf("failed to create TUF updater configuration: %w", err)
 	}
 	cfg.LocalMetadataDir = metadataPath
 	cfg.LocalTargetsDir = filepath.Join(metadataPath, "download")
+	cfg.RemoteMetadataURL = opts.MetadataSource
 	cfg.RemoteTargetsURL = opts.TargetsSource
 
 	if tufSource == OCISource {
-		metadataRepo, metadataTag, found := strings.Cut(opts.MetadataSource, ":")
-		if !found {
-			fmt.Printf("metadata tag not found in URL, using latest\n")
-			metadataTag = LatestTag
+		ref, err := reference.ParseNormalizedNamed(opts.MetadataSource)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse metadata source: %w", err)
 		}
+		// add latest tag
+		metadataTag := LatestTag
+		if tag, ok := ref.(reference.Tagged); ok {
+			metadataTag = tag.Tag()
+		}
+		metadataRepo := ref.Name()
 		cfg.Fetcher = NewRegistryFetcher(metadataRepo, metadataTag, opts.TargetsSource)
 	}
 

@@ -110,7 +110,7 @@ func NewClient(opts *ClientOptions) (*Client, error) {
 	// create updater configuration
 	// this is parsed as an HTTP url (which doesn't work for OCI). We're setting this to make TUF happy
 	// and overwriding the configuration below
-	cfg, err := config.New("http://127.0.0.1/tuf", rootBytes) // default config
+	cfg, err := config.New("", rootBytes) // default config
 	if err != nil {
 		return nil, fmt.Errorf("failed to create TUF updater configuration: %w", err)
 	}

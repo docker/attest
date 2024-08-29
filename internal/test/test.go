@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/docker/attest/pkg/policy"
 	"github.com/docker/attest/pkg/signerverifier"
 	"github.com/docker/attest/pkg/tlog"
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
@@ -56,15 +55,6 @@ func Setup(t *testing.T) (context.Context, dsse.SignerVerifier) {
 	}
 
 	ctx := tlog.WithTL(context.Background(), tl)
-
-	var policyEvaluator policy.Evaluator
-	if UseMockPolicy {
-		policyEvaluator = policy.GetMockPolicy()
-	} else {
-		policyEvaluator = policy.NewRegoEvaluator(true)
-	}
-
-	ctx = policy.WithPolicyEvaluator(ctx, policyEvaluator)
 
 	var signer dsse.SignerVerifier
 	var err error

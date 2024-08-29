@@ -32,7 +32,6 @@ var (
 
 func TestAttestationReferenceTypes(t *testing.T) {
 	ctx, signer := test.Setup(t)
-	ctx = policy.WithPolicyEvaluator(ctx, policy.NewRegoEvaluator(true))
 	platforms := []string{"linux/amd64", "linux/arm64"}
 	for _, tc := range []struct {
 		name              string

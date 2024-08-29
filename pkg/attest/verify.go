@@ -44,7 +44,7 @@ func NewVerifier(opts *policy.Options) (Verifier, error) {
 	}, nil
 }
 
-func (v *tufVerifier) Verify(ctx context.Context, src *oci.ImageSpec) (result *VerificationResult, err error) {
+func (verifier *tufVerifier) Verify(ctx context.Context, src *oci.ImageSpec) (result *VerificationResult, err error) {
 	// so that we can resolve mapping from the image name earlier
 	detailsResolver, err := policy.CreateImageDetailsResolver(src)
 	if err != nil {
@@ -54,35 +54,36 @@ func (v *tufVerifier) Verify(ctx context.Context, src *oci.ImageSpec) (result *V
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve image name: %w", err)
 	}
-	policyResolver := policy.NewResolver(v.tufClient, v.opts)
-	pctx, err := policyResolver.ResolvePolicy(ctx, imageName)
+	policyResolver := policy.NewResolver(verifier.tufClient, verifier.opts)
+	resolvedPolicy, err := policyResolver.ResolvePolicy(ctx, imageName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve policy: %w", err)
 	}
 
-	if pctx == nil {
+	if resolvedPolicy == nil {
 		return &VerificationResult{
 			Outcome: OutcomeNoPolicy,
 		}, nil
 	}
 	// this is overriding the mapping with a referrers config. Useful for testing if nothing else
-	if v.opts.ReferrersRepo != "" {
-		pctx.Mapping.Attestations = &config.AttestationConfig{
-			Repo:  v.opts.ReferrersRepo,
+	if verifier.opts.ReferrersRepo != "" {
+		resolvedPolicy.Mapping.Attestations = &config.AttestationConfig{
+			Repo:  verifier.opts.ReferrersRepo,
 			Style: config.AttestationStyleReferrers,
 		}
-	} else if v.opts.AttestationStyle == config.AttestationStyleAttached {
-		pctx.Mapping.Attestations = &config.AttestationConfig{
-			Repo:  v.opts.ReferrersRepo,
+	} else if verifier.opts.AttestationStyle == config.AttestationStyleAttached {
+		resolvedPolicy.Mapping.Attestations = &config.AttestationConfig{
+			Repo:  verifier.opts.ReferrersRepo,
 			Style: config.AttestationStyleAttached,
 		}
 	}
 	// because we have a mapping now, we can select a resolver based on its contents (ie. referrers or attached)
-	resolver, err := policy.CreateAttestationResolver(detailsResolver, pctx.Mapping)
+	resolver, err := policy.CreateAttestationResolver(detailsResolver, resolvedPolicy.Mapping)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create attestation resolver: %w", err)
 	}
-	result, err = VerifyAttestations(ctx, resolver, pctx)
+	evaluator := policy.NewRegoEvaluator(verifier.opts.Debug)
+	result, err = VerifyAttestations(ctx, resolver, evaluator, resolvedPolicy)
 	if err != nil {
 		return nil, fmt.Errorf("failed to evaluate policy: %w", err)
 	}
@@ -183,7 +184,7 @@ func toVerificationResult(p *policy.Policy, input *policy.Input, result *policy.
 	}, nil
 }
 
-func VerifyAttestations(ctx context.Context, resolver attestation.Resolver, pctx *policy.Policy) (*VerificationResult, error) {
+func VerifyAttestations(ctx context.Context, resolver attestation.Resolver, evaluator policy.Evaluator, resolvedPolicy *policy.Policy) (*VerificationResult, error) {
 	desc, err := resolver.ImageDescriptor(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get image descriptor: %w", err)
@@ -198,7 +199,7 @@ func VerifyAttestations(ctx context.Context, resolver attestation.Resolver, pctx
 		return nil, err
 	}
 
-	if pctx.ResolvedName != "" {
+	if resolvedPolicy.ResolvedName != "" {
 		// this means the name we have is not the one we want to use for policy evaluation
 		// so we need to replace it with the one we resolved during policy resolution.
 		// this can happen if the name is an alias for another image, e.g. if it is a mirror
@@ -207,7 +208,7 @@ func VerifyAttestations(ctx context.Context, resolver attestation.Resolver, pctx
 			return nil, fmt.Errorf("failed to parse image name: %w", err)
 		}
 		oldName := ref.Name()
-		name = strings.Replace(name, oldName, pctx.ResolvedName, 1)
+		name = strings.Replace(name, oldName, resolvedPolicy.ResolvedName, 1)
 	}
 
 	ref, err := reference.ParseNormalizedNamed(name)
@@ -239,16 +240,11 @@ func VerifyAttestations(ctx context.Context, resolver attestation.Resolver, pctx
 	if tag != "" {
 		input.Tag = tag
 	}
-
-	evaluator, err := policy.GetPolicyEvaluator(ctx)
-	if err != nil {
-		return nil, err
-	}
-	result, err := evaluator.Evaluate(ctx, resolver, pctx, input)
+	result, err := evaluator.Evaluate(ctx, resolver, resolvedPolicy, input)
 	if err != nil {
 		return nil, fmt.Errorf("policy evaluation failed: %w", err)
 	}
-	verificationResult, err := toVerificationResult(pctx, input, result)
+	verificationResult, err := toVerificationResult(resolvedPolicy, input, result)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert to policy result: %w", err)
 	}

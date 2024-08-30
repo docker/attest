@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/distribution/reference"
 	"github.com/docker/attest/pkg/oci"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/crane"
@@ -67,13 +68,29 @@ type Layers struct {
 	MediaType string  `json:"mediaType"`
 }
 
-func NewRegistryFetcher(metadataRepo, metadataTag, targetsRepo string) *RegistryFetcher {
+func NewRegistryFetcher(metadataRepo, targetsRepo string) (*RegistryFetcher, error) {
+	ref, err := reference.ParseNormalizedNamed(metadataRepo)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse metadata repo: %w", err)
+	}
+	// add latest tag
+	metadataTag := LatestTag
+	if tag, ok := ref.(reference.Tagged); ok {
+		metadataTag = tag.Tag()
+	}
+	metadataRepo = ref.Name()
+
+	ref, err = reference.ParseNormalizedNamed(targetsRepo)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse targets repo: %w", err)
+	}
+	targetsRepo = ref.Name()
 	return &RegistryFetcher{
 		metadataRepo: metadataRepo,
 		metadataTag:  metadataTag,
 		targetsRepo:  targetsRepo,
 		cache:        NewImageCache(),
-	}
+	}, nil
 }
 
 // DownloadFile downloads a file from an OCI registry, errors out if it failed,
@@ -188,7 +205,7 @@ func getDataFromLayer(fileLayer v1.Layer, maxLength int64) ([]byte, error) {
 // parseImgRef maintains the Fetcher interface by parsing a URL path to an image reference and file name.
 func (d *RegistryFetcher) parseImgRef(urlPath string) (imgRef, fileName string, err error) {
 	// Check if repo is target or metadata
-	if strings.Contains(urlPath, d.targetsRepo) {
+	if strings.HasPrefix(urlPath, d.targetsRepo) {
 		// determine if the target path contains subdirectories and set image name accordingly
 		// <repo>/<filename>          -> image = <repo>:<filename>, layer = <filename>
 		// <repo>/<subdir>/<filename> -> index = <repo>:<subdir>  , image = <filename> -> layer = <filename>
@@ -198,7 +215,7 @@ func (d *RegistryFetcher) parseImgRef(urlPath string) (imgRef, fileName string, 
 			return fmt.Sprintf("%s:%s", d.targetsRepo, subdir), fmt.Sprintf("%s/%s", subdir, name), nil
 		}
 		return fmt.Sprintf("%s:%s", d.targetsRepo, target), target, nil
-	} else if strings.Contains(urlPath, d.metadataRepo) {
+	} else if strings.HasPrefix(urlPath, d.metadataRepo) {
 		// build the metadata image name
 		// determine if role is a delegated role and set the tag accordingly
 		fileName = path.Base(urlPath)

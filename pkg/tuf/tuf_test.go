@@ -112,27 +112,30 @@ func TestDownloadTarget(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tufClient, err := NewClient(&ClientOptions{DockerTUFRootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker})
-		require.NoErrorf(t, err, "Failed to create TUF client: %v", err)
-		require.NotNil(t, tufClient.updater, "Failed to create updater")
+		t.Run(tc.name, func(t *testing.T) {
 
-		// get trusted tuf metadata
-		trustedMetadata := tufClient.updater.GetTrustedMetadataSet()
-		assert.NotNil(t, trustedMetadata, "Failed to get trusted metadata")
+			tufClient, err := NewClient(&ClientOptions{DockerTUFRootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker})
+			require.NoErrorf(t, err, "Failed to create TUF client: %v", err)
+			require.NotNil(t, tufClient.updater, "Failed to create updater")
 
-		// download top-level target files
-		targets := trustedMetadata.Targets[metadata.TARGETS].Signed.Targets
-		for _, target := range targets {
-			// download target files
-			_, err := tufClient.DownloadTarget(target.Path, filepath.Join(tufPath, "download"))
-			assert.NoErrorf(t, err, "Failed to download target: %v", err)
-		}
+			// get trusted tuf metadata
+			trustedMetadata := tufClient.updater.GetTrustedMetadataSet()
+			assert.NotNil(t, trustedMetadata, "Failed to get trusted metadata")
 
-		// download delegated target
-		targetInfo, err := tufClient.updater.GetTargetInfo(delegatedTargetFile)
-		require.NoError(t, err)
-		_, err = tufClient.DownloadTarget(targetInfo.Path, filepath.Join(tufPath, targetInfo.Path))
-		assert.NoError(t, err)
+			// download top-level target files
+			targets := trustedMetadata.Targets[metadata.TARGETS].Signed.Targets
+			for _, target := range targets {
+				// download target files
+				_, err := tufClient.DownloadTarget(target.Path, filepath.Join(tufPath, "download"))
+				assert.NoErrorf(t, err, "Failed to download target: %v", err)
+			}
+
+			// download delegated target
+			targetInfo, err := tufClient.updater.GetTargetInfo(delegatedTargetFile)
+			require.NoError(t, err)
+			_, err = tufClient.DownloadTarget(targetInfo.Path, filepath.Join(tufPath, targetInfo.Path))
+			assert.NoError(t, err)
+		})
 	}
 }
 

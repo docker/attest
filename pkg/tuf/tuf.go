@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/distribution/reference"
 	"github.com/docker/attest/internal/embed"
 	"github.com/docker/attest/internal/util"
 	"github.com/theupdateframework/go-tuf/v2/metadata"
@@ -120,17 +119,10 @@ func NewClient(opts *ClientOptions) (*Client, error) {
 	cfg.RemoteTargetsURL = opts.TargetsSource
 
 	if tufSource == OCISource {
-		ref, err := reference.ParseNormalizedNamed(opts.MetadataSource)
+		cfg.Fetcher, err = NewRegistryFetcher(opts.MetadataSource, opts.TargetsSource)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse metadata source: %w", err)
+			return nil, fmt.Errorf("failed to create registry fetcher: %w", err)
 		}
-		// add latest tag
-		metadataTag := LatestTag
-		if tag, ok := ref.(reference.Tagged); ok {
-			metadataTag = tag.Tag()
-		}
-		metadataRepo := ref.Name()
-		cfg.Fetcher = NewRegistryFetcher(metadataRepo, metadataTag, opts.TargetsSource)
 	}
 
 	// create a new Updater instance

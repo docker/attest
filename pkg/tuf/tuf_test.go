@@ -113,7 +113,6 @@ func TestDownloadTarget(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-
 			tufClient, err := NewClient(&ClientOptions{DockerTUFRootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker})
 			require.NoErrorf(t, err, "Failed to create TUF client: %v", err)
 			require.NotNil(t, tufClient.updater, "Failed to create updater")

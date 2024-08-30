@@ -34,7 +34,7 @@ const (
 	tufMetadataRepo    = "tuf-metadata"
 	targetsPath        = "/tuf-targets"
 	metadataPath       = "/tuf-metadata"
-	targetsRepo        = "docker.io/test" + targetsPath
+	targetsRepo        = "test" + targetsPath
 )
 
 func TestRegistryFetcher(t *testing.T) {
@@ -58,13 +58,12 @@ func TestRegistryFetcher(t *testing.T) {
 	// note - url is ignored here - needed to make http url parsing happy even when using oci
 	cfg, err := config.New("", DockerTUFRootDev.Data)
 	require.NoError(t, err)
-
-	cfg.Fetcher, err = NewRegistryFetcher(metadataRepo, targetsRepo)
-	require.NoError(t, err)
 	cfg.LocalMetadataDir = dir
 	cfg.LocalTargetsDir = dir
 	cfg.RemoteTargetsURL = targetsRepo
 	cfg.RemoteMetadataURL = metadataRepo
+	cfg.Fetcher, err = NewRegistryFetcher(cfg)
+	require.NoError(t, err)
 
 	// create a new Updater instance
 	up, err := updater.New(cfg)
@@ -187,11 +186,11 @@ func TestFindFileInManifest(t *testing.T) {
 }
 
 func TestParseImgRef(t *testing.T) {
-	metadataRepo := "docker.io/test" + metadataPath
+	metadataRepo := "test" + metadataPath
 	metadataTag := LatestTag
 	delegatedRole := testRole
 	validRef := fmt.Sprintf("%s/2.root.json", metadataRepo)
-	expectedRef := fmt.Sprintf("%s:%s", metadataRepo, metadataTag)
+	expectedRef := fmt.Sprintf("docker.io/%s:%s", metadataRepo, metadataTag)
 	testCases := []struct {
 		name                     string
 		ref                      string
@@ -205,10 +204,11 @@ func TestParseImgRef(t *testing.T) {
 	}{
 		{name: "top-level metadata", ref: validRef, expectedRef: expectedRef, expectedFile: "2.root.json"},
 		{name: "short metdata repo", ref: validRef, metadataRepo: "test" + metadataPath, expectedRef: expectedRef, expectedFile: "2.root.json"},
-		{name: "short targetsRepo repo", ref: validRef, targetsRepo: "test" + targetsPath, expectedRef: expectedRef, expectedFile: "2.root.json"},
-		{name: "delegated metadata", ref: fmt.Sprintf("%s/%s/5.test-role.json", metadataRepo, delegatedRole), expectedRef: fmt.Sprintf("%s:%s", metadataRepo, delegatedRole), expectedFile: "5.test-role.json"},
-		{name: "top-level target", ref: fmt.Sprintf("%s/policy.yaml", targetsRepo), expectedRef: fmt.Sprintf("%s:policy.yaml", targetsRepo), expectedFile: "policy.yaml"},
-		{name: "delegated target", ref: fmt.Sprintf("%s/%s/policy.yaml", targetsRepo, delegatedRole), expectedRef: fmt.Sprintf("%s:%s", targetsRepo, delegatedRole), expectedFile: fmt.Sprintf("%s/policy.yaml", delegatedRole)},
+		{name: "library path", ref: fmt.Sprintf("test%s/2.root.json", metadataPath), metadataRepo: "test" + metadataPath, expectedRef: "docker.io/test/tuf-metadata:latest", expectedFile: "2.root.json"},
+		{name: "short targets repo", ref: validRef, targetsRepo: "test" + targetsPath, expectedRef: expectedRef, expectedFile: "2.root.json"},
+		{name: "delegated metadata", ref: fmt.Sprintf("%s/%s/5.test-role.json", metadataRepo, delegatedRole), expectedRef: fmt.Sprintf("docker.io/%s:%s", metadataRepo, delegatedRole), expectedFile: "5.test-role.json"},
+		{name: "top-level target", ref: fmt.Sprintf("%s/policy.yaml", targetsRepo), expectedRef: fmt.Sprintf("docker.io/%s:policy.yaml", targetsRepo), expectedFile: "policy.yaml"},
+		{name: "delegated target", ref: fmt.Sprintf("%s/%s/policy.yaml", targetsRepo, delegatedRole), expectedRef: fmt.Sprintf("docker.io/%s:%s", targetsRepo, delegatedRole), expectedFile: fmt.Sprintf("%s/policy.yaml", delegatedRole)},
 		{name: "docker/targets", ref: fmt.Sprintf("%s/2.root.json", "docker.io/docker/targets"), expectedRef: "docker.io/docker/targets:latest", expectedFile: "2.root.json", metadataRepo: "docker.io/docker/targets"},
 		{name: "malformed ref", ref: fmt.Sprintf("%s/2.root.json", "@broken"), expectedRefError: "urlPath: @broken/2.root.json must be in metadata or targets repo"},
 		{name: "malformed metadataRepo", ref: validRef, metadataRepo: "@broken", expectedConstructorError: "failed to parse metadata repo: invalid reference format"},
@@ -224,7 +224,11 @@ func TestParseImgRef(t *testing.T) {
 			if tc.targetsRepo != "" {
 				targets = tc.targetsRepo
 			}
-			d, err := NewRegistryFetcher(repo, targets)
+			cfg := &config.UpdaterConfig{
+				RemoteMetadataURL: repo,
+				RemoteTargetsURL:  targets,
+			}
+			d, err := NewRegistryFetcher(cfg)
 			if tc.expectedConstructorError != "" {
 				assert.ErrorContains(t, err, tc.expectedConstructorError)
 			} else {

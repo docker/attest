@@ -119,7 +119,7 @@ func NewClient(opts *ClientOptions) (*Client, error) {
 	cfg.RemoteTargetsURL = opts.TargetsSource
 
 	if tufSource == OCISource {
-		cfg.Fetcher, err = NewRegistryFetcher(opts.MetadataSource, opts.TargetsSource)
+		cfg.Fetcher, err = NewRegistryFetcher(cfg)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create registry fetcher: %w", err)
 		}

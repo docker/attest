@@ -17,6 +17,7 @@ import (
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/types"
 	"github.com/theupdateframework/go-tuf/v2/metadata"
+	"github.com/theupdateframework/go-tuf/v2/metadata/config"
 )
 
 const (
@@ -35,6 +36,7 @@ type RegistryFetcher struct {
 	targetsRepo   string
 	cache         *ImageCache
 	timeout       time.Duration
+	cfg           *config.UpdaterConfig
 }
 
 type ImageCache struct {
@@ -68,8 +70,8 @@ type Layers struct {
 	MediaType string  `json:"mediaType"`
 }
 
-func NewRegistryFetcher(metadataRepo, targetsRepo string) (*RegistryFetcher, error) {
-	ref, err := reference.ParseNormalizedNamed(metadataRepo)
+func NewRegistryFetcher(cfg *config.UpdaterConfig) (*RegistryFetcher, error) {
+	ref, err := reference.ParseNormalizedNamed(cfg.RemoteMetadataURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse metadata repo: %w", err)
 	}
@@ -78,14 +80,16 @@ func NewRegistryFetcher(metadataRepo, targetsRepo string) (*RegistryFetcher, err
 	if tag, ok := ref.(reference.Tagged); ok {
 		metadataTag = tag.Tag()
 	}
-	metadataRepo = ref.Name()
+	metadataRepo := ref.Name()
 
-	ref, err = reference.ParseNormalizedNamed(targetsRepo)
+	targetsRef, err := reference.ParseNormalizedNamed(cfg.RemoteTargetsURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse targets repo: %w", err)
 	}
-	targetsRepo = ref.Name()
+	targetsRepo := targetsRef.Name()
 	return &RegistryFetcher{
+		// we need to keep these reference so that we can unmangle the URL paths when downloading files
+		cfg:          cfg,
 		metadataRepo: metadataRepo,
 		metadataTag:  metadataTag,
 		targetsRepo:  targetsRepo,
@@ -205,17 +209,17 @@ func getDataFromLayer(fileLayer v1.Layer, maxLength int64) ([]byte, error) {
 // parseImgRef maintains the Fetcher interface by parsing a URL path to an image reference and file name.
 func (d *RegistryFetcher) parseImgRef(urlPath string) (imgRef, fileName string, err error) {
 	// Check if repo is target or metadata
-	if strings.HasPrefix(urlPath, d.targetsRepo) {
+	if strings.HasPrefix(urlPath, d.cfg.RemoteTargetsURL) {
 		// determine if the target path contains subdirectories and set image name accordingly
 		// <repo>/<filename>          -> image = <repo>:<filename>, layer = <filename>
 		// <repo>/<subdir>/<filename> -> index = <repo>:<subdir>  , image = <filename> -> layer = <filename>
-		target := strings.TrimPrefix(urlPath, d.targetsRepo+"/")
+		target := strings.TrimPrefix(urlPath, d.cfg.RemoteTargetsURL+"/")
 		subdir, name, found := strings.Cut(target, "/")
 		if found {
 			return fmt.Sprintf("%s:%s", d.targetsRepo, subdir), fmt.Sprintf("%s/%s", subdir, name), nil
 		}
 		return fmt.Sprintf("%s:%s", d.targetsRepo, target), target, nil
-	} else if strings.HasPrefix(urlPath, d.metadataRepo) {
+	} else if strings.HasPrefix(urlPath, d.cfg.RemoteMetadataURL) {
 		// build the metadata image name
 		// determine if role is a delegated role and set the tag accordingly
 		fileName = path.Base(urlPath)

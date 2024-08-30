@@ -188,34 +188,56 @@ func TestFindFileInManifest(t *testing.T) {
 
 func TestParseImgRef(t *testing.T) {
 	metadataRepo := "docker.io/test" + metadataPath
-	shortMetadataRepo := "test" + metadataPath
 	metadataTag := LatestTag
 	delegatedRole := testRole
+	validRef := fmt.Sprintf("%s/2.root.json", metadataRepo)
+	expectedRef := fmt.Sprintf("%s:%s", metadataRepo, metadataTag)
 	testCases := []struct {
-		name         string
-		ref          string
-		expectedRef  string
-		expectedFile string
-		metadataRepo string
-		metadataTag  string
+		name                     string
+		ref                      string
+		expectedRef              string
+		expectedFile             string
+		metadataRepo             string
+		metadataTag              string
+		expectedRefError         string
+		expectedConstructorError string
+		targetsRepo              string
 	}{
-		{name: "top-level metadata", ref: fmt.Sprintf("%s/2.root.json", metadataRepo), expectedRef: fmt.Sprintf("%s:%s", metadataRepo, metadataTag), expectedFile: "2.root.json"},
+		{name: "top-level metadata", ref: validRef, expectedRef: expectedRef, expectedFile: "2.root.json"},
+		{name: "short metdata repo", ref: validRef, metadataRepo: "test" + metadataPath, expectedRef: expectedRef, expectedFile: "2.root.json"},
+		{name: "short targetsRepo repo", ref: validRef, targetsRepo: "test" + targetsPath, expectedRef: expectedRef, expectedFile: "2.root.json"},
 		{name: "delegated metadata", ref: fmt.Sprintf("%s/%s/5.test-role.json", metadataRepo, delegatedRole), expectedRef: fmt.Sprintf("%s:%s", metadataRepo, delegatedRole), expectedFile: "5.test-role.json"},
 		{name: "top-level target", ref: fmt.Sprintf("%s/policy.yaml", targetsRepo), expectedRef: fmt.Sprintf("%s:policy.yaml", targetsRepo), expectedFile: "policy.yaml"},
 		{name: "delegated target", ref: fmt.Sprintf("%s/%s/policy.yaml", targetsRepo, delegatedRole), expectedRef: fmt.Sprintf("%s:%s", targetsRepo, delegatedRole), expectedFile: fmt.Sprintf("%s/policy.yaml", delegatedRole)},
 		{name: "docker/targets", ref: fmt.Sprintf("%s/2.root.json", "docker.io/docker/targets"), expectedRef: "docker.io/docker/targets:latest", expectedFile: "2.root.json", metadataRepo: "docker.io/docker/targets"},
+		{name: "malformed ref", ref: fmt.Sprintf("%s/2.root.json", "@broken"), expectedRefError: "urlPath: @broken/2.root.json must be in metadata or targets repo"},
+		{name: "malformed metadataRepo", ref: validRef, metadataRepo: "@broken", expectedConstructorError: "failed to parse metadata repo: invalid reference format"},
+		{name: "malformed targetsRepo", ref: validRef, targetsRepo: "@broken", expectedConstructorError: "failed to parse targets repo: invalid reference format"},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			repo := metadataRepo
 			if tc.metadataRepo != "" {
-				shortMetadataRepo = tc.metadataRepo
+				repo = tc.metadataRepo
 			}
-			d, err := NewRegistryFetcher(shortMetadataRepo, targetsRepo)
-			require.NoError(t, err)
-			imgRef, file, err := d.parseImgRef(tc.ref)
-			assert.NoError(t, err)
-			assert.Equal(t, tc.expectedRef, imgRef, "ref mismatch")
-			assert.Equal(t, tc.expectedFile, file, "file mismatch")
+			targets := targetsRepo
+			if tc.targetsRepo != "" {
+				targets = tc.targetsRepo
+			}
+			d, err := NewRegistryFetcher(repo, targets)
+			if tc.expectedConstructorError != "" {
+				assert.ErrorContains(t, err, tc.expectedConstructorError)
+			} else {
+				require.NoError(t, err)
+				imgRef, file, err := d.parseImgRef(tc.ref)
+				if tc.expectedRefError != "" {
+					assert.ErrorContains(t, err, tc.expectedRefError)
+				} else {
+					require.NoError(t, err)
+					assert.Equal(t, tc.expectedRef, imgRef, "ref mismatch")
+					assert.Equal(t, tc.expectedFile, file, "file mismatch")
+				}
+			}
 		})
 	}
 }

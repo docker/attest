@@ -56,13 +56,15 @@ func TestRegistryFetcher(t *testing.T) {
 	delegatedDir := CreateTempDir(t, dir, delegatedRole)
 	delegatedTargetFile := fmt.Sprintf("%s/%s", delegatedRole, targetFile)
 
-	cfg, err := config.New(metadataRepo, DockerTUFRootDev.Data)
+	// note - url is ignored here - needed to make http url parsing happy even when using oci
+	cfg, err := config.New("", DockerTUFRootDev.Data)
 	require.NoError(t, err)
 
 	cfg.Fetcher = NewRegistryFetcher(metadataRepo, metadataImgTag, targetsRepo)
 	cfg.LocalMetadataDir = dir
 	cfg.LocalTargetsDir = dir
 	cfg.RemoteTargetsURL = targetsRepo
+	cfg.RemoteMetadataURL = metadataRepo
 
 	// create a new Updater instance
 	up, err := updater.New(cfg)
@@ -355,9 +357,6 @@ func RunTestRegistry(t *testing.T) (*registry.RegistryContainer, *url.URL) {
 	addr, err := url.Parse(httpAddress)
 	if err != nil {
 		t.Fatalf("failed to parse container address: %s", err)
-	}
-	if addr.Hostname() == "127.0.0.1" {
-		addr.Host = "localhost:" + addr.Port()
 	}
 	return registryContainer, addr
 }

@@ -130,7 +130,7 @@ func TestDownloadTarget(t *testing.T) {
 
 		// download delegated target
 		targetInfo, err := tufClient.updater.GetTargetInfo(delegatedTargetFile)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		_, err = tufClient.DownloadTarget(targetInfo.Path, filepath.Join(tufPath, targetInfo.Path))
 		assert.NoError(t, err)
 	}

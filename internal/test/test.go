@@ -2,12 +2,13 @@ package test
 
 import (
 	"context"
+	_ "embed"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/docker/attest/pkg/signerverifier"
-	"github.com/docker/attest/pkg/tlog"
+	"github.com/docker/attest/signerverifier"
+	"github.com/docker/attest/tlog"
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 )
 
@@ -19,7 +20,10 @@ const (
 	AWSKMSKeyARN = "arn:aws:kms:us-east-1:175142243308:alias/doi-signing" // sandbox
 )
 
-var UnsignedTestImage = filepath.Join("..", "..", "test", "testdata", "unsigned-test-image")
+func UnsignedTestImage(rel ...string) string {
+	rel = append(rel, "test", "testdata", "unsigned-test-image")
+	return filepath.Join(rel...)
+}
 
 func CreateTempDir(t *testing.T, dir, pattern string) string {
 	// Create a temporary directory for output oci layout
@@ -37,12 +41,11 @@ func CreateTempDir(t *testing.T, dir, pattern string) string {
 	return tempDir
 }
 
+//go:embed test-signing-key.pem
+var signingKey []byte
+
 func GetMockSigner(_ context.Context) (dsse.SignerVerifier, error) {
-	priv, err := os.ReadFile(filepath.Join("..", "..", "test", "testdata", "test-signing-key.pem"))
-	if err != nil {
-		return nil, err
-	}
-	return signerverifier.LoadKeyPair(priv)
+	return signerverifier.LoadKeyPair(signingKey)
 }
 
 func Setup(t *testing.T) (context.Context, dsse.SignerVerifier) {

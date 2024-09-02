@@ -66,7 +66,7 @@ See [Policy Mapping](#policy-mapping) for more details.
 
 The `attest.Verify` function returns a `VerificationSummary` object, which contains the results of the policy evaluation.
 
-See [example_verify_test.go](./pkg/attest/example_verify_test.go) for an example of how to verify an image against a policy.
+See [example_verify_test.go](./example_verify_test.go) for an example of how to verify an image against a policy.
 
 ## Signing Attestations
 
@@ -76,7 +76,7 @@ This function takes a statement and DSSE signer, and returns a signed DSSE envel
 For the common use case of signing a statement and adding it to a manifest, e.g. for pushing to a registry as a referrer to the image being attested, the `attestation.AttestationManifest` type can be used.
 See [example_attestation_manifest_test.go](./pkg/attestation/example_attestation_manifest_test.go)
 
-See also [example_sign_test.go](./pkg/attest/example_sign_test.go) for an example of how to sign all attached in-toto statements on an image, e.g. those produced by buildkit.
+See also [example_sign_test.go](./example_sign_test.go) for an example of how to sign all attached in-toto statements on an image, e.g. those produced by buildkit.
 
 # Rego Policy
 

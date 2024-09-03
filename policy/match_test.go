@@ -15,10 +15,11 @@ func TestFindPolicyMatch(t *testing.T) {
 		imageName  string
 		mappingDir string
 
-		expectError       bool
-		expectedMatchType matchType
-		expectedPolicyID  string
-		expectedImageName string
+		expectError        bool
+		expectLoadingError bool
+		expectedMatchType  matchType
+		expectedPolicyID   string
+		expectedImageName  string
 	}{
 		{
 			name:       "alpine",
@@ -75,16 +76,6 @@ func TestFindPolicyMatch(t *testing.T) {
 			mappingDir: "rewrite-multiple",
 			imageName:  "myevencoolermirror.org/library/alpine",
 
-			expectedMatchType: matchTypePolicy,
-			expectedPolicyID:  "docker-official-images",
-			expectedImageName: "docker.io/library/alpine",
-		},
-		{
-			name:       "invalid rewrites",
-			mappingDir: "rewrite-invalid",
-			imageName:  "mycoolmirror.org/library/alpine",
-
-			expectError:       true,
 			expectedMatchType: matchTypePolicy,
 			expectedPolicyID:  "docker-official-images",
 			expectedImageName: "docker.io/library/alpine",

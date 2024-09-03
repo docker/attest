@@ -28,6 +28,7 @@ func newMapping() *policyMappingsFile {
 		},
 	}
 }
+
 func TestMappingsFileValidation(t *testing.T) {
 	mappings := newMapping()
 	err := validateMappingsFile(mappings)

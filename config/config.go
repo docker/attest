@@ -38,7 +38,7 @@ func validateMappingsFile(mappings *policyMappingsFile) error {
 		if policy.ID == "" {
 			validationErrors = append(validationErrors, fmt.Errorf("policy missing id: %s", policy.ID))
 		}
-		if policy.Files == nil || len(policy.Files) == 0 {
+		if len(policy.Files) == 0 {
 			validationErrors = append(validationErrors, fmt.Errorf("policy missing files: %v", policy))
 		}
 		for _, file := range policy.Files {

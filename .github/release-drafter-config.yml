@@ -68,4 +68,4 @@ autolabeler:
       - "/add/i"
   - label: "breaking"
     title:
-      - "/.*!/i"
+      - "/\!/i"

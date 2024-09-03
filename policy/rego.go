@@ -226,8 +226,6 @@ func fetchInTotoAttestations(resolver attestation.Resolver) rego.Builtin1 {
 	}
 }
 
-// func fetchInTotoAttestations(resolver attestation.Resolver) rego.Builtin1 {
-// return func(rCtx rego.BuiltinContext, predicateTypeTerm *ast.Term) (*ast.Term, error) {
 func verifyInTotoEnvelope(resolver attestation.Resolver) rego.Builtin2 {
 	return func(rCtx rego.BuiltinContext, envTerm, optsTerm *ast.Term) (*ast.Term, error) {
 		env := new(attestation.Envelope)

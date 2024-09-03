@@ -45,7 +45,8 @@ func CreateAttestationResolver(resolver oci.ImageDetailsResolver, mapping *confi
 // e.g. pkg:docker/test-image@test?platform=linux%2Famd64
 // It takes a context.Context, a slice of intoto.Subject, and an attestation.Resolver as parameters.
 // It returns an error if no matching subject is found for the image.
-// Tags are not taken into account when attempting to match because sometimes the user may not have specified a tag, and maybe there is purl subject with that particular tag
+// Tags are not taken into account when attempting to match because sometimes the user may not have specified a tag, and maybe there
+// isn't a purl subject with that particular tag (because of post build tagging?).
 func VerifySubject(ctx context.Context, subject []intoto.Subject, resolver attestation.Resolver) error {
 	img, err := resolver.ImageName(ctx)
 	if err != nil {

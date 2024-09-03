@@ -7,8 +7,12 @@ import (
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 )
 
+// ensure MockResolver implements Resolver
+var _ oci.ImageDetailsResolver = MockResolver{}
+
 type MockResolver struct {
-	Envs []*Envelope
+	Envs  []*Envelope
+	Image string
 }
 
 func (r MockResolver) Attestations(_ context.Context, _ string) ([]*Envelope, error) {
@@ -16,6 +20,9 @@ func (r MockResolver) Attestations(_ context.Context, _ string) ([]*Envelope, er
 }
 
 func (r MockResolver) ImageName(_ context.Context) (string, error) {
+	if r.Image != "" {
+		return r.Image, nil
+	}
 	return "library/alpine:latest", nil
 }
 

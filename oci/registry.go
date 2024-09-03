@@ -9,6 +9,9 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 )
 
+// ensure RegistryImageDetailsResolver implements ImageDetailsResolver
+var _ ImageDetailsResolver = &RegistryImageDetailsResolver{}
+
 type RegistryImageDetailsResolver struct {
 	*ImageSpec
 	descriptor *v1.Descriptor

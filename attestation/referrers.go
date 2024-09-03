@@ -10,6 +10,9 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 )
 
+// ensure ReferrersResolver implements Resolver
+var _ Resolver = &ReferrersResolver{}
+
 type ReferrersResolver struct {
 	referrersRepo string
 	oci.ImageDetailsResolver

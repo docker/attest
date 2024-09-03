@@ -163,9 +163,9 @@ func handleErrors1(f func(rCtx rego.BuiltinContext, a *ast.Term) (*ast.Term, err
 	}
 }
 
-func handleErrors2(f func(rCtx *rego.BuiltinContext, a, b *ast.Term) (*ast.Term, error)) rego.Builtin2 {
+func handleErrors2(f func(rCtx rego.BuiltinContext, a, b *ast.Term) (*ast.Term, error)) rego.Builtin2 {
 	return func(rCtx rego.BuiltinContext, a, b *ast.Term) (*ast.Term, error) {
-		return wrapFunctionResult(f(&rCtx, a, b))
+		return wrapFunctionResult(f(rCtx, a, b))
 	}
 }
 
@@ -180,7 +180,7 @@ func RegoFunctions(resolver attestation.Resolver) []*tester.Builtin {
 					Memoize:          true,
 					Nondeterministic: verifyDecl.Nondeterministic,
 				},
-				handleErrors2(verifyInTotoEnvelope)),
+				handleErrors2(verifyInTotoEnvelope(resolver))),
 		},
 		{
 			Decl: attestDecl,
@@ -226,41 +226,50 @@ func fetchInTotoAttestations(resolver attestation.Resolver) rego.Builtin1 {
 	}
 }
 
-func verifyInTotoEnvelope(rCtx *rego.BuiltinContext, envTerm, optsTerm *ast.Term) (*ast.Term, error) {
-	env := new(attestation.Envelope)
-	opts := new(attestation.VerifyOptions)
-	err := ast.As(envTerm.Value, env)
-	if err != nil {
-		return nil, fmt.Errorf("failed to cast envelope: %w", err)
-	}
-	err = ast.As(optsTerm.Value, &opts)
-	if err != nil {
-		return nil, fmt.Errorf("failed to cast verifier options: %w", err)
-	}
-
-	payload, err := attestation.VerifyDSSE(rCtx.Context, env, opts)
-	if err != nil {
-		return nil, err
-	}
-
-	statement := new(intoto.Statement)
-
-	switch env.PayloadType {
-	case intoto.PayloadType:
-		err = json.Unmarshal(payload, statement)
+// func fetchInTotoAttestations(resolver attestation.Resolver) rego.Builtin1 {
+// return func(rCtx rego.BuiltinContext, predicateTypeTerm *ast.Term) (*ast.Term, error) {
+func verifyInTotoEnvelope(resolver attestation.Resolver) rego.Builtin2 {
+	return func(rCtx rego.BuiltinContext, envTerm, optsTerm *ast.Term) (*ast.Term, error) {
+		env := new(attestation.Envelope)
+		opts := new(attestation.VerifyOptions)
+		err := ast.As(envTerm.Value, env)
 		if err != nil {
-			return nil, fmt.Errorf("failed to unmarshal statement: %w", err)
+			return nil, fmt.Errorf("failed to cast envelope: %w", err)
 		}
-		// TODO: implement other types of envelope
-	default:
-		return nil, fmt.Errorf("unsupported payload type: %s", env.PayloadType)
-	}
+		err = ast.As(optsTerm.Value, &opts)
+		if err != nil {
+			return nil, fmt.Errorf("failed to cast verifier options: %w", err)
+		}
 
-	value, err := ast.InterfaceToValue(statement)
-	if err != nil {
-		return nil, err
+		payload, err := attestation.VerifyDSSE(rCtx.Context, env, opts)
+		if err != nil {
+			return nil, err
+		}
+
+		statement := new(intoto.Statement)
+
+		switch env.PayloadType {
+		case intoto.PayloadType:
+			err = json.Unmarshal(payload, statement)
+			if err != nil {
+				return nil, fmt.Errorf("failed to unmarshal statement: %w", err)
+			}
+			// TODO: implement other types of envelope
+		default:
+			return nil, fmt.Errorf("unsupported payload type: %s", env.PayloadType)
+		}
+
+		err = VerifySubject(rCtx.Context, statement.Subject, resolver)
+		if err != nil {
+			return nil, err
+		}
+
+		value, err := ast.InterfaceToValue(statement)
+		if err != nil {
+			return nil, err
+		}
+		return ast.NewTerm(value), nil
 	}
-	return ast.NewTerm(value), nil
 }
 
 func loadYAML(path string, bs []byte) (interface{}, error) {

@@ -197,6 +197,24 @@ func TestVerifySubject(t *testing.T) {
 			img: "alpine",
 		},
 		{
+			name: "with domain and namespace",
+			subject: []intoto.Subject{
+				{
+					Name: "pkg:docker/docker.io/library/alpine@latest?platform=linux%2Famd64",
+				},
+			},
+			img: "alpine",
+		},
+		{
+			name: "with library",
+			subject: []intoto.Subject{
+				{
+					Name: "pkg:docker/library/alpine@latest?platform=linux%2Famd64",
+				},
+			},
+			img: "alpine",
+		},
+		{
 			name: "library short with tag",
 			subject: []intoto.Subject{
 				{

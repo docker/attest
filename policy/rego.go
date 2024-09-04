@@ -241,7 +241,7 @@ func verifyInTotoEnvelope(resolver attestation.Resolver) rego.Builtin2 {
 
 		payload, err := attestation.VerifyDSSE(rCtx.Context, env, opts)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to verify envelope: %w", err)
 		}
 
 		statement := new(intoto.Statement)
@@ -259,7 +259,7 @@ func verifyInTotoEnvelope(resolver attestation.Resolver) rego.Builtin2 {
 
 		err = VerifySubject(rCtx.Context, statement.Subject, resolver)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to verify subject: %w", err)
 		}
 
 		value, err := ast.InterfaceToValue(statement)

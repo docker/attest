@@ -10,7 +10,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 )
 
-// ensure RegistryResolver implements Resolver
+// ensure RegistryResolver implements Resolver.
 var _ Resolver = &RegistryResolver{}
 
 type RegistryResolver struct {

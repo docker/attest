@@ -11,8 +11,11 @@ import (
 var _ oci.ImageDetailsResolver = MockResolver{}
 
 type MockResolver struct {
-	Envs  []*Envelope
-	Image string
+	Envs         []*Envelope
+	Image        string
+	PlatformFn   func() (*v1.Platform, error)
+	DescriptorFn func() (*v1.Descriptor, error)
+	ImangeNameFn func() (string, error)
 }
 
 func (r MockResolver) Attestations(_ context.Context, _ string) ([]*Envelope, error) {
@@ -23,10 +26,16 @@ func (r MockResolver) ImageName(_ context.Context) (string, error) {
 	if r.Image != "" {
 		return r.Image, nil
 	}
+	if r.ImangeNameFn != nil {
+		return r.ImangeNameFn()
+	}
 	return "library/alpine:latest", nil
 }
 
 func (r MockResolver) ImageDescriptor(_ context.Context) (*v1.Descriptor, error) {
+	if r.DescriptorFn != nil {
+		return r.DescriptorFn()
+	}
 	digest, err := v1.NewHash("sha256:da8b190665956ea07890a0273e2a9c96bfe291662f08e2860e868eef69c34620")
 	if err != nil {
 		return nil, err
@@ -39,6 +48,9 @@ func (r MockResolver) ImageDescriptor(_ context.Context) (*v1.Descriptor, error)
 }
 
 func (r MockResolver) ImagePlatform(_ context.Context) (*v1.Platform, error) {
+	if r.PlatformFn != nil {
+		return r.PlatformFn()
+	}
 	return oci.ParsePlatform("linux/amd64")
 }
 

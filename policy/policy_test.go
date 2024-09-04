@@ -2,6 +2,7 @@ package policy_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -11,6 +12,7 @@ import (
 	"github.com/docker/attest/internal/test"
 	"github.com/docker/attest/oci"
 	"github.com/docker/attest/policy"
+	v1 "github.com/google/go-containerregistry/pkg/v1"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -178,7 +180,6 @@ func TestCreateAttestationResolver(t *testing.T) {
 func TestVerifySubject(t *testing.T) {
 	ctx, _ := test.Setup(t)
 	defaultResolver := attestation.MockResolver{}
-
 	testCases := []struct {
 		name        string
 		subject     []intoto.Subject
@@ -273,6 +274,46 @@ func TestVerifySubject(t *testing.T) {
 			digest:      "1234",
 			expectError: true,
 		},
+		{
+			name: "platform mismatch",
+			subject: []intoto.Subject{
+				{
+					Name: "pkg:docker/alpine@latest?platform=linux%2Farm64",
+				},
+			},
+			img:         "alpine",
+			expectError: true,
+		},
+		{
+			name: "malformed purl",
+			subject: []intoto.Subject{
+				{
+					Name: "not-a-purl",
+				},
+			},
+			img:         "alpine",
+			expectError: true,
+		},
+		{
+			name: "malformed image in valid purl",
+			subject: []intoto.Subject{
+				{
+					Name: "pkg:docker/alpine,bar@latest?platform=linux%2Famd64",
+				},
+			},
+			img:         "alpine-broken",
+			expectError: true,
+		},
+		{
+			name: "malformed image name",
+			subject: []intoto.Subject{
+				{
+					Name: "pkg:docker/alpine@latest?platform=linux%2Famd64",
+				},
+			},
+			img:         "foo bar",
+			expectError: true,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -291,4 +332,34 @@ func TestVerifySubject(t *testing.T) {
 			}
 		})
 	}
+	defaultResolver.Image = "alpine"
+	subject := []intoto.Subject{
+		{
+			Name:   "pkg:docker/alpine@latest?platform=linux%2Famd64",
+			Digest: map[string]string{"sha256": "da8b190665956ea07890a0273e2a9c96bfe291662f08e2860e868eef69c34620"},
+		},
+	}
+
+	// error getting descriptor
+	defaultResolver.DescriptorFn = func() (*v1.Descriptor, error) {
+		return nil, fmt.Errorf("error")
+	}
+	err := policy.VerifySubject(ctx, subject, defaultResolver)
+	require.Error(t, err)
+
+	// error getting platform
+	defaultResolver.DescriptorFn = nil
+	defaultResolver.PlatformFn = func() (*v1.Platform, error) {
+		return nil, fmt.Errorf("error")
+	}
+	err = policy.VerifySubject(ctx, subject, defaultResolver)
+	require.Error(t, err)
+
+	// error getting image name
+	defaultResolver.PlatformFn = nil
+	defaultResolver.ImangeNameFn = func() (string, error) {
+		return "", fmt.Errorf("error")
+	}
+	err = policy.VerifySubject(ctx, subject, defaultResolver)
+	require.Error(t, err)
 }

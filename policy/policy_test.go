@@ -357,6 +357,7 @@ func TestVerifySubject(t *testing.T) {
 
 	// error getting image name
 	defaultResolver.PlatformFn = nil
+	defaultResolver.Image = ""
 	defaultResolver.ImangeNameFn = func() (string, error) {
 		return "", fmt.Errorf("error")
 	}

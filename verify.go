@@ -253,7 +253,7 @@ func VerifyAttestations(ctx context.Context, resolver attestation.Resolver, eval
 	return verificationResult, nil
 }
 
-// WithImageName returns a new resolver that will return the given image name as this can be updated by the mapping file
+// WithImageName returns a new resolver that will return the given image name as this can be updated by the mapping file.
 func WithImageName(resolver attestation.Resolver, s string) attestation.Resolver {
 	return &wrappedResolver{
 		Resolver:  resolver,

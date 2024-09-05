@@ -43,6 +43,6 @@ type wrappedResolver struct {
 	attestation.Resolver
 }
 
-func (w *wrappedResolver) ImageName(ctx context.Context) (string, error) {
+func (w *wrappedResolver) ImageName(_ context.Context) (string, error) {
 	return w.imageName, nil
 }

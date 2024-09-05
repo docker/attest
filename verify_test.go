@@ -188,8 +188,8 @@ func TestSignVerify(t *testing.T) {
 	keysYaml, err := yaml.Marshal(config)
 	require.NoError(t, err)
 
-	// write keysYaml to config.yaml in LocalKeysPolicy
-	err = os.WriteFile(filepath.Join(LocalKeysPolicy, "config.yaml"), keysYaml, 0644)
+	// write keysYaml to config.yaml in LocalKeysPolicy.
+	err = os.WriteFile(filepath.Join(LocalKeysPolicy, "config.yaml"), keysYaml, 0o600)
 	require.NoError(t, err)
 
 	testCases := []struct {

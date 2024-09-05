@@ -87,7 +87,7 @@ func RefToPURL(named reference.Named, platform *v1.Platform) (string, bool, erro
 		})
 	}
 
-	p := packageurl.NewPackageURL("docker", ns, name, version, qualifiers, "")
+	p := packageurl.NewPackageURL(packageurl.TypeDocker, ns, name, version, qualifiers, "")
 	return p.ToString(), isCanonical, nil
 }
 

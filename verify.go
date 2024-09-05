@@ -209,6 +209,7 @@ func VerifyAttestations(ctx context.Context, resolver attestation.Resolver, eval
 		}
 		oldName := ref.Name()
 		name = strings.Replace(name, oldName, resolvedPolicy.ResolvedName, 1)
+		resolver = WithImageName(resolver, resolvedPolicy.ResolvedName)
 	}
 
 	ref, err := reference.ParseNormalizedNamed(name)
@@ -250,4 +251,12 @@ func VerifyAttestations(ctx context.Context, resolver attestation.Resolver, eval
 	}
 	verificationResult.SubjectDescriptor = desc
 	return verificationResult, nil
+}
+
+// WithImageName returns a new resolver that will return the given image name as this can be updated by the mapping file
+func WithImageName(resolver attestation.Resolver, s string) attestation.Resolver {
+	return &wrappedResolver{
+		Resolver:  resolver,
+		imageName: s,
+	}
 }

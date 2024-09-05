@@ -1,8 +1,10 @@
 package attest
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/docker/attest/attestation"
 	"github.com/docker/attest/policy"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
@@ -34,4 +36,13 @@ type VerificationResult struct {
 	VSA               *intoto.Statement
 	Violations        []policy.Violation
 	SubjectDescriptor *v1.Descriptor
+}
+
+type wrappedResolver struct {
+	imageName string
+	attestation.Resolver
+}
+
+func (w *wrappedResolver) ImageName(ctx context.Context) (string, error) {
+	return w.imageName, nil
 }

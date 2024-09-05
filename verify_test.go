@@ -18,9 +18,13 @@ import (
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"sigs.k8s.io/yaml"
 )
 
-var ExampleAttestation = filepath.Join("test", "testdata", "example_attestation.json")
+var (
+	ExampleAttestation = filepath.Join("test", "testdata", "example_attestation.json")
+	LocalKeysPolicy    = filepath.Join("test", "testdata", "local-policy-real")
+)
 
 const (
 	LinuxAMD64 = "linux/amd64"
@@ -53,7 +57,6 @@ func TestVerifyAttestations(t *testing.T) {
 					return policy.AllowedResult(), tc.policyEvaluationError
 				},
 			}
-
 			_, err := VerifyAttestations(ctx, resolver, &mockPE, &policy.Policy{ResolvedName: ""})
 			if tc.expectedError != nil {
 				if assert.Error(t, err) {
@@ -175,6 +178,20 @@ func TestSignVerify(t *testing.T) {
 	// setup an image with signed attestations
 	outputLayout := test.CreateTempDir(t, "", TestTempDir)
 
+	keys, err := test.GenKeyMetadata(signer)
+	require.NoError(t, err)
+	config := struct {
+		Keys []*attestation.KeyMetadata `json:"keys"`
+	}{
+		Keys: []*attestation.KeyMetadata{keys},
+	}
+	keysYaml, err := yaml.Marshal(config)
+	require.NoError(t, err)
+
+	// write keysYaml to config.yaml in LocalKeysPolicy
+	err = os.WriteFile(filepath.Join(LocalKeysPolicy, "config.yaml"), keysYaml, 0644)
+	require.NoError(t, err)
+
 	testCases := []struct {
 		name               string
 		signTL             bool
@@ -185,9 +202,10 @@ func TestSignVerify(t *testing.T) {
 		{name: "happy path", signTL: true, policyDir: PassNoTLPolicyDir},
 		{name: "sign tl, verify no tl", signTL: true, policyDir: PassPolicyDir},
 		{name: "no tl", signTL: false, policyDir: PassPolicyDir},
-		{name: "mirror", signTL: true, policyDir: PassMirrorPolicyDir, imageName: "mirror.org/library/test-image:test"},
-		{name: "mirror no match", signTL: true, policyDir: PassMirrorPolicyDir, imageName: "incorrect.org/library/test-image:test", expectedNonSuccess: OutcomeNoPolicy},
+		{name: "mirror", signTL: false, policyDir: PassMirrorPolicyDir, imageName: "mirror.org/library/test-image:test"},
+		{name: "mirror no match", signTL: false, policyDir: PassMirrorPolicyDir, imageName: "incorrect.org/library/test-image:test", expectedNonSuccess: OutcomeNoPolicy},
 		{name: "verify inputs", signTL: false, policyDir: InputsPolicyDir},
+		{name: "mirror with verification", signTL: false, policyDir: LocalKeysPolicy, imageName: "mirror.org/library/test-image:test"},
 	}
 
 	attIdx, err := oci.IndexFromPath(test.UnsignedTestImage())
@@ -196,7 +214,7 @@ func TestSignVerify(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			opts := &attestation.SigningOptions{
-				SkipTL: tc.signTL,
+				SkipTL: !tc.signTL,
 			}
 
 			signedManifests, err := SignStatements(ctx, attIdx.Index, signer, opts)
@@ -218,12 +236,16 @@ func TestSignVerify(t *testing.T) {
 			policyOpts := &policy.Options{
 				LocalPolicyDir: tc.policyDir,
 				DisableTUF:     true,
+				Debug:          true,
 			}
 			results, err := Verify(ctx, spec, policyOpts)
 			require.NoError(t, err)
 			if tc.expectedNonSuccess != "" {
 				assert.Equal(t, tc.expectedNonSuccess, results.Outcome)
 				return
+			}
+			if results.Outcome == OutcomeFailure {
+				t.Logf("Violations: %v", results.Violations)
 			}
 			assert.Equal(t, OutcomeSuccess, results.Outcome)
 			platform, err := oci.ParsePlatform(LinuxAMD64)

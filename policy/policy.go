@@ -69,14 +69,18 @@ func VerifySubject(ctx context.Context, subject []intoto.Subject, resolver attes
 		if err != nil {
 			continue
 		}
-		if purl.Type != "docker" {
+		if purl.Type != packageurl.TypeDocker {
 			continue
 		}
 		if purl.Qualifiers.Map()["platform"] != platform.String() {
 			continue
 		}
 		// ensure reference is normalized before comparing
-		subjectName, err := reference.ParseNormalizedNamed(purl.Name)
+		withNamespace := purl.Name
+		if purl.Namespace != "" {
+			withNamespace = purl.Namespace + "/" + purl.Name
+		}
+		subjectName, err := reference.ParseNormalizedNamed(withNamespace)
 		if err != nil {
 			continue
 		}

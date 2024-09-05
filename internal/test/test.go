@@ -2,11 +2,17 @@ package test
 
 import (
 	"context"
+	"crypto"
+	"crypto/x509"
 	_ "embed"
+	"encoding/pem"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
+	"github.com/docker/attest/attestation"
 	"github.com/docker/attest/signerverifier"
 	"github.com/docker/attest/tlog"
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
@@ -73,4 +79,39 @@ func Setup(t *testing.T) (context.Context, dsse.SignerVerifier) {
 	}
 
 	return ctx, signer
+}
+
+func publicKeyToPEM(pubKey crypto.PublicKey) (string, error) {
+	derBytes, err := x509.MarshalPKIXPublicKey(pubKey)
+	if err != nil {
+		return "", err
+	}
+
+	pemBlock := &pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: derBytes,
+	}
+
+	return string(pem.EncodeToMemory(pemBlock)), nil
+}
+
+// LoadKeyMetadata loads the key metadata for the given signer verifier.
+func GenKeyMetadata(sv dsse.SignerVerifier) (*attestation.KeyMetadata, error) {
+	pub := sv.Public()
+	pem, err := publicKeyToPEM(pub)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert public key to PEM: %w", err)
+	}
+	id, err := sv.KeyID()
+	if err != nil {
+		return nil, err
+	}
+
+	return &attestation.KeyMetadata{
+		ID:            id,
+		Status:        "active",
+		SigningFormat: "dssev1",
+		From:          time.Now(),
+		PEM:           pem,
+	}, nil
 }

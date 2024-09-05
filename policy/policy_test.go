@@ -14,6 +14,7 @@ import (
 	"github.com/docker/attest/policy"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
+	"github.com/package-url/packageurl-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -180,6 +181,8 @@ func TestCreateAttestationResolver(t *testing.T) {
 func TestVerifySubject(t *testing.T) {
 	ctx, _ := test.Setup(t)
 	defaultResolver := attestation.MockResolver{}
+	hostWithPort := packageurl.QualifiersFromMap(map[string]string{"platform": "linux/amd64"})
+	withHost := packageurl.NewPackageURL(packageurl.TypeDocker, "localhost:1234", "alpine", "", hostWithPort, "")
 	testCases := []struct {
 		name        string
 		subject     []intoto.Subject
@@ -204,6 +207,24 @@ func TestVerifySubject(t *testing.T) {
 				},
 			},
 			img: "alpine",
+		},
+		{
+			name: "with host and port",
+			subject: []intoto.Subject{
+				{
+					Name: withHost.ToString(),
+				},
+			},
+			img: "localhost:1234/alpine",
+		},
+		{
+			name: "with host and port (from image-signer-verifier tests)",
+			subject: []intoto.Subject{
+				{
+					Name: "pkg:docker/registry.local%3A5000/image-signer-verifier-test@10710107227?platform=linux%2Famd64",
+				},
+			},
+			img: "registry.local:5000/image-signer-verifier-test",
 		},
 		{
 			name: "with library",
@@ -337,6 +358,10 @@ func TestVerifySubject(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			defaultResolver.Image = tc.img
+			// make sure we're using a fix platform vs a detected one
+			defaultResolver.PlatformFn = func() (*v1.Platform, error) {
+				return &v1.Platform{Architecture: "amd64", OS: "linux"}, nil
+			}
 			// digest from mock resolver
 			tc.subject[0].Digest = map[string]string{"sha256": "da8b190665956ea07890a0273e2a9c96bfe291662f08e2860e868eef69c34620"}
 			if tc.digest != "" {

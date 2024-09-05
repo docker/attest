@@ -358,7 +358,7 @@ func TestVerifySubject(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			defaultResolver.Image = tc.img
-			// make sure we're using a fix platform vs a detected one
+			// make sure we're using a fixed platform vs a detected one
 			defaultResolver.PlatformFn = func() (*v1.Platform, error) {
 				return &v1.Platform{Architecture: "amd64", OS: "linux"}, nil
 			}

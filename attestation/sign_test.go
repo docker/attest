@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"net/http/httptest"
 	"net/url"
 	"testing"
 	"time"
@@ -283,10 +282,10 @@ func TestSimpleStatementSigning(t *testing.T) {
 				require.NoError(t, err)
 				assert.Len(t, layers, 1)
 			}
-			server := httptest.NewServer(registry.New(registry.WithReferrersSupport(true)))
-			defer server.Close()
+			regServer := test.TestRegistry(ctx, t, registry.WithReferrersSupport(true))
+			defer regServer.Close()
 
-			u, err := url.Parse(server.URL)
+			u, err := url.Parse(regServer.URL)
 			require.NoError(t, err)
 
 			indexName := fmt.Sprintf("%s/repo:root", u.Host)
@@ -294,7 +293,7 @@ func TestSimpleStatementSigning(t *testing.T) {
 			require.NoError(t, err)
 			artifacts, err := manifest.BuildReferringArtifacts()
 			require.NoError(t, err)
-			err = oci.SaveImagesNoTag(artifacts, output)
+			err = oci.SaveImagesNoTag(ctx, artifacts, output)
 			require.NoError(t, err)
 		})
 	}

@@ -1,6 +1,7 @@
 package tuf
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/distribution/reference"
+	"github.com/docker/attest/internal/util"
 	"github.com/docker/attest/oci"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/crane"
@@ -70,7 +72,7 @@ type Layers struct {
 	MediaType string  `json:"mediaType"`
 }
 
-func NewRegistryFetcher(cfg *config.UpdaterConfig) (*RegistryFetcher, error) {
+func NewRegistryFetcher(ctx context.Context, cfg *config.UpdaterConfig) (*RegistryFetcher, error) {
 	ref, err := reference.ParseNormalizedNamed(cfg.RemoteMetadataURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse metadata repo: %w", err)
@@ -89,11 +91,12 @@ func NewRegistryFetcher(cfg *config.UpdaterConfig) (*RegistryFetcher, error) {
 	targetsRepo := targetsRef.Name()
 	return &RegistryFetcher{
 		// we need to keep these reference so that we can unmangle the URL paths when downloading files
-		cfg:          cfg,
-		metadataRepo: metadataRepo,
-		metadataTag:  metadataTag,
-		targetsRepo:  targetsRepo,
-		cache:        NewImageCache(),
+		cfg:           cfg,
+		metadataRepo:  metadataRepo,
+		metadataTag:   metadataTag,
+		targetsRepo:   targetsRepo,
+		cache:         NewImageCache(),
+		httpUserAgent: util.GetUserAgent(ctx),
 	}, nil
 }
 

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/docker/attest/internal/test"
 	"github.com/docker/attest/internal/util"
 	"github.com/docker/attest/oci"
 	"github.com/google/go-containerregistry/pkg/crane"
@@ -22,7 +23,6 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/testcontainers/testcontainers-go/modules/registry"
 	"github.com/theupdateframework/go-tuf/v2/metadata"
 	"github.com/theupdateframework/go-tuf/v2/metadata/config"
 	"github.com/theupdateframework/go-tuf/v2/metadata/updater"
@@ -38,14 +38,15 @@ const (
 )
 
 func TestRegistryFetcher(t *testing.T) {
-	// run local registry
-	registry, regAddr := RunTestRegistry(t)
-	defer func() {
-		if err := registry.Terminate(context.Background()); err != nil {
-			t.Fatalf("failed to terminate container: %s", err) // nolint:gocritic
-		}
-	}()
-	LoadRegistryTestData(t, regAddr, OCITUFTestDataPath)
+
+	ctx := context.Background()
+	regServer := test.TestRegistry(ctx, t)
+	defer regServer.Close()
+
+	regAddr, err := url.Parse(regServer.URL)
+	require.NoError(t, err)
+
+	LoadRegistryTestData(ctx, t, regAddr, OCITUFTestDataPath)
 
 	metadataRepo := regAddr.Host + metadataPath
 	targetsRepo := regAddr.Host + targetsPath
@@ -62,7 +63,7 @@ func TestRegistryFetcher(t *testing.T) {
 	cfg.LocalTargetsDir = dir
 	cfg.RemoteTargetsURL = targetsRepo
 	cfg.RemoteMetadataURL = metadataRepo
-	cfg.Fetcher, err = NewRegistryFetcher(cfg)
+	cfg.Fetcher, err = NewRegistryFetcher(context.Background(), cfg)
 	require.NoError(t, err)
 
 	// create a new Updater instance
@@ -228,7 +229,7 @@ func TestParseImgRef(t *testing.T) {
 				RemoteMetadataURL: repo,
 				RemoteTargetsURL:  targets,
 			}
-			d, err := NewRegistryFetcher(cfg)
+			d, err := NewRegistryFetcher(context.Background(), cfg)
 			if tc.expectedConstructorError != "" {
 				assert.ErrorContains(t, err, tc.expectedConstructorError)
 			} else {
@@ -272,13 +273,12 @@ func TestGetDataFromLayer(t *testing.T) {
 }
 
 func TestPullFileLayer(t *testing.T) {
-	// run local registry
-	registry, url := RunTestRegistry(t)
-	defer func() {
-		if err := registry.Terminate(context.Background()); err != nil {
-			t.Fatalf("failed to terminate container: %s", err) // nolint:gocritic
-		}
-	}()
+	ctx := context.Background()
+	regServer := test.TestRegistry(ctx, t)
+	defer regServer.Close()
+
+	url, err := url.Parse(regServer.URL)
+	require.NoError(t, err)
 
 	// make test layer
 	repo := tufMetadataRepo
@@ -288,10 +288,13 @@ func TestPullFileLayer(t *testing.T) {
 	assert.NoError(t, err)
 	layerRef := fmt.Sprintf("%s/%s@%s", url.Host, repo, hash.String())
 
-	// cache test layer
-	d := &RegistryFetcher{
-		cache: NewImageCache(),
-	}
+	// cache test manifest
+	d, err := NewRegistryFetcher(context.Background(), &config.UpdaterConfig{
+		RemoteMetadataURL: tufMetadataRepo,
+		RemoteTargetsURL:  tufMetadataRepo,
+	})
+	require.NoError(t, err)
+
 	d.cache.Put(layerRef, data)
 
 	// push uncached image layer to local registry
@@ -303,7 +306,7 @@ func TestPullFileLayer(t *testing.T) {
 	img := empty.Image
 	img, err = mutate.Append(img, mutate.Addendum{Layer: uncachedTestLayer})
 	assert.NoError(t, err)
-	err = crane.Push(img, fmt.Sprintf("%s/%s", url.Host, fmt.Sprintf("%s:latest", repo)))
+	err = crane.Push(img, fmt.Sprintf("%s/%s", url.Host, fmt.Sprintf("%s:latest", repo)), crane.WithUserAgent(util.GetUserAgent(ctx)))
 	assert.NoError(t, err)
 
 	testCases := []struct {
@@ -329,13 +332,12 @@ func TestPullFileLayer(t *testing.T) {
 }
 
 func TestGetManifest(t *testing.T) {
-	// run local registry
-	registry, url := RunTestRegistry(t)
-	defer func() {
-		if err := registry.Terminate(context.Background()); err != nil {
-			t.Fatalf("failed to terminate container: %s", err) // nolint:gocritic
-		}
-	}()
+	ctx := context.Background()
+	regServer := test.TestRegistry(ctx, t)
+	defer regServer.Close()
+
+	url, err := url.Parse(regServer.URL)
+	require.NoError(t, err)
 
 	// make test manifest
 	repo := tufMetadataRepo
@@ -345,16 +347,19 @@ func TestGetManifest(t *testing.T) {
 	imgRef := fmt.Sprintf("%s/%s:latest", url.Host, repo)
 
 	// cache test manifest
-	d := &RegistryFetcher{
-		cache: NewImageCache(),
-	}
+	d, err := NewRegistryFetcher(context.Background(), &config.UpdaterConfig{
+		RemoteMetadataURL: tufMetadataRepo,
+		RemoteTargetsURL:  tufMetadataRepo,
+	})
+	require.NoError(t, err)
+
 	mf, err := img.RawManifest()
 	assert.NoError(t, err)
 	d.cache.Put(imgRef, mf)
 
 	// push test image to local registry
 	unchachedImgRef := fmt.Sprintf("%s/%s:unchached", url.Host, repo)
-	err = crane.Push(img, unchachedImgRef)
+	err = crane.Push(img, unchachedImgRef, crane.WithUserAgent(util.GetUserAgent(ctx)))
 	assert.NoError(t, err)
 
 	testCases := []struct {
@@ -374,38 +379,21 @@ func TestGetManifest(t *testing.T) {
 	}
 }
 
-// RunTestRegistry starts a registry testcontainer for TUF on OCI testdata.
-func RunTestRegistry(t *testing.T) (*registry.RegistryContainer, *url.URL) {
-	registryContainer, err := registry.Run(context.Background(), "registry:2.8.3")
-	if err != nil {
-		t.Fatalf("failed to start container: %s", err)
-	}
-	httpAddress, err := registryContainer.Address(context.Background())
-	if err != nil {
-		t.Fatalf("failed to get container address: %s", err)
-	}
-	addr, err := url.Parse(httpAddress)
-	if err != nil {
-		t.Fatalf("failed to parse container address: %s", err)
-	}
-	return registryContainer, addr
-}
-
 // LoadRegistryTestData pushes TUF metadata and targets to an OCI registry.
-func LoadRegistryTestData(t *testing.T, registry *url.URL, path string) {
+func LoadRegistryTestData(ctx context.Context, t *testing.T, registry *url.URL, path string) {
 	// push tuf metadata and targets to local registry
 	MetadataRepo := tufMetadataRepo
 	TargetsRepo := "tuf-targets"
 	DelegatedRole := testRole
 
 	// push top-level metadata -> metadata:latest
-	err := LoadMetadata(filepath.Join(path, "metadata"), registry.Host, MetadataRepo, LatestTag)
+	err := LoadMetadata(ctx, filepath.Join(path, "metadata"), registry.Host, MetadataRepo, LatestTag)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// push delegated metadata -> metadata:<DELEGATED_ROLE>
-	err = LoadMetadata(filepath.Join(path, "metadata", DelegatedRole), registry.Host, MetadataRepo, DelegatedRole)
+	err = LoadMetadata(ctx, filepath.Join(path, "metadata", DelegatedRole), registry.Host, MetadataRepo, DelegatedRole)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -438,13 +426,13 @@ func LoadRegistryTestData(t *testing.T, registry *url.URL, path string) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			err = remote.Write(ref, img, oci.MultiKeychainOption())
+			err = remote.Write(ref, img, oci.WithOptions(ctx, nil)...)
 			if err != nil {
 				t.Fatal(err)
 			}
 		case 2:
 			// delegated target
-			err = remote.WriteIndex(ref, tIdx, oci.MultiKeychainOption())
+			err = remote.WriteIndex(ref, tIdx, oci.WithOptions(ctx, nil)...)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -455,7 +443,7 @@ func LoadRegistryTestData(t *testing.T, registry *url.URL, path string) {
 }
 
 // LoadMetadata loads TUF metadata from a local path and pushes to a registry.
-func LoadMetadata(path, host, repo, tag string) error {
+func LoadMetadata(ctx context.Context, path, host, repo, tag string) error {
 	mIdx, err := layout.ImageIndexFromPath(path)
 	if err != nil {
 		return err
@@ -472,5 +460,5 @@ func LoadMetadata(path, host, repo, tag string) error {
 	if err != nil {
 		return err
 	}
-	return remote.Write(ref, img, oci.MultiKeychainOption())
+	return remote.Write(ref, img, oci.WithOptions(ctx, nil)...)
 }

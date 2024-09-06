@@ -58,7 +58,7 @@ func TestSignVerifyOCILayout(t *testing.T) {
 			require.NoError(t, err)
 			spec, err := oci.ParseImageSpec(oci.LocalPrefix + outputLayout)
 			require.NoError(t, err)
-			err = oci.SaveIndex([]*oci.ImageSpec{spec}, signedIndex, attIdx.Name)
+			err = oci.SaveIndex(ctx, []*oci.ImageSpec{spec}, signedIndex, attIdx.Name)
 			require.NoError(t, err)
 			policy, err := Verify(ctx, spec, policyOpts)
 			require.NoError(t, err)

@@ -1,6 +1,7 @@
 package tuf
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -75,7 +76,7 @@ func NewDockerDefaultClientOptions(tufPath string) *ClientOptions {
 }
 
 // NewClient creates a new TUF client.
-func NewClient(opts *ClientOptions) (*Client, error) {
+func NewClient(ctx context.Context, opts *ClientOptions) (*Client, error) {
 	var tufSource Source
 	if strings.HasPrefix(opts.MetadataSource, "https://") || strings.HasPrefix(opts.MetadataSource, "http://") {
 		tufSource = HTTPSource
@@ -119,7 +120,7 @@ func NewClient(opts *ClientOptions) (*Client, error) {
 	cfg.RemoteTargetsURL = opts.TargetsSource
 
 	if tufSource == OCISource {
-		cfg.Fetcher, err = NewRegistryFetcher(cfg)
+		cfg.Fetcher, err = NewRegistryFetcher(ctx, cfg)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create registry fetcher: %w", err)
 		}

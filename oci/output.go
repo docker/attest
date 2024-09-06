@@ -1,6 +1,7 @@
 package oci
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -13,18 +14,18 @@ import (
 )
 
 // PushImageToRegistry pushes an image to the registry with the specified name.
-func PushImageToRegistry(image v1.Image, imageName string) error {
+func PushImageToRegistry(ctx context.Context, image v1.Image, imageName string) error {
 	ref, err := name.ParseReference(imageName)
 	if err != nil {
 		return fmt.Errorf("Failed to parse image name '%s': %w", imageName, err)
 	}
 
 	// Push the image to the registry
-	return remote.Write(ref, image, MultiKeychainOption())
+	return remote.Write(ref, image, WithOptions(ctx, nil)...)
 }
 
 // PushIndexToRegistry pushes an index to the registry with the specified name.
-func PushIndexToRegistry(index v1.ImageIndex, imageName string) error {
+func PushIndexToRegistry(ctx context.Context, index v1.ImageIndex, imageName string) error {
 	// Parse the index name
 	ref, err := name.ParseReference(imageName)
 	if err != nil {
@@ -32,7 +33,7 @@ func PushIndexToRegistry(index v1.ImageIndex, imageName string) error {
 	}
 
 	// Push the index to the registry
-	return remote.WriteIndex(ref, index, MultiKeychainOption())
+	return remote.WriteIndex(ref, index, WithOptions(ctx, nil)...)
 }
 
 // SaveIndexAsOCILayout saves an image as an OCI layout to the specified path.
@@ -66,7 +67,7 @@ func SaveIndexAsOCILayout(image v1.ImageIndex, path string) error {
 }
 
 // SaveIndex saves an index to the specified outputs.
-func SaveIndex(outputs []*ImageSpec, index v1.ImageIndex, indexName string) error {
+func SaveIndex(ctx context.Context, outputs []*ImageSpec, index v1.ImageIndex, indexName string) error {
 	// split output by comma and write or push each one
 	for _, output := range outputs {
 		if output.Type == OCI {
@@ -84,7 +85,7 @@ func SaveIndex(outputs []*ImageSpec, index v1.ImageIndex, indexName string) erro
 				return fmt.Errorf("failed to write signed image: %w", err)
 			}
 		} else {
-			err := PushIndexToRegistry(index, output.Identifier)
+			err := PushIndexToRegistry(ctx, index, output.Identifier)
 			if err != nil {
 				return fmt.Errorf("failed to push signed image: %w", err)
 			}
@@ -94,7 +95,7 @@ func SaveIndex(outputs []*ImageSpec, index v1.ImageIndex, indexName string) erro
 }
 
 // SaveImage saves an image to the specified output.
-func SaveImage(output *ImageSpec, image v1.Image, imageName string) error {
+func SaveImage(ctx context.Context, output *ImageSpec, image v1.Image, imageName string) error {
 	if output.Type == OCI {
 		idx := v1.ImageIndex(empty.Index)
 		idx = mutate.AppendManifests(idx, mutate.IndexAddendum{
@@ -110,7 +111,7 @@ func SaveImage(output *ImageSpec, image v1.Image, imageName string) error {
 			return fmt.Errorf("failed to write signed image: %w", err)
 		}
 	} else {
-		err := PushImageToRegistry(image, output.Identifier)
+		err := PushImageToRegistry(ctx, image, output.Identifier)
 		if err != nil {
 			return fmt.Errorf("failed to push signed image: %w", err)
 		}
@@ -119,7 +120,7 @@ func SaveImage(output *ImageSpec, image v1.Image, imageName string) error {
 }
 
 // SaveImagesNoTag saves a list of images by digest to the specified outputs.
-func SaveImagesNoTag(images []v1.Image, outputs []*ImageSpec) error {
+func SaveImagesNoTag(ctx context.Context, images []v1.Image, outputs []*ImageSpec) error {
 	for _, output := range outputs {
 		// OCI layout output not supported
 		if output.Type == OCI {
@@ -134,7 +135,7 @@ func SaveImagesNoTag(images []v1.Image, outputs []*ImageSpec) error {
 			if err != nil {
 				return fmt.Errorf("failed to create image spec: %w", err)
 			}
-			err = PushImageToRegistry(image, spec.Identifier)
+			err = PushImageToRegistry(ctx, image, spec.Identifier)
 			if err != nil {
 				return fmt.Errorf("failed to push image: %w", err)
 			}

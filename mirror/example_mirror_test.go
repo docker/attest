@@ -1,6 +1,7 @@
 package mirror_test
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -29,7 +30,8 @@ func ExampleNewTUFMirror() {
 	// configure TUF mirror
 	metadataURI := "https://docker.github.io/tuf-staging/metadata"
 	targetsURI := "https://docker.github.io/tuf-staging/targets"
-	m, err := mirror.NewTUFMirror(tuf.DockerTUFRootStaging.Data, tufOutputPath, metadataURI, targetsURI, tuf.NewMockVersionChecker())
+	ctx := context.Background()
+	m, err := mirror.NewTUFMirror(ctx, tuf.DockerTUFRootStaging.Data, tufOutputPath, metadataURI, targetsURI, tuf.NewMockVersionChecker())
 	if err != nil {
 		panic(err)
 	}
@@ -64,7 +66,7 @@ func ExampleNewTUFMirror() {
 	}
 
 	// push metadata and targets to registry (optional)
-	err = mirrorToRegistry(mirrorOutput)
+	err = mirrorToRegistry(ctx, mirrorOutput)
 	if err != nil {
 		panic(err)
 	}
@@ -77,10 +79,10 @@ func ExampleNewTUFMirror() {
 	}
 }
 
-func mirrorToRegistry(o *TufMirrorOutput) error {
+func mirrorToRegistry(ctx context.Context, o *TufMirrorOutput) error {
 	// push metadata to registry
 	metadataRepo := "registry-1.docker.io/docker/tuf-metadata:latest"
-	err := oci.PushImageToRegistry(o.metadata, metadataRepo)
+	err := oci.PushImageToRegistry(ctx, o.metadata, metadataRepo)
 	if err != nil {
 		return err
 	}
@@ -91,7 +93,7 @@ func mirrorToRegistry(o *TufMirrorOutput) error {
 			return fmt.Errorf("failed to get repo without tag: %s", metadataRepo)
 		}
 		imageName := fmt.Sprintf("%s:%s", repo, metadata.Tag)
-		err = oci.PushImageToRegistry(metadata.Image, imageName)
+		err = oci.PushImageToRegistry(ctx, metadata.Image, imageName)
 		if err != nil {
 			return err
 		}
@@ -101,7 +103,7 @@ func mirrorToRegistry(o *TufMirrorOutput) error {
 	targetsRepo := "registry-1.docker.io/docker/tuf-targets"
 	for _, target := range o.targets {
 		imageName := fmt.Sprintf("%s:%s", targetsRepo, target.Tag)
-		err = oci.PushImageToRegistry(target.Image, imageName)
+		err = oci.PushImageToRegistry(ctx, target.Image, imageName)
 		if err != nil {
 			return err
 		}
@@ -109,7 +111,7 @@ func mirrorToRegistry(o *TufMirrorOutput) error {
 	// push delegated targets to registry
 	for _, target := range o.delegatedTargets {
 		imageName := fmt.Sprintf("%s:%s", targetsRepo, target.Tag)
-		err = oci.PushIndexToRegistry(target.Index, imageName)
+		err = oci.PushIndexToRegistry(ctx, target.Index, imageName)
 		if err != nil {
 			return err
 		}

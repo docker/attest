@@ -2,7 +2,6 @@ package attestation_test
 
 import (
 	"fmt"
-	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
@@ -19,9 +18,9 @@ import (
 
 func TestRegistry(t *testing.T) {
 	ctx, signer := test.Setup(t)
-	server := httptest.NewServer(registry.New(registry.WithReferrersSupport(false)))
-	defer server.Close()
-	u, err := url.Parse(server.URL)
+	regServer := test.TestRegistry(ctx, t, registry.WithReferrersSupport(false))
+	defer regServer.Close()
+	u, err := url.Parse(regServer.URL)
 	require.NoError(t, err)
 
 	opts := &attestation.SigningOptions{}
@@ -35,7 +34,7 @@ func TestRegistry(t *testing.T) {
 
 	indexName := fmt.Sprintf("%s/repo:root", u.Host)
 	require.NoError(t, err)
-	err = oci.PushIndexToRegistry(signedIndex, indexName)
+	err = oci.PushIndexToRegistry(ctx, signedIndex, indexName)
 	require.NoError(t, err)
 
 	spec, err := oci.ParseImageSpec(indexName)

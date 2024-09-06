@@ -7,6 +7,7 @@ import (
 
 	"github.com/containerd/platforms"
 	"github.com/distribution/reference"
+	"github.com/docker/attest/internal/util"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
@@ -33,7 +34,11 @@ func ParsePlatform(platformStr string) (*v1.Platform, error) {
 
 func WithOptions(ctx context.Context, platform *v1.Platform) []remote.Option {
 	// prepare options
-	options := []remote.Option{MultiKeychainOption(), remote.WithTransport(HTTPTransport()), remote.WithContext(ctx)}
+	options := []remote.Option{
+		MultiKeychainOption(),
+		remote.WithContext(ctx),
+		remote.WithUserAgent(util.GetUserAgent(ctx)),
+	}
 
 	// add in platform into remote Get operation; this might conflict with an explicit digest, but we are trying anyway
 	if platform != nil {

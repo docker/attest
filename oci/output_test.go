@@ -1,8 +1,8 @@
 package oci_test
 
 import (
+	"context"
 	"fmt"
-	"net/http/httptest"
 	"net/url"
 	"testing"
 
@@ -21,21 +21,22 @@ func TestSavingIndex(t *testing.T) {
 	attIdx, err := oci.IndexFromPath(test.UnsignedTestImage(".."))
 	require.NoError(t, err)
 
-	server := httptest.NewServer(registry.New())
-	defer server.Close()
+	ctx := context.Background()
+	regServer := test.TestRegistry(ctx, t)
+	defer regServer.Close()
 
-	u, err := url.Parse(server.URL)
+	u, err := url.Parse(regServer.URL)
 	require.NoError(t, err)
 
 	indexName := fmt.Sprintf("%s/repo:root", u.Host)
 	output, err := oci.ParseImageSpecs(indexName)
 	require.NoError(t, err)
-	err = oci.SaveIndex(output, attIdx.Index, indexName)
+	err = oci.SaveIndex(ctx, output, attIdx.Index, indexName)
 	require.NoError(t, err)
 
 	ociOutput, err := oci.ParseImageSpecs(oci.LocalPrefix + outputLayout)
 	require.NoError(t, err)
-	err = oci.SaveIndex(ociOutput, attIdx.Index, indexName)
+	err = oci.SaveIndex(ctx, ociOutput, attIdx.Index, indexName)
 	require.NoError(t, err)
 }
 
@@ -44,21 +45,22 @@ func TestSavingImage(t *testing.T) {
 
 	img := empty.Image
 
-	server := httptest.NewServer(registry.New())
-	defer server.Close()
+	ctx := context.Background()
+	regServer := test.TestRegistry(ctx, t)
+	defer regServer.Close()
 
-	u, err := url.Parse(server.URL)
+	u, err := url.Parse(regServer.URL)
 	require.NoError(t, err)
 
 	indexName := fmt.Sprintf("%s/repo:root", u.Host)
 	output, err := oci.ParseImageSpec(indexName)
 	require.NoError(t, err)
-	err = oci.SaveImage(output, img, indexName)
+	err = oci.SaveImage(ctx, output, img, indexName)
 	require.NoError(t, err)
 
 	ociOutput, err := oci.ParseImageSpec(oci.LocalPrefix + outputLayout)
 	require.NoError(t, err)
-	err = oci.SaveImage(ociOutput, img, indexName)
+	err = oci.SaveImage(ctx, ociOutput, img, indexName)
 	require.NoError(t, err)
 }
 
@@ -81,10 +83,10 @@ func TestSavingReferrers(t *testing.T) {
 	require.NoError(t, err)
 	err = manifest.Add(ctx, signer, statement, opts)
 	require.NoError(t, err)
-	server := httptest.NewServer(registry.New(registry.WithReferrersSupport(true)))
-	defer server.Close()
+	regServer := test.TestRegistry(ctx, t, registry.WithReferrersSupport(true))
+	defer regServer.Close()
 
-	u, err := url.Parse(server.URL)
+	u, err := url.Parse(regServer.URL)
 	require.NoError(t, err)
 
 	indexName := fmt.Sprintf("%s/repo:root", u.Host)
@@ -92,7 +94,7 @@ func TestSavingReferrers(t *testing.T) {
 	require.NoError(t, err)
 	artifacts, err := manifest.BuildReferringArtifacts()
 	require.NoError(t, err)
-	err = oci.SaveImagesNoTag(artifacts, output)
+	err = oci.SaveImagesNoTag(ctx, artifacts, output)
 	require.NoError(t, err)
 
 	reg := &attestation.MockRegistryResolver{

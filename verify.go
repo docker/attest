@@ -26,14 +26,14 @@ type tufVerifier struct {
 	tufClient tuf.Downloader
 }
 
-func NewVerifier(opts *policy.Options) (Verifier, error) {
+func NewVerifier(ctx context.Context, opts *policy.Options) (Verifier, error) {
 	err := populateDefaultOptions(opts)
 	if err != nil {
 		return nil, err
 	}
 	var tufClient tuf.Downloader
 	if !opts.DisableTUF {
-		tufClient, err = tuf.NewClient(opts.TUFClientOptions)
+		tufClient, err = tuf.NewClient(ctx, opts.TUFClientOptions)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create TUF client: %w", err)
 		}
@@ -91,7 +91,7 @@ func (verifier *tufVerifier) Verify(ctx context.Context, src *oci.ImageSpec) (re
 }
 
 func Verify(ctx context.Context, src *oci.ImageSpec, opts *policy.Options) (result *VerificationResult, err error) {
-	verifier, err := NewVerifier(opts)
+	verifier, err := NewVerifier(ctx, opts)
 	if err != nil {
 		return nil, err
 	}

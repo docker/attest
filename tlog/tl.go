@@ -112,7 +112,7 @@ func (tl *RekorTL) UploadLogEntry(ctx context.Context, subject string, payload, 
 	hasher.Write(payload)
 
 	// upload entry
-	rekorClient, err := rclient.GetRekorClient(DefaultRekorURL)
+	rekorClient, err := rclient.GetRekorClient(DefaultRekorURL, rclient.WithUserAgent(util.GetUserAgent(ctx)))
 	if err != nil {
 		return nil, fmt.Errorf("Error creating rekor client: %w", err)
 	}

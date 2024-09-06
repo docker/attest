@@ -86,7 +86,7 @@ func TestVSA(t *testing.T) {
 	// output signed attestations
 	spec, err := oci.ParseImageSpec(oci.LocalPrefix+outputLayout, oci.WithPlatform(LinuxAMD64))
 	require.NoError(t, err)
-	err = oci.SaveIndex([]*oci.ImageSpec{spec}, signedIndex, attIdx.Name)
+	err = oci.SaveIndex(ctx, []*oci.ImageSpec{spec}, signedIndex, attIdx.Name)
 	assert.NoError(t, err)
 
 	// mocked vsa query should pass
@@ -138,7 +138,7 @@ func TestVerificationFailure(t *testing.T) {
 	// output signed attestations
 	spec, err := oci.ParseImageSpec(oci.LocalPrefix+outputLayout, oci.WithPlatform(LinuxAMD64))
 	require.NoError(t, err)
-	err = oci.SaveIndex([]*oci.ImageSpec{spec}, signedIndex, attIdx.Name)
+	err = oci.SaveIndex(ctx, []*oci.ImageSpec{spec}, signedIndex, attIdx.Name)
 	assert.NoError(t, err)
 
 	// mocked vsa query should fail
@@ -230,7 +230,7 @@ func TestSignVerify(t *testing.T) {
 			// output signed attestations
 			spec, err := oci.ParseImageSpec(oci.LocalPrefix+outputLayout, oci.WithPlatform(LinuxAMD64))
 			require.NoError(t, err)
-			err = oci.SaveIndex([]*oci.ImageSpec{spec}, signedIndex, imageName)
+			err = oci.SaveIndex(ctx, []*oci.ImageSpec{spec}, signedIndex, imageName)
 			require.NoError(t, err)
 
 			policyOpts := &policy.Options{

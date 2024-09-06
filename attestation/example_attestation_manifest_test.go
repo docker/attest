@@ -82,7 +82,8 @@ func ExampleManifest() {
 	if err != nil {
 		panic(err)
 	}
-	err = oci.SaveImagesNoTag(artifacts, output)
+	ctx := context.Background()
+	err = oci.SaveImagesNoTag(ctx, artifacts, output)
 	if err != nil {
 		panic(err)
 	}

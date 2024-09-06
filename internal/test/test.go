@@ -7,14 +7,19 @@ import (
 	_ "embed"
 	"encoding/pem"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/docker/attest/attestation"
+	"github.com/docker/attest/internal/util"
 	"github.com/docker/attest/signerverifier"
 	"github.com/docker/attest/tlog"
+	"github.com/google/go-containerregistry/pkg/registry"
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 )
 
@@ -79,6 +84,19 @@ func Setup(t *testing.T) (context.Context, dsse.SignerVerifier) {
 	}
 
 	return ctx, signer
+}
+
+func TestRegistry(ctx context.Context, t *testing.T, options ...registry.Option) *httptest.Server {
+	regHandler := registry.New(options...)
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Check the user agent
+		ua := r.Header.Get("User-Agent")
+		userAgent := util.GetUserAgent(ctx)
+		if !strings.HasPrefix(ua, userAgent) {
+			http.Error(w, fmt.Sprintf("expected user agent to contain %q, got %q", userAgent, ua), http.StatusForbidden)
+		}
+		regHandler.ServeHTTP(w, r)
+	}))
 }
 
 func publicKeyToPEM(pubKey crypto.PublicKey) (string, error) {

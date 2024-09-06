@@ -54,7 +54,7 @@ func ExampleSignStatements_remote() {
 	}
 
 	// push image index with signed attestation-manifests
-	err = oci.PushIndexToRegistry(signedIndex, ref)
+	err = oci.PushIndexToRegistry(context.Background(), signedIndex, ref)
 	if err != nil {
 		panic(err)
 	}

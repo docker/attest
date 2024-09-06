@@ -44,37 +44,38 @@ func TestAttestationReferenceTypes(t *testing.T) {
 	}{
 		{
 			name:   "referrers support, defaults",
-			server: httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
+			server: test.TestRegistry(ctx, t, registry.WithReferrersSupport(true)),
 		},
 		{
 			name:      "use digest",
-			server:    httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
+			server:    test.TestRegistry(ctx, t, registry.WithReferrersSupport(true)),
 			useDigest: true,
 		},
 		{
 			name:              "attached attestations, referrers repo (mismatched args)",
-			server:            httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
+			server:            test.TestRegistry(ctx, t, registry.WithReferrersSupport(true)),
 			expectFailure:     true, // mismatched args
 			attestationSource: config.AttestationStyleAttached,
 			referrersRepo:     "referrers",
 		},
 		{
 			name:              "referrers attestations, referrers repo (no policy)",
-			server:            httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
+			server:            test.TestRegistry(ctx, t, registry.WithReferrersSupport(true)),
 			expectFailure:     true, // no policy
 			attestationSource: config.AttestationStyleReferrers,
 			referrersRepo:     "referrers",
 		},
 		{
 			name:              "referrers attestations",
-			server:            httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
+			server:            test.TestRegistry(ctx, t, registry.WithReferrersSupport(true)),
 			attestationSource: config.AttestationStyleReferrers,
 		},
 		{
-			name:              "referrers attestations, no referrers support on server",
-			server:            httptest.NewServer(registry.New(registry.WithReferrersSupport(false))),
+			name:   "referrers attestations, no referrers support on server",
+			server: test.TestRegistry(ctx, t, registry.WithReferrersSupport(false)),
+
 			attestationSource: config.AttestationStyleReferrers,
-			referrersServer:   httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
+			referrersServer:   test.TestRegistry(ctx, t, registry.WithReferrersSupport(true)),
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -109,7 +110,7 @@ func TestAttestationReferenceTypes(t *testing.T) {
 
 			// push subject image so that it can be resolved
 			require.NoError(t, err)
-			err = oci.PushIndexToRegistry(attIdx.Index, indexName)
+			err = oci.PushIndexToRegistry(ctx, attIdx.Index, indexName)
 			require.NoError(t, err)
 
 			// upload referrers
@@ -118,7 +119,7 @@ func TestAttestationReferenceTypes(t *testing.T) {
 			for _, attIdx := range signedManifests {
 				images, err := attIdx.BuildReferringArtifacts()
 				require.NoError(t, err)
-				err = oci.SaveImagesNoTag(images, []*oci.ImageSpec{output})
+				err = oci.SaveImagesNoTag(ctx, images, []*oci.ImageSpec{output})
 				require.NoError(t, err)
 			}
 
@@ -190,13 +191,13 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 	}{
 		{
 			name:      "referrers support",
-			server:    httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
-			refServer: httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
+			server:    test.TestRegistry(ctx, t, registry.WithReferrersSupport(true)),
+			refServer: test.TestRegistry(ctx, t, registry.WithReferrersSupport(true)),
 		},
 		{
 			name:      "no referrers support",
-			server:    httptest.NewServer(registry.New()),
-			refServer: httptest.NewServer(registry.New(registry.WithReferrersSupport(true))),
+			server:    test.TestRegistry(ctx, t, registry.WithReferrersSupport(false)),
+			refServer: test.TestRegistry(ctx, t, registry.WithReferrersSupport(true)),
 		},
 	} {
 		server := tc.server
@@ -216,7 +217,7 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 		require.NoError(t, err)
 
 		indexName := fmt.Sprintf("%s/%s:latest", serverURL.Host, repoName)
-		err = oci.PushIndexToRegistry(attIdx.Index, indexName)
+		err = oci.PushIndexToRegistry(ctx, attIdx.Index, indexName)
 		require.NoError(t, err)
 
 		signedManifests, err := attest.SignStatements(ctx, attIdx.Index, signer, opts)
@@ -227,7 +228,7 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 			// push references using subject-digest.att convention
 			image, err := signedManifest.BuildImage()
 			require.NoError(t, err)
-			err = oci.PushImageToRegistry(image, fmt.Sprintf("%s/%s:tag-does-not-matter", refServerURL.Host, repoName))
+			err = oci.PushImageToRegistry(ctx, image, fmt.Sprintf("%s/%s:tag-does-not-matter", refServerURL.Host, repoName))
 			require.NoError(t, err)
 
 			refServer := tc.refServer
@@ -242,7 +243,7 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 			require.NoError(t, err)
 
 			indexName := fmt.Sprintf("%s/%s:latest", serverURL.Host, repoName)
-			err = oci.PushIndexToRegistry(attIdx.Index, indexName)
+			err = oci.PushIndexToRegistry(ctx, attIdx.Index, indexName)
 			require.NoError(t, err)
 
 			signedManifests, err := attest.SignStatements(ctx, attIdx.Index, signer, opts)
@@ -254,7 +255,7 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 				imgs, err := mf.BuildReferringArtifacts()
 				require.NoError(t, err)
 				for _, img := range imgs {
-					err = oci.PushImageToRegistry(img, fmt.Sprintf("%s/%s:tag-does-not-matter", refServerURL.Host, repoName))
+					err = oci.PushImageToRegistry(ctx, img, fmt.Sprintf("%s/%s:tag-does-not-matter", refServerURL.Host, repoName))
 					require.NoError(t, err)
 				}
 			}
@@ -283,10 +284,9 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 
 func TestCorrectArtifactTypeInTagFallback(t *testing.T) {
 	ctx, signer := test.Setup(t)
-	server := httptest.NewServer(registry.New())
-
-	defer server.Close()
-	serverURL, err := url.Parse(server.URL)
+	regServer := test.TestRegistry(ctx, t, registry.WithReferrersSupport(false))
+	defer regServer.Close()
+	serverURL, err := url.Parse(regServer.URL)
 	require.NoError(t, err)
 
 	repoName := "repo"
@@ -298,7 +298,7 @@ func TestCorrectArtifactTypeInTagFallback(t *testing.T) {
 	require.NoError(t, err)
 
 	indexName := fmt.Sprintf("%s/%s:latest", serverURL.Host, repoName)
-	err = oci.PushIndexToRegistry(attIdx.Index, indexName)
+	err = oci.PushIndexToRegistry(ctx, attIdx.Index, indexName)
 	require.NoError(t, err)
 
 	signedManifests, err := attest.SignStatements(ctx, attIdx.Index, signer, opts)
@@ -309,14 +309,14 @@ func TestCorrectArtifactTypeInTagFallback(t *testing.T) {
 		imgs, err := mf.BuildReferringArtifacts()
 		require.NoError(t, err)
 		for _, img := range imgs {
-			err = oci.PushImageToRegistry(img, fmt.Sprintf("%s/%s:tag-does-not-matter", serverURL.Host, repoName))
+			err = oci.PushImageToRegistry(ctx, img, fmt.Sprintf("%s/%s:tag-does-not-matter", serverURL.Host, repoName))
 			require.NoError(t, err)
 			mf, err := img.Manifest()
 			require.NoError(t, err)
 			subject := mf.Subject
 			subjectRef, err := name.ParseReference(fmt.Sprintf("%s/%s:sha256-%s", serverURL.Host, repoName, subject.Digest.Hex))
 			require.NoError(t, err)
-			idx, err := remote.Index(subjectRef)
+			idx, err := remote.Index(subjectRef, oci.WithOptions(ctx, nil)...)
 			require.NoError(t, err)
 			imf, err := idx.IndexManifest()
 			require.NoError(t, err)

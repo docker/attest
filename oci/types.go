@@ -2,6 +2,7 @@ package oci
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -61,14 +62,14 @@ func IndexFromPath(path string) (*NamedIndex, error) {
 	}, nil
 }
 
-func IndexFromRemote(image string) (*NamedIndex, error) {
+func IndexFromRemote(ctx context.Context, image string) (*NamedIndex, error) {
 	ref, err := name.ParseReference(image)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse image reference %s: %w", image, err)
 	}
 
 	// Pull the image from the registry
-	idx, err := remote.Index(ref, MultiKeychainOption())
+	idx, err := remote.Index(ref, WithOptions(ctx, nil)...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to pull image %s: %w", image, err)
 	}
@@ -78,11 +79,11 @@ func IndexFromRemote(image string) (*NamedIndex, error) {
 	}, nil
 }
 
-func LoadIndex(input *ImageSpec) (*NamedIndex, error) {
+func LoadIndex(ctx context.Context, input *ImageSpec) (*NamedIndex, error) {
 	if input.Type == OCI {
 		return IndexFromPath(input.Identifier)
 	}
-	return IndexFromRemote(input.Identifier)
+	return IndexFromRemote(ctx, input.Identifier)
 }
 
 func (i *ImageSpec) ForPlatforms(platform string) ([]*ImageSpec, error) {

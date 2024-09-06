@@ -22,7 +22,7 @@ func TestSavingIndex(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	regServer := test.TestRegistry(ctx, t)
+	regServer := test.NewLocalRegistry(ctx)
 	defer regServer.Close()
 
 	u, err := url.Parse(regServer.URL)
@@ -46,7 +46,7 @@ func TestSavingImage(t *testing.T) {
 	img := empty.Image
 
 	ctx := context.Background()
-	regServer := test.TestRegistry(ctx, t)
+	regServer := test.NewLocalRegistry(ctx)
 	defer regServer.Close()
 
 	u, err := url.Parse(regServer.URL)
@@ -83,7 +83,7 @@ func TestSavingReferrers(t *testing.T) {
 	require.NoError(t, err)
 	err = manifest.Add(ctx, signer, statement, opts)
 	require.NoError(t, err)
-	regServer := test.TestRegistry(ctx, t, registry.WithReferrersSupport(true))
+	regServer := test.NewLocalRegistry(ctx, registry.WithReferrersSupport(true))
 	defer regServer.Close()
 
 	u, err := url.Parse(regServer.URL)

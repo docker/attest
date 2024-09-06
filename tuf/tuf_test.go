@@ -46,7 +46,7 @@ func TestRootInit(t *testing.T) {
 	defer server.Close()
 
 	ctx := context.Background()
-	regServer := test.TestRegistry(ctx, t)
+	regServer := test.NewLocalRegistry(ctx)
 	defer regServer.Close()
 
 	regAddr, err := url.Parse(regServer.URL)
@@ -91,7 +91,7 @@ func TestDownloadTarget(t *testing.T) {
 	defer server.Close()
 
 	ctx := context.Background()
-	regServer := test.TestRegistry(ctx, t)
+	regServer := test.NewLocalRegistry(ctx)
 	defer regServer.Close()
 
 	regAddr, err := url.Parse(regServer.URL)

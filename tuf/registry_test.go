@@ -38,9 +38,8 @@ const (
 )
 
 func TestRegistryFetcher(t *testing.T) {
-
 	ctx := context.Background()
-	regServer := test.TestRegistry(ctx, t)
+	regServer := test.NewLocalRegistry(ctx)
 	defer regServer.Close()
 
 	regAddr, err := url.Parse(regServer.URL)
@@ -274,7 +273,7 @@ func TestGetDataFromLayer(t *testing.T) {
 
 func TestPullFileLayer(t *testing.T) {
 	ctx := context.Background()
-	regServer := test.TestRegistry(ctx, t)
+	regServer := test.NewLocalRegistry(ctx)
 	defer regServer.Close()
 
 	url, err := url.Parse(regServer.URL)
@@ -333,7 +332,7 @@ func TestPullFileLayer(t *testing.T) {
 
 func TestGetManifest(t *testing.T) {
 	ctx := context.Background()
-	regServer := test.TestRegistry(ctx, t)
+	regServer := test.NewLocalRegistry(ctx)
 	defer regServer.Close()
 
 	url, err := url.Parse(regServer.URL)

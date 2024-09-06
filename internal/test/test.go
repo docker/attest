@@ -86,7 +86,7 @@ func Setup(t *testing.T) (context.Context, dsse.SignerVerifier) {
 	return ctx, signer
 }
 
-func TestRegistry(ctx context.Context, t *testing.T, options ...registry.Option) *httptest.Server {
+func NewLocalRegistry(ctx context.Context, options ...registry.Option) *httptest.Server {
 	regHandler := registry.New(options...)
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Check the user agent

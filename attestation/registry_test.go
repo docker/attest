@@ -18,7 +18,7 @@ import (
 
 func TestRegistry(t *testing.T) {
 	ctx, signer := test.Setup(t)
-	regServer := test.TestRegistry(ctx, t, registry.WithReferrersSupport(false))
+	regServer := test.NewLocalRegistry(ctx, registry.WithReferrersSupport(false))
 	defer regServer.Close()
 	u, err := url.Parse(regServer.URL)
 	require.NoError(t, err)

@@ -282,7 +282,7 @@ func TestSimpleStatementSigning(t *testing.T) {
 				require.NoError(t, err)
 				assert.Len(t, layers, 1)
 			}
-			regServer := test.TestRegistry(ctx, t, registry.WithReferrersSupport(true))
+			regServer := test.NewLocalRegistry(ctx, registry.WithReferrersSupport(true))
 			defer regServer.Close()
 
 			u, err := url.Parse(regServer.URL)

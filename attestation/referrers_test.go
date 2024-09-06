@@ -44,38 +44,38 @@ func TestAttestationReferenceTypes(t *testing.T) {
 	}{
 		{
 			name:   "referrers support, defaults",
-			server: test.TestRegistry(ctx, t, registry.WithReferrersSupport(true)),
+			server: test.NewLocalRegistry(ctx, registry.WithReferrersSupport(true)),
 		},
 		{
 			name:      "use digest",
-			server:    test.TestRegistry(ctx, t, registry.WithReferrersSupport(true)),
+			server:    test.NewLocalRegistry(ctx, registry.WithReferrersSupport(true)),
 			useDigest: true,
 		},
 		{
 			name:              "attached attestations, referrers repo (mismatched args)",
-			server:            test.TestRegistry(ctx, t, registry.WithReferrersSupport(true)),
+			server:            test.NewLocalRegistry(ctx, registry.WithReferrersSupport(true)),
 			expectFailure:     true, // mismatched args
 			attestationSource: config.AttestationStyleAttached,
 			referrersRepo:     "referrers",
 		},
 		{
 			name:              "referrers attestations, referrers repo (no policy)",
-			server:            test.TestRegistry(ctx, t, registry.WithReferrersSupport(true)),
+			server:            test.NewLocalRegistry(ctx, registry.WithReferrersSupport(true)),
 			expectFailure:     true, // no policy
 			attestationSource: config.AttestationStyleReferrers,
 			referrersRepo:     "referrers",
 		},
 		{
 			name:              "referrers attestations",
-			server:            test.TestRegistry(ctx, t, registry.WithReferrersSupport(true)),
+			server:            test.NewLocalRegistry(ctx, registry.WithReferrersSupport(true)),
 			attestationSource: config.AttestationStyleReferrers,
 		},
 		{
 			name:   "referrers attestations, no referrers support on server",
-			server: test.TestRegistry(ctx, t, registry.WithReferrersSupport(false)),
+			server: test.NewLocalRegistry(ctx, registry.WithReferrersSupport(false)),
 
 			attestationSource: config.AttestationStyleReferrers,
-			referrersServer:   test.TestRegistry(ctx, t, registry.WithReferrersSupport(true)),
+			referrersServer:   test.NewLocalRegistry(ctx, registry.WithReferrersSupport(true)),
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -191,13 +191,13 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 	}{
 		{
 			name:      "referrers support",
-			server:    test.TestRegistry(ctx, t, registry.WithReferrersSupport(true)),
-			refServer: test.TestRegistry(ctx, t, registry.WithReferrersSupport(true)),
+			server:    test.NewLocalRegistry(ctx, registry.WithReferrersSupport(true)),
+			refServer: test.NewLocalRegistry(ctx, registry.WithReferrersSupport(true)),
 		},
 		{
 			name:      "no referrers support",
-			server:    test.TestRegistry(ctx, t, registry.WithReferrersSupport(false)),
-			refServer: test.TestRegistry(ctx, t, registry.WithReferrersSupport(true)),
+			server:    test.NewLocalRegistry(ctx, registry.WithReferrersSupport(false)),
+			refServer: test.NewLocalRegistry(ctx, registry.WithReferrersSupport(true)),
 		},
 	} {
 		server := tc.server
@@ -284,7 +284,7 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 
 func TestCorrectArtifactTypeInTagFallback(t *testing.T) {
 	ctx, signer := test.Setup(t)
-	regServer := test.TestRegistry(ctx, t, registry.WithReferrersSupport(false))
+	regServer := test.NewLocalRegistry(ctx, registry.WithReferrersSupport(false))
 	defer regServer.Close()
 	serverURL, err := url.Parse(regServer.URL)
 	require.NoError(t, err)

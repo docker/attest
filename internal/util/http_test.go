@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// test the user agent setting and getting
+// test the user agent setting and getting.
 func TestSetUserAgent(t *testing.T) {
 	ctx := context.Background()
 	if GetUserAgent(ctx) != defaultUserAgent {
@@ -16,5 +16,4 @@ func TestSetUserAgent(t *testing.T) {
 	if GetUserAgent(ctx) != "test-agent" {
 		t.Errorf("expected user agent to be 'test-agent', got %q", GetUserAgent(ctx))
 	}
-
 }

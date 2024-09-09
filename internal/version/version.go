@@ -15,7 +15,6 @@ func Get() (*semver.Version, error) {
 	var attestMod *debug.Module
 	bi, ok := debug.ReadBuildInfo()
 	if !ok {
-		// if we can't read the build info, assume we're good. this should only happen if we're not running in a module
 		return nil, nil
 	}
 	if bi.Main.Path == ThisModulePath {
@@ -29,7 +28,6 @@ func Get() (*semver.Version, error) {
 		}
 	}
 	if attestMod == nil {
-		// if we can't find the attest dep, assume we're good. this should only happen in a test
 		return nil, nil
 	}
 

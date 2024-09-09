@@ -3,7 +3,7 @@ package useragent
 import (
 	"context"
 
-	"github.com/docker/attest/internal/version"
+	"github.com/docker/attest/version"
 )
 
 type userAgentKeyType string

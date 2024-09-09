@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/distribution/reference"
-	"github.com/docker/attest/internal/useragent"
 	"github.com/docker/attest/oci"
+	"github.com/docker/attest/useragent"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/crane"
 	v1 "github.com/google/go-containerregistry/pkg/v1"

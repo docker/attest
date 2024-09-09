@@ -16,9 +16,9 @@ import (
 	"time"
 
 	"github.com/docker/attest/attestation"
-	"github.com/docker/attest/internal/useragent"
 	"github.com/docker/attest/signerverifier"
 	"github.com/docker/attest/tlog"
+	"github.com/docker/attest/useragent"
 	"github.com/google/go-containerregistry/pkg/registry"
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 )

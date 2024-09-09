@@ -14,9 +14,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/attest/internal/useragent"
 	"github.com/docker/attest/internal/util"
 	"github.com/docker/attest/signerverifier"
+	"github.com/docker/attest/useragent"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"

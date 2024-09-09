@@ -10,9 +10,9 @@ import (
 	"testing"
 
 	"github.com/docker/attest/internal/test"
-	"github.com/docker/attest/internal/useragent"
 	"github.com/docker/attest/internal/util"
 	"github.com/docker/attest/oci"
+	"github.com/docker/attest/useragent"
 	"github.com/google/go-containerregistry/pkg/crane"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"

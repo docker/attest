@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/docker/attest/internal/version"
+	"github.com/docker/attest/version"
 )
 
 const ThisModulePath = "github.com/docker/attest"

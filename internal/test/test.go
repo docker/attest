@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/docker/attest/attestation"
-	"github.com/docker/attest/internal/util"
+	"github.com/docker/attest/internal/useragent"
 	"github.com/docker/attest/signerverifier"
 	"github.com/docker/attest/tlog"
 	"github.com/google/go-containerregistry/pkg/registry"
@@ -91,7 +91,7 @@ func NewLocalRegistry(ctx context.Context, options ...registry.Option) *httptest
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Check the user agent
 		ua := r.Header.Get("User-Agent")
-		userAgent := util.GetUserAgent(ctx)
+		userAgent := useragent.Get(ctx)
 		if !strings.HasPrefix(ua, userAgent) {
 			http.Error(w, fmt.Sprintf("expected user agent to contain %q, got %q", userAgent, ua), http.StatusForbidden)
 		}

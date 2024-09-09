@@ -7,7 +7,7 @@ import (
 
 	"github.com/containerd/platforms"
 	"github.com/distribution/reference"
-	"github.com/docker/attest/internal/util"
+	"github.com/docker/attest/internal/useragent"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
@@ -37,7 +37,7 @@ func WithOptions(ctx context.Context, platform *v1.Platform) []remote.Option {
 	options := []remote.Option{
 		MultiKeychainOption(),
 		remote.WithContext(ctx),
-		remote.WithUserAgent(util.GetUserAgent(ctx)),
+		remote.WithUserAgent(useragent.Get(ctx)),
 	}
 
 	// add in platform into remote Get operation; this might conflict with an explicit digest, but we are trying anyway

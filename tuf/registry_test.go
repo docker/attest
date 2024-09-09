@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/docker/attest/internal/test"
+	"github.com/docker/attest/internal/useragent"
 	"github.com/docker/attest/internal/util"
 	"github.com/docker/attest/oci"
 	"github.com/google/go-containerregistry/pkg/crane"
@@ -305,7 +306,7 @@ func TestPullFileLayer(t *testing.T) {
 	img := empty.Image
 	img, err = mutate.Append(img, mutate.Addendum{Layer: uncachedTestLayer})
 	assert.NoError(t, err)
-	err = crane.Push(img, fmt.Sprintf("%s/%s", url.Host, fmt.Sprintf("%s:latest", repo)), crane.WithUserAgent(util.GetUserAgent(ctx)))
+	err = crane.Push(img, fmt.Sprintf("%s/%s", url.Host, fmt.Sprintf("%s:latest", repo)), crane.WithUserAgent(useragent.Get(ctx)))
 	assert.NoError(t, err)
 
 	testCases := []struct {
@@ -358,7 +359,7 @@ func TestGetManifest(t *testing.T) {
 
 	// push test image to local registry
 	unchachedImgRef := fmt.Sprintf("%s/%s:unchached", url.Host, repo)
-	err = crane.Push(img, unchachedImgRef, crane.WithUserAgent(util.GetUserAgent(ctx)))
+	err = crane.Push(img, unchachedImgRef, crane.WithUserAgent(useragent.Get(ctx)))
 	assert.NoError(t, err)
 
 	testCases := []struct {

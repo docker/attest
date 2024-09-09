@@ -1,12 +1,16 @@
 package useragent
 
-import "context"
+import (
+	"context"
+
+	"github.com/docker/attest/internal/version"
+)
 
 type userAgentKeyType string
 
 const (
 	userAgentKey     userAgentKeyType = "attest-user-agent"
-	defaultUserAgent string           = "attest/v0.4.4 (docker)"
+	defaultUserAgent string           = "attest/unknown (docker)"
 )
 
 func Set(ctx context.Context, userAgent string) context.Context {
@@ -18,5 +22,10 @@ func Get(ctx context.Context) string {
 	if ua, ok := ctx.Value(userAgentKey).(string); ok {
 		return ua
 	}
-	return defaultUserAgent
+	version, err := version.Get()
+	if err != nil || version == nil {
+		return defaultUserAgent
+	}
+
+	return "attest/" + version.String() + " (docker)"
 }

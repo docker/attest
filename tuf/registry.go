@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/distribution/reference"
-	"github.com/docker/attest/internal/util"
+	"github.com/docker/attest/internal/useragent"
 	"github.com/docker/attest/oci"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/crane"
@@ -96,7 +96,7 @@ func NewRegistryFetcher(ctx context.Context, cfg *config.UpdaterConfig) (*Regist
 		metadataTag:   metadataTag,
 		targetsRepo:   targetsRepo,
 		cache:         NewImageCache(),
-		httpUserAgent: util.GetUserAgent(ctx),
+		httpUserAgent: useragent.Get(ctx),
 	}, nil
 }
 

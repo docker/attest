@@ -2,10 +2,10 @@ package tuf
 
 import (
 	"fmt"
-	"runtime/debug"
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/docker/attest/internal/version"
 )
 
 const ThisModulePath = "github.com/docker/attest"
@@ -39,32 +39,13 @@ func NewDefaultVersionChecker() *DefaultVersionChecker {
 type DefaultVersionChecker struct{}
 
 func (vc *DefaultVersionChecker) CheckVersion(client Downloader) error {
-	var attestMod *debug.Module
-	bi, ok := debug.ReadBuildInfo()
-	if !ok {
-		// if we can't read the build info, assume we're good. this should only happen if we're not running in a module
-		return nil
-	}
-	if bi.Main.Path == ThisModulePath {
-		attestMod = &bi.Main
-	} else {
-		for _, dep := range bi.Deps {
-			if dep.Path == ThisModulePath {
-				attestMod = dep
-				break
-			}
-		}
-	}
-	if attestMod == nil {
-		// if we can't find the attest dep, assume we're good. this should only happen in a test
-		return nil
-	}
-
-	attestVersion, err := semver.NewVersion(attestMod.Version)
+	attestVersion, err := version.Get()
 	if err != nil {
-		return fmt.Errorf("failed to parse version %s: %w", attestMod.Version, err)
+		return fmt.Errorf("failed to get version: %w", err)
 	}
-
+	if attestVersion == nil {
+		return nil
+	}
 	// see https://github.com/Masterminds/semver/blob/v3.2.1/README.md#checking-version-constraints
 	// for more information on the expected format of the version constraints in the TUF repo
 	target, err := client.DownloadTarget("version-constraints", "")

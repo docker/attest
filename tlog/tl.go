@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/docker/attest/internal/useragent"
 	"github.com/docker/attest/internal/util"
 	"github.com/docker/attest/signerverifier"
 	"github.com/go-openapi/runtime"
@@ -112,7 +113,7 @@ func (tl *RekorTL) UploadLogEntry(ctx context.Context, subject string, payload, 
 	hasher.Write(payload)
 
 	// upload entry
-	rekorClient, err := rclient.GetRekorClient(DefaultRekorURL, rclient.WithUserAgent(util.GetUserAgent(ctx)))
+	rekorClient, err := rclient.GetRekorClient(DefaultRekorURL, rclient.WithUserAgent(useragent.Get(ctx)))
 	if err != nil {
 		return nil, fmt.Errorf("Error creating rekor client: %w", err)
 	}

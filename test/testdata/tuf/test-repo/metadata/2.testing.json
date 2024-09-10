@@ -1,0 +1,42 @@
+{
+ "signatures": [
+  {
+   "keyid": "beac53949c4cf075824edede7d41715941f524db247d1b455a2389d7490ecd72",
+   "sig": "304502207ffc26ed83118f9aa0e0c7d6cad1cbcca7ffedc1cdfa7d1c5d6bc589ee1586c502210091bf85dfbe58b300af02922e28878a135767a07a7ed93e3f169d418e5b03dcd0"
+  }
+ ],
+ "signed": {
+  "_type": "targets",
+  "expires": "2025-09-09T14:38:32Z",
+  "spec_version": "1.0.31",
+  "targets": {
+   "testing/always-fail.rego": {
+    "hashes": {
+     "sha256": "e8a5b75ac27a28056d2155ff63acc1ffd76c30ed8558011c54708f4832f073ac"
+    },
+    "length": 364
+   },
+   "testing/jonnystoten2.rego": {
+    "hashes": {
+     "sha256": "bc46e8c31646f166a9efbd14fef154dd84cf07efc95c96be3a201c84470dcbc1"
+    },
+    "length": 5857
+   },
+   "testing/mapping.yaml": {
+    "hashes": {
+     "sha256": "d3b20bd505b925e6b4b73dd875e9c5839e1797061049e243bdb0d70d62f6d090"
+    },
+    "length": 269
+   },
+   "testing/test-only.rego": {
+    "hashes": {
+     "sha256": "93a0c6a57652e182f3e04fed6e3bd0eedeb98c624af12668bc9e2741c7443374"
+    },
+    "length": 467
+   }
+  },
+  "version": 2,
+  "x-tuf-on-ci-expiry-period": 365,
+  "x-tuf-on-ci-signing-period": 60
+ }
+}

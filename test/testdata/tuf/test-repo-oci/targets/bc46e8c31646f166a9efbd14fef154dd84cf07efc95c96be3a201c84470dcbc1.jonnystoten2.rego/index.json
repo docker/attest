@@ -5,7 +5,8 @@
       {
          "mediaType": "application/vnd.oci.image.manifest.v1+json",
          "size": 504,
-         "digest": "sha256:4f6f31200d0a02278381a1c3c54e4a45e24ce0e36698ad73f5e067cf7b986315"
+         "digest": "sha256:39be48096573b49cb30ce5479d25c49a3405e8495daa9066e813e96338a17f48",
+         "artifactType": "application/vnd.oci.empty.v1+json"
       }
    ]
 }

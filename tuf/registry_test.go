@@ -419,8 +419,8 @@ func LoadRegistryTestData(ctx context.Context, t *testing.T, registry *url.URL, 
 		if err != nil {
 			t.Fatal(err)
 		}
-		switch len(mf.Manifests) {
-		case 1:
+		switch {
+		case len(mf.Manifests) == 1:
 			// top-level target
 			img, err := tIdx.Image(mf.Manifests[0].Digest)
 			if err != nil {
@@ -430,7 +430,7 @@ func LoadRegistryTestData(ctx context.Context, t *testing.T, registry *url.URL, 
 			if err != nil {
 				t.Fatal(err)
 			}
-		case 2:
+		case len(mf.Manifests) > 1:
 			// delegated target
 			err = remote.WriteIndex(ref, tIdx, oci.WithOptions(ctx, nil)...)
 			if err != nil {

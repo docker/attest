@@ -6,7 +6,11 @@
   },
   {
    "keyid": "beac53949c4cf075824edede7d41715941f524db247d1b455a2389d7490ecd72",
-   "sig": "304602210086552ad4ffddd7e60f2b80d095b4dfad9d2836cfce5d6b12dfb2aec0786240df02210097807190a1f64c615798b74068e8c9f19a29f495566bc1f16d296c7edd9343b3"
+   "sig": "304402200ea43fe1e416994188eb928b097a2cdf4760de5ce1a5803ccd7f032fb043d5f00220201b346fbe41c44422426a5715eff90b09dfcc8a2b791f3b0471376a43c22889"
+  },
+  {
+   "keyid": "81cf5a78d6ea2cd904256b9d814b340289b765e6f75ec4397e4ebb7586cab664",
+   "sig": ""
   }
  ],
  "signed": {
@@ -20,6 +24,14 @@
      },
      "scheme": "ecdsa-sha2-nistp384",
      "x-tuf-on-ci-keyowner": "@mrjoelkamp"
+    },
+    "beac53949c4cf075824edede7d41715941f524db247d1b455a2389d7490ecd72": {
+     "keytype": "ecdsa",
+     "keyval": {
+      "public": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEERet/8hs3WHIXyOXNzhLpTOz6DBx\n7zzHnenJgV/TB0dRMAx6j9UVRvlEkh5OcYuktNeqnLpHce1rLjLjpiRPVg==\n-----END PUBLIC KEY-----\n"
+     },
+     "scheme": "ecdsa-sha2-nistp256",
+     "x-tuf-on-ci-keyowner": "@jonnystoten"
     }
    },
    "roles": [
@@ -36,10 +48,24 @@
      ],
      "terminating": true,
      "threshold": 1
+    },
+    {
+     "keyids": [
+      "beac53949c4cf075824edede7d41715941f524db247d1b455a2389d7490ecd72"
+     ],
+     "name": "testing",
+     "paths": [
+      "testing/*",
+      "testing/*/*",
+      "testing/*/*/*",
+      "testing/*/*/*/*"
+     ],
+     "terminating": true,
+     "threshold": 1
     }
    ]
   },
-  "expires": "2034-06-23T12:42:15Z",
+  "expires": "2034-09-07T14:32:09Z",
   "spec_version": "1.0.31",
   "targets": {
    "always-fail.rego": {
@@ -73,7 +99,7 @@
     "length": 12
    }
   },
-  "version": 8,
+  "version": 11,
   "x-tuf-on-ci-expiry-period": 3650,
   "x-tuf-on-ci-signing-period": 60
  }

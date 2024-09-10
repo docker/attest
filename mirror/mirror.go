@@ -11,7 +11,7 @@ func NewTUFMirror(ctx context.Context, root []byte, tufPath, metadataURL, target
 	if root == nil {
 		root = tuf.DockerTUFRootDefault.Data
 	}
-	tufClient, err := tuf.NewClient(ctx, &tuf.ClientOptions{InitialRoot: root, Path: tufPath, MetadataSource: metadataURL, TargetsSource: targetsURL, VersionChecker: versionChecker})
+	tufClient, err := tuf.NewClient(ctx, &tuf.ClientOptions{InitialRoot: root, LocalStorageDir: tufPath, MetadataSource: metadataURL, TargetsSource: targetsURL, VersionChecker: versionChecker})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create TUF client: %w", err)
 	}

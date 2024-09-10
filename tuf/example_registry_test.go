@@ -17,11 +17,8 @@ func ExampleNewClient_registry() {
 	}
 	tufOutputPath := filepath.Join(home, ".docker", "tuf")
 
-	// using oci tuf metadata and targets
-	metadataURI := "registry-1.docker.io/docker/tuf-metadata:latest"
-	targetsURI := "registry-1.docker.io/docker/tuf-targets"
-
-	registryClient, err := tuf.NewClient(context.Background(), &tuf.ClientOptions{tuf.DockerTUFRootStaging.Data, tufOutputPath, metadataURI, targetsURI, tuf.NewMockVersionChecker()})
+	opts := tuf.NewDockerDefaultClientOptions(tufOutputPath, "")
+	registryClient, err := tuf.NewClient(context.Background(), opts)
 	if err != nil {
 		panic(err)
 	}

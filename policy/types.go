@@ -29,6 +29,7 @@ type Result struct {
 type Options struct {
 	TUFClientOptions *tuf.ClientOptions
 	DisableTUF       bool
+	ReleaseChannel   string
 	LocalTargetsDir  string
 	LocalPolicyDir   string
 	PolicyID         string

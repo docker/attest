@@ -19,7 +19,7 @@ func ExampleVerify_remote() {
 		panic(err)
 	}
 	tufOutputPath := filepath.Join(home, ".docker", "tuf")
-	tufClientOpts := tuf.NewDockerDefaultClientOptions(tufOutputPath)
+	tufClientOpts := tuf.NewDockerDefaultClientOptions(tufOutputPath, "")
 
 	// create a resolver for remote attestations
 	image := "registry-1.docker.io/library/notary:server"

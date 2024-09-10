@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -79,10 +80,12 @@ func NewDockerDefaultClientOptions(tufPath string, remotePolicyPath string) *Cli
 	}
 }
 
+var validPathPrefix = regexp.MustCompile("^[a-z0-9_-]*$")
+
 // NewClient creates a new TUF client.
 func NewClient(ctx context.Context, opts *ClientOptions) (*Client, error) {
 	pathPrefix := opts.PathPrefix
-	if pathPrefix == ".." || strings.Contains(pathPrefix, "/") {
+	if !validPathPrefix.MatchString(pathPrefix) {
 		return nil, fmt.Errorf("invalid path prefix: %s", pathPrefix)
 	}
 

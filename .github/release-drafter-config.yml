@@ -47,25 +47,25 @@ autolabeler:
       - '/chore\/.+/'
       - '/refactor\/.+/'
     title:
-      - "/docs/i"
-      - "/test/i"
-      - "/chore/i"
-      - "/refactor/i"
+      - "/^docs!?:/i"
+      - "/^test!?:/i"
+      - "/^chore!?:/i"
+      - "/^refactor!?:/i"
   - label: "bug"
     branch:
       - '/fix\/.+/'
       - '/revert\/.+/'
     title:
-      - "/fix/i"
-      - "/revert/i"
+      - "/^fix!?:/i"
+      - "/^revert!?:/i"
   - label: "feature"
     branch:
       - '/feature\/.+/'
       - '/feat\/.+/'
       - '/add\/.+/'
     title:
-      - "/feat/i"
-      - "/add/i"
+      - "/^feat!?:/i"
+      - "/^add!?:/i"
   - label: "breaking"
     title:
       - "/^[a-zA-Z]+!:/i"

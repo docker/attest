@@ -17,7 +17,7 @@ func ExampleNewClient_registry() {
 	}
 	tufOutputPath := filepath.Join(home, ".docker", "tuf")
 
-	opts := tuf.NewDockerDefaultClientOptions(tufOutputPath, "")
+	opts := tuf.NewDockerDefaultClientOptions(tufOutputPath)
 	registryClient, err := tuf.NewClient(context.Background(), opts)
 	if err != nil {
 		panic(err)

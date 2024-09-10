@@ -60,13 +60,20 @@ type TargetFile struct {
 	Data           []byte
 }
 
+// ClientOptions contains the options for creating a new TUF client.
 type ClientOptions struct {
-	InitialRoot     []byte
+	// InitialRoot is the initial root.json file to use for the TUF client.
+	InitialRoot []byte
+	// LocalStorageDir is the directory where the TUF client will cache any downloaded metadata and target files.
 	LocalStorageDir string
-	MetadataSource  string
-	TargetsSource   string
-	VersionChecker  VersionChecker
-	PathPrefix      string
+	// MetadataSource is the source of the metadata files.
+	MetadataSource string
+	// TargetsSource is the source of the target files.
+	TargetsSource string
+	// VersionChecker checks if the current version of this library meets the constraints from the TUF repo.
+	VersionChecker VersionChecker
+	// PathPrefix is the prefix to prepend to all target paths before downloading.
+	PathPrefix string
 }
 
 func NewDockerDefaultClientOptions(tufPath string) *ClientOptions {

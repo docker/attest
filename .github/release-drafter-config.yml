@@ -41,28 +41,16 @@ autolabeler:
   - label: "chore"
     files:
       - "*.md"
-    branch:
-      - '/docs{0,1}\/.+/'
-      - '/tests{0,1}\/.+/'
-      - '/chore\/.+/'
-      - '/refactor\/.+/'
     title:
       - "/^docs!?:/i"
       - "/^test!?:/i"
       - "/^chore!?:/i"
       - "/^refactor!?:/i"
   - label: "bug"
-    branch:
-      - '/fix\/.+/'
-      - '/revert\/.+/'
     title:
       - "/^fix!?:/i"
       - "/^revert!?:/i"
   - label: "feature"
-    branch:
-      - '/feature\/.+/'
-      - '/feat\/.+/'
-      - '/add\/.+/'
     title:
       - "/^feat!?:/i"
       - "/^add!?:/i"

@@ -68,14 +68,14 @@ type ClientOptions struct {
 	PathPrefix      string
 }
 
-func NewDockerDefaultClientOptions(tufPath string, releaseChannel string) *ClientOptions {
+func NewDockerDefaultClientOptions(tufPath string, remotePolicyPath string) *ClientOptions {
 	return &ClientOptions{
 		InitialRoot:     DockerTUFRootDefault.Data,
 		LocalStorageDir: tufPath,
 		MetadataSource:  defaultMetadataSource,
 		TargetsSource:   defaultTargetsSource,
 		VersionChecker:  NewDefaultVersionChecker(),
-		PathPrefix:      releaseChannel,
+		PathPrefix:      remotePolicyPath,
 	}
 }
 

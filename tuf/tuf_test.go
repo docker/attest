@@ -78,6 +78,12 @@ func TestRootInit(t *testing.T) {
 
 		_, err = NewClient(ctx, &ClientOptions{DockerTUFRootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysBadVersionChecker, ""})
 		assert.Errorf(t, err, "Expected error recreating TUF client with bad version checker")
+
+		_, err = NewClient(ctx, &ClientOptions{DockerTUFRootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker, ".."})
+		assert.Errorf(t, err, "Expected error recreating TUF client with bad path prefix")
+
+		_, err = NewClient(ctx, &ClientOptions{DockerTUFRootDev.Data, tufPath, tc.metadataSource, tc.targetsSource, alwaysGoodVersionChecker, "dir/dir2"})
+		assert.Errorf(t, err, "Expected error recreating TUF client with bad path prefix")
 	}
 }
 

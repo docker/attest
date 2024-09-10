@@ -112,7 +112,6 @@ func populateDefaultOptions(opts *policy.Options) (err error) {
 		return fmt.Errorf("TUF client options set but TUF disabled")
 	} else if opts.TUFClientOptions == nil && !opts.DisableTUF {
 		opts.TUFClientOptions = tuf.NewDockerDefaultClientOptions(opts.LocalTargetsDir)
-		opts.TUFClientOptions.PathPrefix = opts.RemotePolicyPath
 	}
 
 	if opts.AttestationStyle == "" {

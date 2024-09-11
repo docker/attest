@@ -1,6 +1,8 @@
 package oci
 
 import (
+	"io"
+
 	ecr "github.com/awslabs/amazon-ecr-credential-helper/ecr-login"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/v1/google"
@@ -16,6 +18,6 @@ func MultiKeychainAll() authn.Keychain {
 	return authn.NewMultiKeychain(
 		authn.DefaultKeychain,
 		google.Keychain,
-		authn.NewKeychainFromHelper(ecr.NewECRHelper()),
+		authn.NewKeychainFromHelper(ecr.NewECRHelper(ecr.WithLogger(io.Discard))),
 	)
 }

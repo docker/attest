@@ -22,8 +22,9 @@ type Verifier interface {
 }
 
 type tufVerifier struct {
-	opts      *policy.Options
-	tufClient tuf.Downloader
+	opts           *policy.Options
+	tufClient      tuf.Downloader
+	verfierFactory attestation.VerifierFactory
 }
 
 func NewVerifier(ctx context.Context, opts *policy.Options) (Verifier, error) {
@@ -38,9 +39,14 @@ func NewVerifier(ctx context.Context, opts *policy.Options) (Verifier, error) {
 			return nil, fmt.Errorf("failed to create TUF client: %w", err)
 		}
 	}
+	factory := opts.VerifierFactory
+	if factory == nil {
+		factory = attestation.NewDefaultVerifierFactory(tufClient)
+	}
 	return &tufVerifier{
-		opts:      opts,
-		tufClient: tufClient,
+		opts:           opts,
+		tufClient:      tufClient,
+		verfierFactory: factory,
 	}, nil
 }
 

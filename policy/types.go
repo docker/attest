@@ -1,6 +1,7 @@
 package policy
 
 import (
+	"github.com/docker/attest/attestation"
 	"github.com/docker/attest/config"
 	"github.com/docker/attest/tuf"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
@@ -35,6 +36,7 @@ type Options struct {
 	ReferrersRepo    string
 	AttestationStyle config.AttestationStyle
 	Debug            bool
+	VerifierFactory  attestation.VerifierFactory
 }
 
 type Policy struct {

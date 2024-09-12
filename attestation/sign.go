@@ -37,8 +37,8 @@ func SignDSSE(ctx context.Context, payload []byte, signer dsse.SignerVerifier, o
 		KeyID: keyID,
 		Sig:   base64Encoding.EncodeToString(sig),
 	}
-	if !opts.SkipTL {
-		ext, err := logSignature(ctx, tlog.GetTL(ctx), &sig, &encPayload, signer)
+	if opts.TransparencyLogger != nil {
+		ext, err := logSignature(ctx, opts.TransparencyLogger, &sig, &encPayload, signer)
 		if err != nil {
 			return nil, fmt.Errorf("failed to log to rekor: %w", err)
 		}
@@ -51,13 +51,13 @@ func SignDSSE(ctx context.Context, payload []byte, signer dsse.SignerVerifier, o
 }
 
 // returns a new envelope with the transparency log entry added to the signature extension.
-func logSignature(ctx context.Context, t tlog.TL, sig *[]byte, encPayload *[]byte, signer dsse.SignerVerifier) (*Extension, error) {
+func logSignature(ctx context.Context, t tlog.TransparencyLog, sig *[]byte, encPayload *[]byte, signer dsse.SignerVerifier) (*Extension, error) {
 	// get Key ID from signer
 	keyID, err := signer.KeyID()
 	if err != nil {
 		return nil, fmt.Errorf("error getting public key ID: %w", err)
 	}
-	entry, err := t.UploadLogEntry(ctx, keyID, *encPayload, *sig, signer)
+	entry, err := t.UploadEntry(ctx, keyID, *encPayload, *sig, signer)
 	if err != nil {
 		return nil, fmt.Errorf("error uploading TL entry: %w", err)
 	}

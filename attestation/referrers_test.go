@@ -88,9 +88,7 @@ func TestAttestationReferenceTypes(t *testing.T) {
 			u, err := url.Parse(s.URL)
 			require.NoError(t, err)
 
-			opts := &attestation.SigningOptions{
-				SkipTL: true,
-			}
+			opts := &attestation.SigningOptions{}
 			attIdx, err := oci.IndexFromPath(test.UnsignedTestImage(".."))
 			require.NoError(t, err)
 
@@ -210,9 +208,7 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 		refServerURL, err := url.Parse(refServer.URL)
 		require.NoError(t, err)
 
-		opts := &attestation.SigningOptions{
-			SkipTL: true,
-		}
+		opts := &attestation.SigningOptions{}
 		attIdx, err := oci.IndexFromPath(test.UnsignedTestImage(".."))
 		require.NoError(t, err)
 
@@ -236,9 +232,7 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 			refServerURL, err := url.Parse(refServer.URL)
 			require.NoError(t, err)
 
-			opts := &attestation.SigningOptions{
-				SkipTL: true,
-			}
+			opts := &attestation.SigningOptions{}
 			attIdx, err := oci.IndexFromPath(test.UnsignedTestImage(".."))
 			require.NoError(t, err)
 
@@ -291,9 +285,7 @@ func TestCorrectArtifactTypeInTagFallback(t *testing.T) {
 
 	repoName := "repo"
 
-	opts := &attestation.SigningOptions{
-		SkipTL: true,
-	}
+	opts := &attestation.SigningOptions{}
 	attIdx, err := oci.IndexFromPath(test.UnsignedTestImage(".."))
 	require.NoError(t, err)
 

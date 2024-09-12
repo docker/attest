@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	_ "embed"
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/docker/attest/internal/util"
 	"github.com/docker/attest/signerverifier"
+	"github.com/docker/attest/tuf"
 	"github.com/docker/attest/useragent"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
@@ -25,83 +27,103 @@ import (
 	"github.com/sigstore/rekor/pkg/generated/models"
 	"github.com/sigstore/rekor/pkg/types"
 	hashedrekord_v001 "github.com/sigstore/rekor/pkg/types/hashedrekord/v0.0.1"
+	stuf "github.com/sigstore/sigstore/pkg/tuf"
 )
 
 const (
 	DefaultRekorURL = "https://rekor.sigstore.dev"
 )
 
-type tlCtxKeyType struct{}
-
-var TLCtxKey tlCtxKeyType
-
-// sets TL in context.
-func WithTL(ctx context.Context, tl TL) context.Context {
-	return context.WithValue(ctx, TLCtxKey, tl)
-}
-
-// gets TL from context, defaults to Rekor TL if not set.
-func GetTL(ctx context.Context) TL {
-	t, ok := ctx.Value(TLCtxKey).(TL)
-	if !ok {
-		t = &RekorTL{}
-	}
-	return t
-}
-
-type TLPayload struct {
+type Payload struct {
 	Algorithm string
 	Hash      string
 	Signature string
 	PublicKey string
 }
 
-type TL interface {
-	UploadLogEntry(ctx context.Context, subject string, payload, signature []byte, signer dsse.SignerVerifier) ([]byte, error)
-	VerifyLogEntry(ctx context.Context, entryBytes []byte) (time.Time, error)
+type TransparencyLog interface {
+	UploadEntry(ctx context.Context, subject string, payload, signature []byte, signer dsse.SignerVerifier) ([]byte, error)
+	VerifyEntry(ctx context.Context, entryBytes []byte) (time.Time, error)
 	VerifyEntryPayload(entryBytes, payload, publicKey []byte) error
 	UnmarshalEntry(entryBytes []byte) (any, error)
 }
 
-type MockTL struct {
+type MockTransparencyLog struct {
 	UploadLogEntryFunc     func(ctx context.Context, subject string, payload, signature []byte, signer dsse.SignerVerifier) ([]byte, error)
 	VerifyLogEntryFunc     func(ctx context.Context, entryBytes []byte) (time.Time, error)
 	VerifyEntryPayloadFunc func(entryBytes, payload, publicKey []byte) error
 	UnmarshalEntryFunc     func(entryBytes []byte) (any, error)
 }
 
-func (tl *MockTL) UploadLogEntry(ctx context.Context, subject string, payload, signature []byte, signer dsse.SignerVerifier) ([]byte, error) {
+func (tl *MockTransparencyLog) UploadEntry(ctx context.Context, subject string, payload, signature []byte, signer dsse.SignerVerifier) ([]byte, error) {
 	if tl.UploadLogEntryFunc != nil {
 		return tl.UploadLogEntryFunc(ctx, subject, payload, signature, signer)
 	}
 	return nil, nil
 }
 
-func (tl *MockTL) VerifyLogEntry(ctx context.Context, entryBytes []byte) (time.Time, error) {
+func (tl *MockTransparencyLog) VerifyEntry(ctx context.Context, entryBytes []byte) (time.Time, error) {
 	if tl.VerifyLogEntryFunc != nil {
 		return tl.VerifyLogEntryFunc(ctx, entryBytes)
 	}
 	return time.Time{}, nil
 }
 
-func (tl *MockTL) VerifyEntryPayload(entryBytes, payload, publicKey []byte) error {
+func (tl *MockTransparencyLog) VerifyEntryPayload(entryBytes, payload, publicKey []byte) error {
 	if tl.VerifyEntryPayloadFunc != nil {
 		return tl.VerifyEntryPayloadFunc(entryBytes, payload, publicKey)
 	}
 	return nil
 }
 
-func (tl *MockTL) UnmarshalEntry(entryBytes []byte) (any, error) {
+func (tl *MockTransparencyLog) UnmarshalEntry(entryBytes []byte) (any, error) {
 	if tl.UnmarshalEntryFunc != nil {
 		return tl.UnmarshalEntryFunc(entryBytes)
 	}
 	return nil, nil
 }
 
-type RekorTL struct{}
+type Rekor struct {
+	publicKeys    *cosign.TrustedTransparencyLogPubKeys
+	tufDownloader tuf.Downloader
+}
 
-// UploadLogEntry submits a PK token signature to the transparency log.
-func (tl *RekorTL) UploadLogEntry(ctx context.Context, subject string, payload, signature []byte, signer dsse.SignerVerifier) ([]byte, error) {
+//go:embed rekor-pub.pem
+var rekorPublicKey []byte
+
+func NewRekorLogger() (*Rekor, error) {
+	pk, err := signerverifier.ParsePublicKey(rekorPublicKey)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing rekor public key: %w", err)
+	}
+	kid, err := signerverifier.KeyID(pk)
+	if err != nil {
+		return nil, fmt.Errorf("error getting keyid: %w", err)
+	}
+	keys := map[string]cosign.TransparencyLogPubKey{
+		kid: {
+			PubKey: pk,
+			Status: stuf.Active,
+		},
+	}
+	return &Rekor{
+		publicKeys: &cosign.TrustedTransparencyLogPubKeys{
+			Keys: keys,
+		},
+	}, nil
+}
+
+func NewRekorLogVerifier(tufDownloader tuf.Downloader) (*Rekor, error) {
+	rekor, err := NewRekorLogger()
+	if err != nil {
+		return nil, fmt.Errorf("error creating rekor logger: %w", err)
+	}
+	rekor.tufDownloader = tufDownloader
+	return rekor, nil
+}
+
+// UploadEntry submits a PK token signature to the transparency log.
+func (tl *Rekor) UploadEntry(ctx context.Context, subject string, payload, signature []byte, signer dsse.SignerVerifier) ([]byte, error) {
 	// generate self-signed x509 cert
 	pubCert, err := CreateX509Cert(subject, signer)
 	if err != nil {
@@ -128,8 +150,8 @@ func (tl *RekorTL) UploadLogEntry(ctx context.Context, subject string, payload, 
 	return entryBytes, nil
 }
 
-// VerifyLogEntry verifies a transparency log entry.
-func (tl *RekorTL) VerifyLogEntry(ctx context.Context, entryBytes []byte) (time.Time, error) {
+// VerifyEntry verifies a transparency log entry.
+func (tl *Rekor) VerifyEntry(ctx context.Context, entryBytes []byte) (time.Time, error) {
 	zeroTime := time.Time{}
 	entry, err := tl.UnmarshalEntry(entryBytes)
 	if err != nil {
@@ -143,13 +165,24 @@ func (tl *RekorTL) VerifyLogEntry(ctx context.Context, entryBytes []byte) (time.
 	if err != nil {
 		return zeroTime, fmt.Errorf("TL entry failed validation: %w", err)
 	}
-
-	// TODO: get rekor public keys from TUF (ours or theirs?), and/or embed the public key in the binary
-	rekorPubKeys, err := cosign.GetRekorPubs(ctx)
-	if err != nil {
-		return zeroTime, fmt.Errorf("error failed to get rekor public keys: %w", err)
+	// check if tl.publicKeys containers le.LogId
+	_, ok = tl.publicKeys.Keys[*le.LogID]
+	if !ok {
+		// otherwise check TUF
+		pkTarget, err := tl.tufDownloader.DownloadTarget(fmt.Sprintf("rekor/%s.pem", *le.LogID), "")
+		if err != nil {
+			return zeroTime, fmt.Errorf("error downloading rekor public key %s: %w", *le.LogID, err)
+		}
+		pk, err := signerverifier.ParsePublicKey(pkTarget.Data)
+		if err != nil {
+			return zeroTime, fmt.Errorf("error parsing public key: %w", err)
+		}
+		tl.publicKeys.Keys[*le.LogID] = cosign.TransparencyLogPubKey{
+			PubKey: pk,
+			Status: stuf.Active,
+		}
 	}
-	err = cosign.VerifyTLogEntryOffline(ctx, le, rekorPubKeys)
+	err = cosign.VerifyTLogEntryOffline(ctx, le, tl.publicKeys)
 	if err != nil {
 		return zeroTime, fmt.Errorf("TL entry failed verification: %w", err)
 	}
@@ -196,7 +229,7 @@ func CreateX509Cert(subject string, signer dsse.SignerVerifier) ([]byte, error) 
 }
 
 // VerifyEntryPayload checks that the TL entry payload matches envelope payload.
-func (tl *RekorTL) VerifyEntryPayload(entryBytes, payload, publicKey []byte) error {
+func (tl *Rekor) VerifyEntryPayload(entryBytes, payload, publicKey []byte) error {
 	entry, err := tl.UnmarshalEntry(entryBytes)
 	if err != nil {
 		return fmt.Errorf("error failed to unmarshal TL entry: %w", err)
@@ -236,7 +269,7 @@ func (tl *RekorTL) VerifyEntryPayload(entryBytes, payload, publicKey []byte) err
 	return nil
 }
 
-func (tl *RekorTL) UnmarshalEntry(entry []byte) (any, error) {
+func (tl *Rekor) UnmarshalEntry(entry []byte) (any, error) {
 	le := new(models.LogEntryAnon)
 	err := le.UnmarshalBinary(entry)
 	if err != nil {
@@ -245,8 +278,8 @@ func (tl *RekorTL) UnmarshalEntry(entry []byte) (any, error) {
 	return le, nil
 }
 
-func extractHashedRekord(body string) (*TLPayload, error) {
-	sig := new(TLPayload)
+func extractHashedRekord(body string) (*Payload, error) {
+	sig := new(Payload)
 	pe, err := models.UnmarshalProposedEntry(base64.NewDecoder(base64.StdEncoding, strings.NewReader(body)), runtime.JSONConsumer())
 	if err != nil {
 		return nil, err

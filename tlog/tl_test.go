@@ -11,6 +11,7 @@ import (
 	"github.com/docker/attest/signerverifier"
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -52,9 +53,9 @@ func TestUploadAndVerifyLogEntry(t *testing.T) {
 	sig, err := signer.Sign(context.Background(), hash)
 	assert.NoError(t, err)
 
-	var tl TL
+	var tl TransparencyLog
 	if UseMockTL {
-		tl = &MockTL{
+		tl = &MockTransparencyLog{
 			UploadLogEntryFunc: func(_ context.Context, _ string, _ []byte, _ []byte, _ dsse.SignerVerifier) ([]byte, error) {
 				return []byte(TestEntry), nil
 			},
@@ -66,16 +67,16 @@ func TestUploadAndVerifyLogEntry(t *testing.T) {
 			},
 		}
 	} else {
-		tl = &RekorTL{}
+		assert.NoError(t, err)
 	}
 
 	// test upload log entry
-	ctx := WithTL(context.Background(), tl)
-	entry, err := tl.UploadLogEntry(ctx, "test", payload, sig, signer)
+	ctx := context.Background()
+	entry, err := tl.UploadEntry(ctx, "test", payload, sig, signer)
 	assert.NoError(t, err)
 
 	// test verify log entry
-	_, err = tl.VerifyLogEntry(ctx, entry)
+	_, err = tl.VerifyEntry(ctx, entry)
 	assert.NoError(t, err)
 
 	// verify TL entry payload
@@ -86,8 +87,9 @@ func TestUploadAndVerifyLogEntry(t *testing.T) {
 }
 
 func TestVerifyEntryPayload(t *testing.T) {
-	tl := &RekorTL{}
+	tl, err := NewRekorLogger()
+	require.NoError(t, err)
 	p, _ := pem.Decode([]byte(TestPublicKey))
-	err := tl.VerifyEntryPayload([]byte(TestEntry), []byte(TestPayload), p.Bytes)
+	err = tl.VerifyEntryPayload([]byte(TestEntry), []byte(TestPayload), p.Bytes)
 	assert.NoError(t, err)
 }

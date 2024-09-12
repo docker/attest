@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
+	"github.com/docker/attest/tlog"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	v02 "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
@@ -80,14 +81,23 @@ type DockerTLExtension struct {
 	Data any    `json:"data"`
 }
 
+type TransparencyLogKind string
+
+type StatusKind int
+
+const (
+	RekorTransparencyLogKind = "rekor"
+)
+
 type VerifyOptions struct {
-	Keys   []*KeyMetadata `json:"keys"`
-	SkipTL bool           `json:"skip_tl"`
+	Keys            []*KeyMetadata      `json:"keys"`
+	SkipTL          bool                `json:"skip_tl"`
+	TransparencyLog TransparencyLogKind `json:"tl"`
 }
 
 type SigningOptions struct {
-	// don't log to the configured transparency log
-	SkipTL bool
+	// set this in order to log to a transparency log
+	TransparencyLogger tlog.TransparencyLog
 }
 
 type Options struct {

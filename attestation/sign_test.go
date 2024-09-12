@@ -1,6 +1,7 @@
 package attestation_test
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -14,14 +15,34 @@ import (
 	"github.com/docker/attest/internal/test"
 	"github.com/docker/attest/oci"
 	"github.com/docker/attest/signerverifier"
+	"github.com/docker/attest/tlog"
 	"github.com/google/go-containerregistry/pkg/registry"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/static"
 	"github.com/google/go-containerregistry/pkg/v1/types"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
+	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type MockFactory struct{}
+
+func (m *MockFactory) NewVerifier(_ context.Context, sig *attestation.Signature, opts *attestation.VerifyOptions) (dsse.Verifier, error) {
+	ecdsaVerifier, err := attestation.NewSimpleECDSAVerifier(sig, opts)
+	if err != nil {
+		return nil, err
+	}
+	tlVerifier, err := attestation.NewTransparencyLogVerifier(sig, tlog.GetMockTL(), opts)
+	if err != nil {
+		return nil, err
+	}
+	return attestation.NewCompositeVerifier(ecdsaVerifier, tlVerifier), nil
+}
+
+func NewMockedTransparencyVerifierFactory() attestation.VerifierFactory {
+	return &MockFactory{}
+}
 
 func TestSignVerifyAttestation(t *testing.T) {
 	ctx, signer := test.Setup(t)
@@ -35,7 +56,10 @@ func TestSignVerifyAttestation(t *testing.T) {
 
 	payload, err := json.Marshal(stmt)
 	require.NoError(t, err)
-	opts := &attestation.SigningOptions{}
+	tl := tlog.GetMockTL()
+	opts := &attestation.SigningOptions{
+		TransparencyLogger: tl,
+	}
 	env, err := attestation.SignDSSE(ctx, payload, signer, opts)
 	require.NoError(t, err)
 
@@ -146,7 +170,8 @@ func TestSignVerifyAttestation(t *testing.T) {
 			opts := &attestation.VerifyOptions{
 				Keys: attestation.Keys{keyMeta},
 			}
-			_, err = attestation.VerifyDSSE(ctx, deserializedEnv, opts)
+			factory := NewMockedTransparencyVerifierFactory()
+			_, err = attestation.VerifyDSSE(ctx, factory, deserializedEnv, opts)
 			if tc.expectedError != "" {
 				assert.Contains(t, err.Error(), tc.expectedError)
 			} else {
@@ -222,7 +247,6 @@ func TestSimpleStatementSigning(t *testing.T) {
 		{"replaced", true},
 		{"not replaced", false},
 	}
-
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			opts := &attestation.SigningOptions{}

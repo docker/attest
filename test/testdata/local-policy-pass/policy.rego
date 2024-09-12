@@ -23,7 +23,7 @@ atts := union({
 	provs("https://spdx.dev/Document"),
 })
 
-opts := {"keys": keys}
+opts := {"keys": keys, "skip_tl": true}
 
 statements contains s if {
 	some att in atts

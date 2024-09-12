@@ -2,11 +2,15 @@ package attest
 
 import (
 	"context"
+	"crypto"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/distribution/reference"
 	"github.com/docker/attest/attestation"
@@ -14,8 +18,10 @@ import (
 	"github.com/docker/attest/internal/test"
 	"github.com/docker/attest/oci"
 	"github.com/docker/attest/policy"
+	"github.com/docker/attest/tlog"
 	"github.com/docker/attest/tuf"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
+	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"sigs.k8s.io/yaml"
@@ -118,7 +124,8 @@ func TestVSA(t *testing.T) {
 	assert.Equal(t, []string{"SLSA_BUILD_LEVEL_3"}, attestationPredicate.VerifiedLevels)
 	assert.Equal(t, PassPolicyDir+"/policy.rego", attestationPredicate.Policy.DownloadLocation)
 	assert.Equal(t, "https://docker.com/official/policy/v0.1", attestationPredicate.Policy.URI)
-	assert.Equal(t, map[string]string{"sha256": "d71d6b8f49fcba1295b16f5394dd5863a14e4277eb663d66d8c48e392509afe0"}, attestationPredicate.Policy.Digest)
+	// this is the digest of the policy file
+	assert.Equal(t, map[string]string{"sha256": "ae71defe3b9ecebdf4f939a396b68884d0cba3c2c9d78ce5e64146d9487b0ade"}, attestationPredicate.Policy.Digest)
 }
 
 func TestVerificationFailure(t *testing.T) {
@@ -170,7 +177,7 @@ func TestVerificationFailure(t *testing.T) {
 	assert.Equal(t, []string{"SLSA_BUILD_LEVEL_3"}, attestationPredicate.VerifiedLevels)
 	assert.Equal(t, FailPolicyDir+"/policy.rego", attestationPredicate.Policy.DownloadLocation)
 	assert.Equal(t, "https://docker.com/official/policy/v0.1", attestationPredicate.Policy.URI)
-	assert.Equal(t, map[string]string{"sha256": "ad045e1bd7cd602d90196acf68f2c57d7b51565d59e6e30e30d94ae86aa16201"}, attestationPredicate.Policy.Digest)
+	assert.Equal(t, map[string]string{"sha256": "4345a4f5db3ce02664bd83f8e4aad03bd9a26d4edb334338c762d9648e16bed1"}, attestationPredicate.Policy.Digest)
 }
 
 func TestSignVerify(t *testing.T) {
@@ -178,7 +185,7 @@ func TestSignVerify(t *testing.T) {
 	// setup an image with signed attestations
 	outputLayout := test.CreateTempDir(t, "", TestTempDir)
 
-	keys, err := test.GenKeyMetadata(signer)
+	keys, err := GenKeyMetadata(signer)
 	require.NoError(t, err)
 	config := struct {
 		Keys []*attestation.KeyMetadata `json:"keys"`
@@ -210,11 +217,11 @@ func TestSignVerify(t *testing.T) {
 
 	attIdx, err := oci.IndexFromPath(test.UnsignedTestImage())
 	assert.NoError(t, err)
-
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			opts := &attestation.SigningOptions{
-				SkipTL: !tc.signTL,
+			opts := &attestation.SigningOptions{}
+			if tc.signTL {
+				opts.TransparencyLogger = tlog.GetMockTL()
 			}
 
 			signedManifests, err := SignStatements(ctx, attIdx.Index, signer, opts)
@@ -328,4 +335,39 @@ func TestDefaultOptions(t *testing.T) {
 			}
 		})
 	}
+}
+
+func publicKeyToPEM(pubKey crypto.PublicKey) (string, error) {
+	derBytes, err := x509.MarshalPKIXPublicKey(pubKey)
+	if err != nil {
+		return "", err
+	}
+
+	pemBlock := &pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: derBytes,
+	}
+
+	return string(pem.EncodeToMemory(pemBlock)), nil
+}
+
+// LoadKeyMetadata loads the key metadata for the given signer verifier.
+func GenKeyMetadata(sv dsse.SignerVerifier) (*attestation.KeyMetadata, error) {
+	pub := sv.Public()
+	pem, err := publicKeyToPEM(pub)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert public key to PEM: %w", err)
+	}
+	id, err := sv.KeyID()
+	if err != nil {
+		return nil, err
+	}
+
+	return &attestation.KeyMetadata{
+		ID:            id,
+		Status:        "active",
+		SigningFormat: "dssev1",
+		From:          time.Now(),
+		PEM:           pem,
+	}, nil
 }

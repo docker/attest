@@ -42,8 +42,7 @@ func TestVerifyUnsignedAttestation(t *testing.T) {
 	opts := &attestation.VerifyOptions{
 		Keys: attestation.Keys{},
 	}
-
-	_, err := attestation.VerifyDSSE(ctx, env, opts)
+	_, err := attestation.VerifyDSSE(ctx, nil, env, opts)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "no signatures")
 }

@@ -1,6 +1,7 @@
 package signerverifier
 
 import (
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/x509"
 	"encoding/pem"
@@ -9,7 +10,7 @@ import (
 
 const pemType = "PUBLIC KEY"
 
-func ParsePublicKey(pubkeyBytes []byte) (*ecdsa.PublicKey, error) {
+func ParsePublicKey(pubkeyBytes []byte) (crypto.PublicKey, error) {
 	p, _ := pem.Decode(pubkeyBytes)
 	if p == nil {
 		return nil, fmt.Errorf("pubkey file does not contain any PEM data")
@@ -21,8 +22,19 @@ func ParsePublicKey(pubkeyBytes []byte) (*ecdsa.PublicKey, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error failed to parse public key: %w", err)
 	}
+	pk, ok := pubKey.(crypto.PublicKey)
+	if !ok {
+		return nil, fmt.Errorf("error public key is not a public key: %w", err)
+	}
+	return pk, nil
+}
 
-	ecdsaPubKey, ok := pubKey.(*ecdsa.PublicKey)
+func ParseECDSAPublicKey(pubkeyBytes []byte) (*ecdsa.PublicKey, error) {
+	pk, err := ParsePublicKey(pubkeyBytes)
+	if err != nil {
+		return nil, err
+	}
+	ecdsaPubKey, ok := pk.(*ecdsa.PublicKey)
 	if !ok {
 		return nil, fmt.Errorf("error public key is not an ecdsa key: %w", err)
 	}

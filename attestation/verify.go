@@ -28,12 +28,12 @@ func VerifyDSSE(ctx context.Context, factory VerifierFactory, env *Envelope, opt
 	encPayload := dsse.PAE(env.PayloadType, payload)
 	// verify signatures and transparency log entry
 	for _, sig := range env.Signatures {
-		// err := verifySignature(ctx, sig, encPayload, opts)
 		// decode signature
 		signature, err := base64.StdEncoding.Strict().DecodeString(sig.Sig)
 		if err != nil {
 			return nil, fmt.Errorf("error failed to decode signature: %w", err)
 		}
+		// create a verifier based on inputs from rego policy
 		verifier, err := factory.NewVerifier(ctx, sig, opts)
 		if err != nil {
 			return nil, fmt.Errorf("error failed to create verifier: %w", err)

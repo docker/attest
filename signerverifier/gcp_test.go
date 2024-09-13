@@ -40,6 +40,11 @@ func TestGCPKMS_Signer(t *testing.T) {
 	publicKey, err := ParsePublicKey([]byte(publicKeyPEM))
 	require.NoError(t, err)
 	// verify payload ecdsa signature
-	ok := ecdsa.VerifyASN1(publicKey, hash, sig)
+
+	ecdsaPublicKey, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		t.Fatal("Failed to convert publicKey to *ecdsa.PublicKey")
+	}
+	ok = ecdsa.VerifyASN1(ecdsaPublicKey, hash, sig)
 	assert.True(t, ok)
 }

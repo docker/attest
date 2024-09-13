@@ -26,7 +26,7 @@ func ExampleManifest() {
 
 	// configure signing options
 	opts := &attestation.SigningOptions{
-		TransparencyLogger: nil, // set this to log to a transparency log
+		TransparencyLog: nil, // set this to log to a transparency log
 	}
 
 	ref := "docker/image-signer-verifier:latest"

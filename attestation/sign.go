@@ -37,8 +37,8 @@ func SignDSSE(ctx context.Context, payload []byte, signer dsse.SignerVerifier, o
 		KeyID: keyID,
 		Sig:   base64Encoding.EncodeToString(sig),
 	}
-	if opts.TransparencyLogger != nil {
-		ext, err := logSignature(ctx, opts.TransparencyLogger, &sig, &encPayload, signer)
+	if opts.TransparencyLog != nil {
+		ext, err := logSignature(ctx, opts.TransparencyLog, &sig, &encPayload, signer)
 		if err != nil {
 			return nil, fmt.Errorf("failed to log to rekor: %w", err)
 		}

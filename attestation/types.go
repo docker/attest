@@ -113,7 +113,7 @@ type (
 
 type SigningOptions struct {
 	// set this in order to log to a transparency log
-	TransparencyLogger tlog.TransparencyLog
+	TransparencyLog tlog.TransparencyLog
 }
 
 type Options struct {

@@ -221,7 +221,7 @@ func TestSignVerify(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			opts := &attestation.SigningOptions{}
 			if tc.signTL {
-				opts.TransparencyLogger = tlog.GetMockTL()
+				opts.TransparencyLog = tlog.GetMockTL()
 			}
 
 			signedManifests, err := SignStatements(ctx, attIdx.Index, signer, opts)

@@ -58,7 +58,7 @@ func TestSignVerifyAttestation(t *testing.T) {
 	require.NoError(t, err)
 	tl := tlog.GetMockTL()
 	opts := &attestation.SigningOptions{
-		TransparencyLogger: tl,
+		TransparencyLog: tl,
 	}
 	env, err := attestation.SignDSSE(ctx, payload, signer, opts)
 	require.NoError(t, err)

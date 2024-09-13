@@ -39,7 +39,7 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 	TestDataPath := filepath.Join("..", "test", "testdata")
 	ExampleAttestation := filepath.Join(TestDataPath, "example_attestation.json")
 
-	re := policy.NewRegoEvaluator(true)
+	re := policy.NewRegoEvaluator(true, attestation.NewVerifierFactory())
 
 	defaultResolver := attestation.MockResolver{
 		Envs: []*attestation.Envelope{loadAttestation(t, ExampleAttestation)},

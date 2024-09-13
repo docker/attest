@@ -3,6 +3,7 @@ package attestation
 import (
 	"encoding/base64"
 	"fmt"
+	"time"
 
 	"github.com/docker/attest/tlog"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
@@ -94,6 +95,21 @@ type VerifyOptions struct {
 	SkipTL          bool                `json:"skip_tl"`
 	TransparencyLog TransparencyLogKind `json:"tl"`
 }
+
+type KeyMetadata struct {
+	ID            string     `json:"id"`
+	PEM           string     `json:"key"`
+	From          time.Time  `json:"from"`
+	To            *time.Time `json:"to"`
+	Status        string     `json:"status"`
+	SigningFormat string     `json:"signing-format"`
+	Distrust      bool       `json:"distrust,omitempty"`
+}
+
+type (
+	Keys    []*KeyMetadata
+	KeysMap map[string]*KeyMetadata
+)
 
 type SigningOptions struct {
 	// set this in order to log to a transparency log

@@ -41,7 +41,7 @@ func NewVerifier(ctx context.Context, opts *policy.Options) (Verifier, error) {
 	}
 	factory := opts.VerifierFactory
 	if factory == nil {
-		factory = attestation.NewDefaultVerifierFactory(tufClient)
+		factory = attestation.NewTUFVerifierFactory(tufClient)
 	}
 	return &tufVerifier{
 		opts:           opts,
@@ -88,7 +88,7 @@ func (verifier *tufVerifier) Verify(ctx context.Context, src *oci.ImageSpec) (re
 	if err != nil {
 		return nil, fmt.Errorf("failed to create attestation resolver: %w", err)
 	}
-	evaluator := policy.NewRegoEvaluator(verifier.opts.Debug)
+	evaluator := policy.NewRegoEvaluator(verifier.opts.Debug, attestation.NewTUFVerifierFactory(verifier.tufClient))
 	result, err = VerifyAttestations(ctx, resolver, evaluator, resolvedPolicy)
 	if err != nil {
 		return nil, fmt.Errorf("failed to evaluate policy: %w", err)

@@ -29,7 +29,7 @@ import (
 type MockFactory struct{}
 
 func (m *MockFactory) NewVerifier(_ context.Context, sig *attestation.Signature, opts *attestation.VerifyOptions) (dsse.Verifier, error) {
-	ecdsaVerifier, err := attestation.NewSimpleECDSAVerifier(sig, opts)
+	ecdsaVerifier, err := attestation.NewECDSAVerifier(sig, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +37,7 @@ func (m *MockFactory) NewVerifier(_ context.Context, sig *attestation.Signature,
 	if err != nil {
 		return nil, err
 	}
-	return attestation.NewCompositeVerifier(ecdsaVerifier, tlVerifier), nil
+	return signerverifier.NewCompositeVerifier(ecdsaVerifier, tlVerifier), nil
 }
 
 func NewMockedTransparencyVerifierFactory() attestation.VerifierFactory {

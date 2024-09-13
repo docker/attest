@@ -21,7 +21,8 @@ import (
 )
 
 type regoEvaluator struct {
-	debug bool
+	debug   bool
+	factory attestation.VerifierFactory
 }
 
 const (
@@ -29,9 +30,10 @@ const (
 	resultBinding = "result"
 )
 
-func NewRegoEvaluator(debug bool) Evaluator {
+func NewRegoEvaluator(debug bool, factory attestation.VerifierFactory) Evaluator {
 	return &regoEvaluator{
-		debug: debug,
+		debug:   debug,
+		factory: factory,
 	}
 }
 
@@ -87,7 +89,8 @@ func (re *regoEvaluator) Evaluate(ctx context.Context, resolver attestation.Reso
 		rego.GenerateJSON(jsonGenerator[Result]()),
 	)
 	regoFnOpts := &RegoFnOpts{
-		resolver: resolver,
+		resolver:        resolver,
+		verifierFactory: re.factory,
 	}
 	for _, custom := range RegoFunctions(regoFnOpts) {
 		regoOpts = append(regoOpts, custom.Func)

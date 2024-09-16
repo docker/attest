@@ -5,12 +5,13 @@ import (
 	"encoding/base64"
 	"fmt"
 
+	"github.com/docker/attest/signerverifier"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 )
 
-func VerifyDSSE(ctx context.Context, factory VerifierFactory, env *Envelope, opts *VerifyOptions) ([]byte, error) {
+func VerifyDSSE(ctx context.Context, verifier Verifier, env *Envelope, opts *VerifyOptions) ([]byte, error) {
 	// enforce payload type
 	if !ValidPayloadType(env.PayloadType) {
 		return nil, fmt.Errorf("unsupported payload type %s", env.PayloadType)
@@ -18,6 +19,11 @@ func VerifyDSSE(ctx context.Context, factory VerifierFactory, env *Envelope, opt
 
 	if len(env.Signatures) == 0 {
 		return nil, fmt.Errorf("no signatures found")
+	}
+
+	keys := make(map[string]*KeyMetadata, len(opts.Keys))
+	for _, key := range opts.Keys {
+		keys[key.ID] = key
 	}
 
 	payload, err := base64Encoding.DecodeString(env.Payload)
@@ -28,19 +34,31 @@ func VerifyDSSE(ctx context.Context, factory VerifierFactory, env *Envelope, opt
 	encPayload := dsse.PAE(env.PayloadType, payload)
 	// verify signatures and transparency log entry
 	for _, sig := range env.Signatures {
+		// resolve public key used to sign
+		keyMeta, ok := keys[sig.KeyID]
+		if !ok {
+			return nil, fmt.Errorf("error key not found: %s", sig.KeyID)
+		}
+
+		if keyMeta.Distrust {
+			return nil, fmt.Errorf("key %s is distrusted", keyMeta.ID)
+		}
+		publicKey, err := signerverifier.ParsePublicKey([]byte(keyMeta.PEM))
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse public key: %w", err)
+		}
 		// decode signature
 		signature, err := base64.StdEncoding.Strict().DecodeString(sig.Sig)
 		if err != nil {
 			return nil, fmt.Errorf("error failed to decode signature: %w", err)
 		}
-		// create a verifier based on inputs from rego policy
-		verifier, err := factory.NewVerifier(ctx, sig, opts)
+
+		err = verifier.VerifySignature(ctx, publicKey, encPayload, signature, opts)
 		if err != nil {
-			return nil, fmt.Errorf("error failed to create verifier: %w", err)
+			return nil, fmt.Errorf("error failed to verify signature: %w", err)
 		}
-		err = verifier.Verify(ctx, encPayload, signature)
-		if err != nil {
-			return nil, err
+		if err := verifier.VerifyLog(ctx, keyMeta, encPayload, sig, opts); err != nil {
+			return nil, fmt.Errorf("error failed to verify transparency log entry: %w", err)
 		}
 	}
 

@@ -28,15 +28,15 @@ type Result struct {
 }
 
 type Options struct {
-	TUFClientOptions *tuf.ClientOptions
-	DisableTUF       bool
-	LocalTargetsDir  string
-	LocalPolicyDir   string
-	PolicyID         string
-	ReferrersRepo    string
-	AttestationStyle config.AttestationStyle
-	Debug            bool
-	VerifierFactory  attestation.VerifierFactory
+	TUFClientOptions    *tuf.ClientOptions
+	DisableTUF          bool
+	LocalTargetsDir     string
+	LocalPolicyDir      string
+	PolicyID            string
+	ReferrersRepo       string
+	AttestationStyle    config.AttestationStyle
+	Debug               bool
+	AttestationVerifier attestation.Verifier
 }
 
 type Policy struct {

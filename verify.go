@@ -17,17 +17,13 @@ import (
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 )
 
-type Verifier interface {
-	Verify(ctx context.Context, src *oci.ImageSpec) (result *VerificationResult, err error)
+type ImageVerifier struct {
+	opts                *policy.Options
+	tufClient           tuf.Downloader
+	attestationVerifier attestation.Verifier
 }
 
-type tufVerifier struct {
-	opts           *policy.Options
-	tufClient      tuf.Downloader
-	verfierFactory attestation.VerifierFactory
-}
-
-func NewVerifier(ctx context.Context, opts *policy.Options) (Verifier, error) {
+func NewImageVerifier(ctx context.Context, opts *policy.Options) (*ImageVerifier, error) {
 	err := populateDefaultOptions(opts)
 	if err != nil {
 		return nil, err
@@ -39,18 +35,21 @@ func NewVerifier(ctx context.Context, opts *policy.Options) (Verifier, error) {
 			return nil, fmt.Errorf("failed to create TUF client: %w", err)
 		}
 	}
-	factory := opts.VerifierFactory
-	if factory == nil {
-		factory = attestation.NewTUFVerifierFactory(tufClient)
+	attestationVerifier := opts.AttestationVerifier
+	if attestationVerifier == nil {
+		attestationVerifier, err = attestation.NewVerfier(attestation.WithTUFDownloader(tufClient))
+		if err != nil {
+			return nil, fmt.Errorf("failed to create attestation verifier: %w", err)
+		}
 	}
-	return &tufVerifier{
-		opts:           opts,
-		tufClient:      tufClient,
-		verfierFactory: factory,
+	return &ImageVerifier{
+		opts:                opts,
+		tufClient:           tufClient,
+		attestationVerifier: attestationVerifier,
 	}, nil
 }
 
-func (verifier *tufVerifier) Verify(ctx context.Context, src *oci.ImageSpec) (result *VerificationResult, err error) {
+func (verifier *ImageVerifier) Verify(ctx context.Context, src *oci.ImageSpec) (result *VerificationResult, err error) {
 	// so that we can resolve mapping from the image name earlier
 	detailsResolver, err := policy.CreateImageDetailsResolver(src)
 	if err != nil {
@@ -88,7 +87,7 @@ func (verifier *tufVerifier) Verify(ctx context.Context, src *oci.ImageSpec) (re
 	if err != nil {
 		return nil, fmt.Errorf("failed to create attestation resolver: %w", err)
 	}
-	evaluator := policy.NewRegoEvaluator(verifier.opts.Debug, attestation.NewTUFVerifierFactory(verifier.tufClient))
+	evaluator := policy.NewRegoEvaluator(verifier.opts.Debug, verifier.attestationVerifier)
 	result, err = VerifyAttestations(ctx, resolver, evaluator, resolvedPolicy)
 	if err != nil {
 		return nil, fmt.Errorf("failed to evaluate policy: %w", err)
@@ -97,7 +96,7 @@ func (verifier *tufVerifier) Verify(ctx context.Context, src *oci.ImageSpec) (re
 }
 
 func Verify(ctx context.Context, src *oci.ImageSpec, opts *policy.Options) (result *VerificationResult, err error) {
-	verifier, err := NewVerifier(ctx, opts)
+	verifier, err := NewImageVerifier(ctx, opts)
 	if err != nil {
 		return nil, err
 	}

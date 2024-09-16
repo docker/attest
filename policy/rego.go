@@ -21,8 +21,8 @@ import (
 )
 
 type regoEvaluator struct {
-	debug   bool
-	factory attestation.VerifierFactory
+	debug               bool
+	attestationVerifier attestation.Verifier
 }
 
 const (
@@ -30,10 +30,10 @@ const (
 	resultBinding = "result"
 )
 
-func NewRegoEvaluator(debug bool, factory attestation.VerifierFactory) Evaluator {
+func NewRegoEvaluator(debug bool, attestationVerifier attestation.Verifier) Evaluator {
 	return &regoEvaluator{
-		debug:   debug,
-		factory: factory,
+		debug:               debug,
+		attestationVerifier: attestationVerifier,
 	}
 }
 
@@ -89,8 +89,8 @@ func (re *regoEvaluator) Evaluate(ctx context.Context, resolver attestation.Reso
 		rego.GenerateJSON(jsonGenerator[Result]()),
 	)
 	regoFnOpts := &RegoFnOpts{
-		resolver:        resolver,
-		verifierFactory: re.factory,
+		attestationResolver: resolver,
+		attestationVerifier: re.attestationVerifier,
 	}
 	for _, custom := range RegoFunctions(regoFnOpts) {
 		regoOpts = append(regoOpts, custom.Func)
@@ -210,7 +210,7 @@ func fetchInTotoAttestations(regoOpts *RegoFnOpts) rego.Builtin1 {
 		}
 		predicateType := string(predicateTypeStr)
 
-		envelopes, err := regoOpts.resolver.Attestations(rCtx.Context, predicateType)
+		envelopes, err := regoOpts.attestationResolver.Attestations(rCtx.Context, predicateType)
 		if err != nil {
 			return nil, err
 		}
@@ -233,8 +233,8 @@ func fetchInTotoAttestations(regoOpts *RegoFnOpts) rego.Builtin1 {
 }
 
 type RegoFnOpts struct {
-	resolver        attestation.Resolver
-	verifierFactory attestation.VerifierFactory
+	attestationResolver attestation.Resolver
+	attestationVerifier attestation.Verifier
 }
 
 func verifyInTotoEnvelope(regoOpts *RegoFnOpts) rego.Builtin2 {
@@ -249,7 +249,7 @@ func verifyInTotoEnvelope(regoOpts *RegoFnOpts) rego.Builtin2 {
 		if err != nil {
 			return nil, fmt.Errorf("failed to cast verifier options: %w", err)
 		}
-		payload, err := attestation.VerifyDSSE(rCtx.Context, regoOpts.verifierFactory, env, opts)
+		payload, err := attestation.VerifyDSSE(rCtx.Context, regoOpts.attestationVerifier, env, opts)
 		if err != nil {
 			return nil, fmt.Errorf("failed to verify envelope: %w", err)
 		}
@@ -267,7 +267,7 @@ func verifyInTotoEnvelope(regoOpts *RegoFnOpts) rego.Builtin2 {
 			return nil, fmt.Errorf("unsupported payload type: %s", env.PayloadType)
 		}
 
-		err = VerifySubject(rCtx.Context, statement.Subject, regoOpts.resolver)
+		err = VerifySubject(rCtx.Context, statement.Subject, regoOpts.attestationResolver)
 		if err != nil {
 			return nil, fmt.Errorf("failed to verify subject: %w", err)
 		}

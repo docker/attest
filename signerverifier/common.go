@@ -10,25 +10,49 @@ import (
 	"encoding/pem"
 	"fmt"
 
-	"github.com/docker/attest/internal/util"
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 )
 
+// must implement dsse.SignerVerifier interface.
+var _ dsse.SignerVerifier = (*ECDSA256SignerVerifier)(nil)
+
 type ECDSA256SignerVerifier struct {
 	crypto.Signer
+	dsse.Verifier
+	keyID     string
+	publicKey *ecdsa.PublicKey
+}
+
+func NewECDSA256SignerVerifier(signer crypto.Signer, verifier dsse.Verifier) dsse.SignerVerifier {
+	return &ECDSA256SignerVerifier{
+		Signer:   signer,
+		Verifier: verifier,
+	}
 }
 
 // implement keyid function.
 func (s *ECDSA256SignerVerifier) KeyID() (string, error) {
-	keyid, err := KeyID(s.Signer.Public())
-	if err != nil {
-		return "", fmt.Errorf("error getting keyid: %w", err)
+	if s.keyID != "" {
+		return s.keyID, nil
 	}
-	return keyid, nil
+	keyID, err := KeyID(s.Public())
+	if err != nil {
+		return "", err
+	}
+	s.keyID = keyID
+	return keyID, nil
 }
 
 func (s *ECDSA256SignerVerifier) Public() crypto.PublicKey {
-	return s.Signer.Public()
+	if s.publicKey != nil {
+		return s.publicKey
+	}
+	pub, ok := s.Signer.Public().(*ecdsa.PublicKey)
+	if !ok {
+		return nil
+	}
+	s.publicKey = pub
+	return s.publicKey
 }
 
 func (s *ECDSA256SignerVerifier) Sign(_ context.Context, data []byte) ([]byte, error) {
@@ -36,15 +60,10 @@ func (s *ECDSA256SignerVerifier) Sign(_ context.Context, data []byte) ([]byte, e
 }
 
 func (s *ECDSA256SignerVerifier) Verify(_ context.Context, data []byte, sig []byte) error {
-	pub, ok := s.Signer.Public().(*ecdsa.PublicKey)
-	if !ok {
-		return fmt.Errorf("public key is not ecdsa")
+	if s.Verifier == nil {
+		return fmt.Errorf("no verifier found")
 	}
-	ok = ecdsa.VerifyASN1(pub, util.SHA256(data), sig)
-	if !ok {
-		return fmt.Errorf("payload signature is not valid")
-	}
-	return nil
+	return s.Verifier.Verify(context.Background(), data, sig)
 }
 
 func LoadKeyPair(priv []byte) (dsse.SignerVerifier, error) {

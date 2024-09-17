@@ -10,7 +10,7 @@ import (
 
 	"github.com/distribution/reference"
 	"github.com/docker/attest/attestation"
-	"github.com/docker/attest/config"
+	"github.com/docker/attest/mapping"
 	"github.com/docker/attest/oci"
 	"github.com/docker/attest/policy"
 	"github.com/docker/attest/tuf"
@@ -72,14 +72,14 @@ func (verifier *ImageVerifier) Verify(ctx context.Context, src *oci.ImageSpec) (
 	}
 	// this is overriding the mapping with a referrers config. Useful for testing if nothing else
 	if verifier.opts.ReferrersRepo != "" {
-		resolvedPolicy.Mapping.Attestations = &config.AttestationConfig{
+		resolvedPolicy.Mapping.Attestations = &mapping.AttestationConfig{
 			Repo:  verifier.opts.ReferrersRepo,
-			Style: config.AttestationStyleReferrers,
+			Style: mapping.AttestationStyleReferrers,
 		}
-	} else if verifier.opts.AttestationStyle == config.AttestationStyleAttached {
-		resolvedPolicy.Mapping.Attestations = &config.AttestationConfig{
+	} else if verifier.opts.AttestationStyle == mapping.AttestationStyleAttached {
+		resolvedPolicy.Mapping.Attestations = &mapping.AttestationConfig{
 			Repo:  verifier.opts.ReferrersRepo,
-			Style: config.AttestationStyleAttached,
+			Style: mapping.AttestationStyleAttached,
 		}
 	}
 	// because we have a mapping now, we can select a resolver based on its contents (ie. referrers or attached)
@@ -120,9 +120,9 @@ func populateDefaultOptions(opts *policy.Options) (err error) {
 	}
 
 	if opts.AttestationStyle == "" {
-		opts.AttestationStyle = config.AttestationStyleReferrers
+		opts.AttestationStyle = mapping.AttestationStyleReferrers
 	}
-	if opts.ReferrersRepo != "" && opts.AttestationStyle != config.AttestationStyleReferrers {
+	if opts.ReferrersRepo != "" && opts.AttestationStyle != mapping.AttestationStyleReferrers {
 		return fmt.Errorf("referrers repo specified but attestation source not set to referrers")
 	}
 	return nil

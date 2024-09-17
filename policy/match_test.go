@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/docker/attest/config"
+	"github.com/docker/attest/mapping"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -91,7 +91,7 @@ func TestFindPolicyMatch(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mappings, err := config.LoadLocalMappings(filepath.Join("testdata", "mappings", tc.mappingDir))
+			mappings, err := mapping.LoadLocalMappings(filepath.Join("testdata", "mappings", tc.mappingDir))
 			require.NoError(t, err)
 			match, err := findPolicyMatch(tc.imageName, mappings)
 			if tc.expectError {

@@ -6,7 +6,7 @@ import (
 
 	"github.com/distribution/reference"
 	"github.com/docker/attest/attestation"
-	"github.com/docker/attest/config"
+	"github.com/docker/attest/mapping"
 	"github.com/docker/attest/oci"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/package-url/packageurl-go"
@@ -22,9 +22,9 @@ func CreateImageDetailsResolver(imageSource *oci.ImageSpec) (oci.ImageDetailsRes
 	return nil, fmt.Errorf("unsupported image source type: %s", imageSource.Type)
 }
 
-func CreateAttestationResolver(resolver oci.ImageDetailsResolver, mapping *config.PolicyMapping) (attestation.Resolver, error) {
-	if mapping.Attestations != nil {
-		if mapping.Attestations.Style == config.AttestationStyleAttached {
+func CreateAttestationResolver(resolver oci.ImageDetailsResolver, policyMapping *mapping.PolicyMapping) (attestation.Resolver, error) {
+	if policyMapping.Attestations != nil {
+		if policyMapping.Attestations.Style == mapping.AttestationStyleAttached {
 			switch resolver := resolver.(type) {
 			case *oci.RegistryImageDetailsResolver:
 				return attestation.NewRegistryResolver(resolver)
@@ -34,8 +34,8 @@ func CreateAttestationResolver(resolver oci.ImageDetailsResolver, mapping *confi
 				return nil, fmt.Errorf("unsupported image details resolver type: %T", resolver)
 			}
 		}
-		if mapping.Attestations.Repo != "" {
-			return attestation.NewReferrersResolver(resolver, attestation.WithReferrersRepo(mapping.Attestations.Repo))
+		if policyMapping.Attestations.Repo != "" {
+			return attestation.NewReferrersResolver(resolver, attestation.WithReferrersRepo(policyMapping.Attestations.Repo))
 		}
 	}
 	return attestation.NewReferrersResolver(resolver)

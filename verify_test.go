@@ -11,8 +11,8 @@ import (
 
 	"github.com/distribution/reference"
 	"github.com/docker/attest/attestation"
-	"github.com/docker/attest/config"
 	"github.com/docker/attest/internal/test"
+	"github.com/docker/attest/mapping"
 	"github.com/docker/attest/oci"
 	"github.com/docker/attest/policy"
 	"github.com/docker/attest/tlog"
@@ -97,7 +97,7 @@ func TestVSA(t *testing.T) {
 	// mocked vsa query should pass
 	policyOpts := &policy.Options{
 		LocalPolicyDir:   PassPolicyDir,
-		AttestationStyle: config.AttestationStyleAttached,
+		AttestationStyle: mapping.AttestationStyleAttached,
 		DisableTUF:       true,
 	}
 	results, err := Verify(ctx, spec, policyOpts)
@@ -152,7 +152,7 @@ func TestVerificationFailure(t *testing.T) {
 	// mocked vsa query should fail
 	policyOpts := &policy.Options{
 		LocalPolicyDir:   FailPolicyDir,
-		AttestationStyle: config.AttestationStyleAttached,
+		AttestationStyle: mapping.AttestationStyleAttached,
 		DisableTUF:       true,
 	}
 	results, err := Verify(ctx, spec, policyOpts)
@@ -273,7 +273,7 @@ func TestDefaultOptions(t *testing.T) {
 		name             string
 		tufOpts          *tuf.ClientOptions
 		localTargetsDir  string
-		attestationStyle config.AttestationStyle
+		attestationStyle mapping.AttestationStyle
 		referrersRepo    string
 		expectedError    string
 		disableTuf       bool
@@ -282,9 +282,9 @@ func TestDefaultOptions(t *testing.T) {
 		{name: "empty"},
 		{name: "tufClient provided", tufOpts: &tuf.ClientOptions{MetadataSource: "a", TargetsSource: "b"}},
 		{name: "localTargetsDir provided", localTargetsDir: test.CreateTempDir(t, "", TestTempDir)},
-		{name: "attestationStyle provided", attestationStyle: config.AttestationStyleAttached},
+		{name: "attestationStyle provided", attestationStyle: mapping.AttestationStyleAttached},
 		{name: "referrersRepo provided", referrersRepo: "referrers"},
-		{name: "referrersRepo provided with attached", referrersRepo: "referrers", attestationStyle: config.AttestationStyleAttached, expectedError: "referrers repo specified but attestation source not set to referrers"},
+		{name: "referrersRepo provided with attached", referrersRepo: "referrers", attestationStyle: mapping.AttestationStyleAttached, expectedError: "referrers repo specified but attestation source not set to referrers"},
 		{name: "tuf disabled and no local-policy-dir", disableTuf: true, expectedError: "local policy dir must be set if not using TUF"},
 		{name: "tuf disabled but options set", disableTuf: true, tufOpts: &tuf.ClientOptions{MetadataSource: "a", TargetsSource: "b"}, localPolicyDir: "foo", expectedError: "TUF client options set but TUF disabled"},
 	}
@@ -320,7 +320,7 @@ func TestDefaultOptions(t *testing.T) {
 			if tc.attestationStyle != "" {
 				assert.Equal(t, tc.attestationStyle, opts.AttestationStyle)
 			} else {
-				assert.Equal(t, config.AttestationStyleReferrers, opts.AttestationStyle)
+				assert.Equal(t, mapping.AttestationStyleReferrers, opts.AttestationStyle)
 			}
 
 			if tc.tufOpts != nil {

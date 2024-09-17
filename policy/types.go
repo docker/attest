@@ -2,7 +2,7 @@ package policy
 
 import (
 	"github.com/docker/attest/attestation"
-	"github.com/docker/attest/config"
+	"github.com/docker/attest/mapping"
 	"github.com/docker/attest/tuf"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 )
@@ -34,7 +34,7 @@ type Options struct {
 	LocalPolicyDir      string
 	PolicyID            string
 	ReferrersRepo       string
-	AttestationStyle    config.AttestationStyle
+	AttestationStyle    mapping.AttestationStyle
 	Debug               bool
 	AttestationVerifier attestation.Verifier
 }
@@ -42,7 +42,7 @@ type Options struct {
 type Policy struct {
 	InputFiles   []*File
 	Query        string
-	Mapping      *config.PolicyMapping
+	Mapping      *mapping.PolicyMapping
 	ResolvedName string
 	URI          string
 	Digest       map[string]string

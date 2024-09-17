@@ -3,7 +3,7 @@ package policy
 import (
 	"fmt"
 
-	"github.com/docker/attest/config"
+	"github.com/docker/attest/mapping"
 )
 
 type matchType string
@@ -16,19 +16,19 @@ const (
 
 type policyMatch struct {
 	matchType   matchType
-	policy      *config.PolicyMapping
-	rule        *config.PolicyRule
+	policy      *mapping.PolicyMapping
+	rule        *mapping.PolicyRule
 	matchedName string
 }
 
-func findPolicyMatch(imageName string, mappings *config.PolicyMappings) (*policyMatch, error) {
+func findPolicyMatch(imageName string, mappings *mapping.PolicyMappings) (*policyMatch, error) {
 	if mappings == nil {
 		return &policyMatch{matchType: matchTypeNoMatch, matchedName: imageName}, nil
 	}
-	return findPolicyMatchImpl(imageName, mappings, make(map[*config.PolicyRule]bool))
+	return findPolicyMatchImpl(imageName, mappings, make(map[*mapping.PolicyRule]bool))
 }
 
-func findPolicyMatchImpl(imageName string, mappings *config.PolicyMappings, matched map[*config.PolicyRule]bool) (*policyMatch, error) {
+func findPolicyMatchImpl(imageName string, mappings *mapping.PolicyMappings, matched map[*mapping.PolicyRule]bool) (*policyMatch, error) {
 	for _, rule := range mappings.Rules {
 		if rule.Pattern.MatchString(imageName) {
 			switch {

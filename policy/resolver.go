@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 
 	"github.com/distribution/reference"
-	"github.com/docker/attest/config"
 	"github.com/docker/attest/internal/util"
+	"github.com/docker/attest/mapping"
 	"github.com/docker/attest/tuf"
 )
 
@@ -37,7 +37,7 @@ func (r *Resolver) ResolvePolicy(_ context.Context, imageName string) (*Policy, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse image name: %w", err)
 	}
-	localMappings, err := config.LoadLocalMappings(r.opts.LocalPolicyDir)
+	localMappings, err := mapping.LoadLocalMappings(r.opts.LocalPolicyDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load local policy mappings: %w", err)
 	}
@@ -49,7 +49,7 @@ func (r *Resolver) ResolvePolicy(_ context.Context, imageName string) (*Policy, 
 		return r.resolveLocalPolicy(match.policy, imageName, match.matchedName)
 	}
 	if !r.opts.DisableTUF {
-		tufMappings, err := config.LoadTUFMappings(r.tufClient, r.opts.LocalTargetsDir)
+		tufMappings, err := mapping.LoadTUFMappings(r.tufClient, r.opts.LocalTargetsDir)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load tuf policy mappings as fallback: %w", err)
 		}
@@ -75,7 +75,7 @@ func (r *Resolver) ResolvePolicy(_ context.Context, imageName string) (*Policy, 
 	return nil, nil
 }
 
-func (r *Resolver) resolveLocalPolicy(mapping *config.PolicyMapping, imageName string, matchedName string) (*Policy, error) {
+func (r *Resolver) resolveLocalPolicy(mapping *mapping.PolicyMapping, imageName string, matchedName string) (*Policy, error) {
 	if r.opts.LocalPolicyDir == "" {
 		return nil, fmt.Errorf("local policy dir not set")
 	}
@@ -118,7 +118,7 @@ func (r *Resolver) resolveLocalPolicy(mapping *config.PolicyMapping, imageName s
 	return policy, nil
 }
 
-func (r *Resolver) resolveTUFPolicy(mapping *config.PolicyMapping, imageName string, matchedName string) (*Policy, error) {
+func (r *Resolver) resolveTUFPolicy(mapping *mapping.PolicyMapping, imageName string, matchedName string) (*Policy, error) {
 	var URI string
 	var digest map[string]string
 	files := make([]*File, 0, len(mapping.Files))
@@ -159,7 +159,7 @@ func (r *Resolver) resolveTUFPolicy(mapping *config.PolicyMapping, imageName str
 
 func (r *Resolver) resolvePolicyByID() (*Policy, error) {
 	if r.opts.PolicyID != "" {
-		localMappings, err := config.LoadLocalMappings(r.opts.LocalPolicyDir)
+		localMappings, err := mapping.LoadLocalMappings(r.opts.LocalPolicyDir)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load local policy mappings: %w", err)
 		}
@@ -171,7 +171,7 @@ func (r *Resolver) resolvePolicyByID() (*Policy, error) {
 		}
 
 		if !r.opts.DisableTUF {
-			tufMappings, err := config.LoadTUFMappings(r.tufClient, r.opts.LocalTargetsDir)
+			tufMappings, err := mapping.LoadTUFMappings(r.tufClient, r.opts.LocalTargetsDir)
 			if err != nil {
 				return nil, fmt.Errorf("failed to load tuf policy mappings by id: %w", err)
 			}

@@ -9,8 +9,8 @@ import (
 
 	"github.com/docker/attest"
 	"github.com/docker/attest/attestation"
-	"github.com/docker/attest/config"
 	"github.com/docker/attest/internal/test"
+	"github.com/docker/attest/mapping"
 	"github.com/docker/attest/oci"
 	"github.com/docker/attest/policy"
 	"github.com/google/go-containerregistry/pkg/name"
@@ -39,7 +39,7 @@ func TestAttestationReferenceTypes(t *testing.T) {
 		referrersServer   *httptest.Server
 		useDigest         bool
 		referrersRepo     string
-		attestationSource config.AttestationStyle
+		attestationSource mapping.AttestationStyle
 		expectFailure     bool
 	}{
 		{
@@ -55,26 +55,26 @@ func TestAttestationReferenceTypes(t *testing.T) {
 			name:              "attached attestations, referrers repo (mismatched args)",
 			server:            test.NewLocalRegistry(ctx, registry.WithReferrersSupport(true)),
 			expectFailure:     true, // mismatched args
-			attestationSource: config.AttestationStyleAttached,
+			attestationSource: mapping.AttestationStyleAttached,
 			referrersRepo:     "referrers",
 		},
 		{
 			name:              "referrers attestations, referrers repo (no policy)",
 			server:            test.NewLocalRegistry(ctx, registry.WithReferrersSupport(true)),
 			expectFailure:     true, // no policy
-			attestationSource: config.AttestationStyleReferrers,
+			attestationSource: mapping.AttestationStyleReferrers,
 			referrersRepo:     "referrers",
 		},
 		{
 			name:              "referrers attestations",
 			server:            test.NewLocalRegistry(ctx, registry.WithReferrersSupport(true)),
-			attestationSource: config.AttestationStyleReferrers,
+			attestationSource: mapping.AttestationStyleReferrers,
 		},
 		{
 			name:   "referrers attestations, no referrers support on server",
 			server: test.NewLocalRegistry(ctx, registry.WithReferrersSupport(false)),
 
-			attestationSource: config.AttestationStyleReferrers,
+			attestationSource: mapping.AttestationStyleReferrers,
 			referrersServer:   test.NewLocalRegistry(ctx, registry.WithReferrersSupport(true)),
 		},
 	} {

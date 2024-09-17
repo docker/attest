@@ -79,8 +79,6 @@ type DockerDSSEExtension struct {
 
 type TransparencyLogKind string
 
-type StatusKind int
-
 const (
 	RekorTransparencyLogKind = "rekor"
 )

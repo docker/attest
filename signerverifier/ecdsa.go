@@ -59,8 +59,9 @@ func (v *ecdsaVerifier) KeyID() (string, error) {
 var _ dsse.SignerVerifier = (*ecdsa256SignerVerifier)(nil)
 
 type ecdsa256SignerVerifier struct {
-	signer    crypto.Signer
-	verifier  dsse.Verifier
+	signer   crypto.Signer
+	verifier dsse.Verifier
+	// for caching
 	keyID     string
 	publicKey *ecdsa.PublicKey
 }

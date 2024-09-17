@@ -71,6 +71,9 @@ func ValidPayloadType(payloadType string) bool {
 }
 
 func (km *KeyMetadata) ParsedKey() (crypto.PublicKey, error) {
+	if km.publicKey != nil {
+		return km.publicKey, nil
+	}
 	publicKey, err := signerverifier.ParsePublicKey([]byte(km.PEM))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse public key: %w", err)

@@ -58,12 +58,12 @@ func CreateX509Cert(subject string, signer dsse.SignerVerifier) ([]byte, error) 
 
 	// dsse.SignerVerifier doesn't implement cypto.Signer exactly
 
-	csigner, ok := signer.(*signerverifier.ECDSA256SignerVerifier)
-	if !ok {
-		return nil, fmt.Errorf("expected signer to be of type *signerverifier.ECDSA_SignerVerifier, got %T", signer)
+	csigner, err := signerverifier.AsCryptoSigner(signer)
+	if err != nil {
+		return nil, fmt.Errorf("error converting signer to crypto.Signer: %w", err)
 	}
 	// create a self-signed X.509 certificate
-	certDER, err := x509.CreateCertificate(rand.Reader, &template, &template, signer.Public(), csigner.Signer)
+	certDER, err := x509.CreateCertificate(rand.Reader, &template, &template, signer.Public(), csigner)
 	if err != nil {
 		return nil, fmt.Errorf("error creating X.509 certificate: %w", err)
 	}

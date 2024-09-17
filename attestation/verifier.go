@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"fmt"
 
+	"github.com/docker/attest/signerverifier"
 	"github.com/docker/attest/tlog"
 	"github.com/docker/attest/tuf"
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
@@ -86,7 +87,7 @@ func (v *verifier) GetSignatureVerifier(ctx context.Context, publicKey crypto.Pu
 		return v.signatureVerifierFactory(ctx, publicKey, opts)
 	}
 	// TODO: use details from opts to decide which algorithm to use here
-	ecdsaVerifier, err := NewECDSAVerifier(publicKey)
+	ecdsaVerifier, err := signerverifier.NewECDSAVerifier(publicKey)
 	if err != nil {
 		return nil, fmt.Errorf("error failed to create ecdsa verifier: %w", err)
 	}

@@ -9,71 +9,17 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"io"
 
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 )
-
-// must implement dsse.SignerVerifier interface.
-var _ dsse.SignerVerifier = (*ECDSA256SignerVerifier)(nil)
-
-type ECDSA256SignerVerifier struct {
-	crypto.Signer
-	dsse.Verifier
-	keyID     string
-	publicKey *ecdsa.PublicKey
-}
-
-func NewECDSA256SignerVerifier(signer crypto.Signer, verifier dsse.Verifier) dsse.SignerVerifier {
-	return &ECDSA256SignerVerifier{
-		Signer:   signer,
-		Verifier: verifier,
-	}
-}
-
-// implement keyid function.
-func (s *ECDSA256SignerVerifier) KeyID() (string, error) {
-	if s.keyID != "" {
-		return s.keyID, nil
-	}
-	keyID, err := KeyID(s.Public())
-	if err != nil {
-		return "", err
-	}
-	s.keyID = keyID
-	return keyID, nil
-}
-
-func (s *ECDSA256SignerVerifier) Public() crypto.PublicKey {
-	if s.publicKey != nil {
-		return s.publicKey
-	}
-	pub, ok := s.Signer.Public().(*ecdsa.PublicKey)
-	if !ok {
-		return nil
-	}
-	s.publicKey = pub
-	return s.publicKey
-}
-
-func (s *ECDSA256SignerVerifier) Sign(_ context.Context, data []byte) ([]byte, error) {
-	return s.Signer.Sign(rand.Reader, data, crypto.SHA256)
-}
-
-func (s *ECDSA256SignerVerifier) Verify(_ context.Context, data []byte, sig []byte) error {
-	if s.Verifier == nil {
-		return fmt.Errorf("no verifier found")
-	}
-	return s.Verifier.Verify(context.Background(), data, sig)
-}
 
 func LoadKeyPair(priv []byte) (dsse.SignerVerifier, error) {
 	privateKey, err := parsePriv(priv)
 	if err != nil {
 		return nil, err
 	}
-	return &ECDSA256SignerVerifier{
-		Signer: privateKey,
-	}, nil
+	return NewECDSASignerVerifier(privateKey), nil
 }
 
 func parsePriv(privkeyBytes []byte) (*ecdsa.PrivateKey, error) {
@@ -97,7 +43,22 @@ func GenKeyPair() (dsse.SignerVerifier, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &ECDSA256SignerVerifier{
-		Signer: signer,
-	}, nil
+	return NewECDSASignerVerifier(signer), nil
+}
+
+// ensure it implements crypto.Signer.
+var _ crypto.Signer = (*cryptoSignerWrapper)(nil)
+
+type cryptoSignerWrapper struct {
+	dsse.SignerVerifier
+}
+
+// Sign implements crypto.Signer.
+// Subtle: this method shadows the method (SignerVerifier).Sign of cryptoSignerWrapper.SignerVerifier.
+func (c *cryptoSignerWrapper) Sign(_ io.Reader, digest []byte, _ crypto.SignerOpts) (signature []byte, err error) {
+	return c.SignerVerifier.Sign(context.Background(), digest)
+}
+
+func AsCryptoSigner(signer dsse.SignerVerifier) (crypto.Signer, error) {
+	return &cryptoSignerWrapper{SignerVerifier: signer}, nil
 }

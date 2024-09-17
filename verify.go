@@ -60,7 +60,12 @@ func (verifier *ImageVerifier) Verify(ctx context.Context, src *oci.ImageSpec) (
 		return nil, fmt.Errorf("failed to resolve image name: %w", err)
 	}
 	policyResolver := policy.NewResolver(verifier.tufClient, verifier.opts)
-	resolvedPolicy, err := policyResolver.ResolvePolicy(ctx, imageName)
+
+	platform, err := detailsResolver.ImagePlatform(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get image platform: %w", err)
+	}
+	resolvedPolicy, err := policyResolver.ResolvePolicy(ctx, imageName, platform)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve policy: %w", err)
 	}

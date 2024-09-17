@@ -45,7 +45,8 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 	defaultResolver := attestation.MockResolver{
 		Envs: []*attestation.Envelope{loadAttestation(t, ExampleAttestation)},
 	}
-
+	defaultPlatform, err := v1.ParsePlatform("linux/amd64")
+	require.NoError(t, err)
 	testCases := []struct {
 		policyPath      string
 		expectSuccess   bool
@@ -87,7 +88,7 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 			imageName, err := tc.resolver.ImageName(ctx)
 			require.NoError(t, err)
 			resolver := policy.NewResolver(nil, tc.opts)
-			policy, err := resolver.ResolvePolicy(ctx, imageName)
+			policy, err := resolver.ResolvePolicy(ctx, imageName, defaultPlatform)
 			if tc.resolveErrorStr != "" {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tc.resolveErrorStr)

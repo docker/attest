@@ -8,6 +8,7 @@ import (
 	"regexp"
 
 	"github.com/docker/attest/tuf"
+	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -32,6 +33,13 @@ func validateMappingsFile(mappings *policyMappingsFile) error {
 		}
 		if rule.PolicyID != "" && rule.Replacement != "" {
 			validationErrors = append(validationErrors, fmt.Errorf("rule cannot have both policy-id and replacement: %s", rule))
+		}
+		if rule.Platforms != nil {
+			for _, platform := range rule.Platforms {
+				if platform == "" {
+					validationErrors = append(validationErrors, fmt.Errorf("rule has empty platform: %s", rule))
+				}
+			}
 		}
 	}
 	for _, policy := range mappings.Policies {
@@ -100,14 +108,24 @@ func expandMappingFile(mappingFile *policyMappingsFile) (*PolicyMappings, error)
 
 	var rules []*PolicyRule
 	for _, rule := range mappingFile.Rules {
-		r, err := regexp.Compile(rule.Pattern)
+		patternRegex, err := regexp.Compile(rule.Pattern)
 		if err != nil {
 			return nil, err
 		}
+		platforms := make([]*v1.Platform, 0, len(rule.Platforms))
+		for _, platform := range rule.Platforms {
+			parsedPlatform, err := v1.ParsePlatform(platform)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse platform %s: %w", platform, err)
+			}
+			platforms = append(platforms, parsedPlatform)
+		}
+
 		rules = append(rules, &PolicyRule{
-			Pattern:     r,
+			Pattern:     patternRegex,
 			PolicyID:    rule.PolicyID,
 			Replacement: rule.Replacement,
+			Platforms:   platforms,
 		})
 	}
 

@@ -1,0 +1,11 @@
+version: v1
+kind: policy-mapping
+policies:
+  - id: docker-official-images
+    description: Docker Official Images
+    files:
+      - path: doi/policy.rego
+rules:
+  - pattern: "^docker[.]io/library/(.*)$"
+    platforms: ["linux/amd64"]
+    policy-id: docker-official-images

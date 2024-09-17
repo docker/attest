@@ -11,6 +11,7 @@ import (
 	"github.com/docker/attest/internal/util"
 	"github.com/docker/attest/mapping"
 	"github.com/docker/attest/tuf"
+	v1 "github.com/google/go-containerregistry/pkg/v1"
 )
 
 type Resolver struct {
@@ -25,7 +26,7 @@ func NewResolver(tufClient tuf.Downloader, opts *Options) *Resolver {
 	}
 }
 
-func (r *Resolver) ResolvePolicy(_ context.Context, imageName string) (*Policy, error) {
+func (r *Resolver) ResolvePolicy(_ context.Context, imageName string, platform *v1.Platform) (*Policy, error) {
 	p, err := r.resolvePolicyByID()
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve policy by id: %w", err)
@@ -41,12 +42,12 @@ func (r *Resolver) ResolvePolicy(_ context.Context, imageName string) (*Policy, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to load local policy mappings: %w", err)
 	}
-	match, err := findPolicyMatch(imageName, localMappings)
+	match, err := localMappings.FindPolicyMatch(imageName, platform)
 	if err != nil {
 		return nil, err
 	}
-	if match.matchType == matchTypePolicy {
-		return r.resolveLocalPolicy(match.policy, imageName, match.matchedName)
+	if match.MatchType == mapping.MatchTypePolicy {
+		return r.resolveLocalPolicy(match.Policy, imageName, match.MatchedName)
 	}
 	if !r.opts.DisableTUF {
 		tufMappings, err := mapping.LoadTUFMappings(r.tufClient, r.opts.LocalTargetsDir)
@@ -55,21 +56,21 @@ func (r *Resolver) ResolvePolicy(_ context.Context, imageName string) (*Policy, 
 		}
 
 		// it's a mirror of a tuf policy
-		if match.matchType == matchTypeMatchNoPolicy {
+		if match.MatchType == mapping.MatchTypeMatchNoPolicy {
 			for _, mapping := range tufMappings.Policies {
-				if mapping.ID == match.rule.PolicyID {
-					return r.resolveTUFPolicy(mapping, imageName, match.matchedName)
+				if mapping.ID == match.Rule.PolicyID {
+					return r.resolveTUFPolicy(mapping, imageName, match.MatchedName)
 				}
 			}
 		}
 
 		// try to resolve a tuf policy directly
-		match, err = findPolicyMatch(imageName, tufMappings)
+		match, err = tufMappings.FindPolicyMatch(imageName, platform)
 		if err != nil {
 			return nil, err
 		}
-		if match.matchType == matchTypePolicy {
-			return r.resolveTUFPolicy(match.policy, imageName, match.matchedName)
+		if match.MatchType == mapping.MatchTypePolicy {
+			return r.resolveTUFPolicy(match.Policy, imageName, match.MatchedName)
 		}
 	}
 	return nil, nil

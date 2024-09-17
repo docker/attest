@@ -7,6 +7,7 @@ import (
 	"github.com/docker/attest/internal/test"
 	"github.com/docker/attest/policy"
 	"github.com/docker/attest/tuf"
+	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -17,7 +18,8 @@ func TestResolvePolicy(t *testing.T) {
 	noLocalPolicyPath := "testdata/policies/no-policy"
 	testPolicyID := "docker-official-images"
 	testImageName := "localhost:5001/test/repo:tag"
-
+	defaultPlatform, err := v1.ParsePlatform("linux/amd64")
+	require.NoError(t, err)
 	testCases := []struct {
 		name              string
 		policyPath        string
@@ -52,7 +54,7 @@ func TestResolvePolicy(t *testing.T) {
 			opts.DisableTUF = tc.DisableTUF
 			opts.LocalTargetsDir = tempDir
 			resolver := policy.NewResolver(tufClient, opts)
-			policy, err := resolver.ResolvePolicy(context.Background(), testImageName)
+			policy, err := resolver.ResolvePolicy(context.Background(), testImageName, defaultPlatform)
 			require.NoError(t, err)
 			assert.NotNil(t, policy)
 			if tc.DisableTUF || tc.localOverridesTUF {

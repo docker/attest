@@ -2,6 +2,8 @@ package mapping
 
 import (
 	"regexp"
+
+	v1 "github.com/google/go-containerregistry/pkg/v1"
 )
 
 type policyMappingsFile struct {
@@ -12,9 +14,10 @@ type policyMappingsFile struct {
 }
 
 type policyRuleFile struct {
-	Pattern     string `json:"pattern"`
-	PolicyID    string `json:"policy-id"`
-	Replacement string `json:"rewrite"`
+	Pattern     string   `json:"pattern"`
+	Platforms   []string `json:"platforms"`
+	PolicyID    string   `json:"policy-id"`
+	Replacement string   `json:"rewrite"`
 }
 
 type PolicyMappings struct {
@@ -51,4 +54,5 @@ type PolicyRule struct {
 	Pattern     *regexp.Regexp
 	PolicyID    string
 	Replacement string
+	Platforms   []*v1.Platform
 }

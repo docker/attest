@@ -88,7 +88,7 @@ func (re *regoEvaluator) Evaluate(ctx context.Context, resolver attestation.Reso
 		rego.Store(store),
 		rego.GenerateJSON(jsonGenerator[Result]()),
 	)
-	regoFnOpts := &RegoFnOpts{
+	regoFnOpts := &regoFnOpts{
 		attestationResolver: resolver,
 		attestationVerifier: re.attestationVerifier,
 	}
@@ -175,7 +175,7 @@ func handleErrors2(f func(rCtx rego.BuiltinContext, a, b *ast.Term) (*ast.Term, 
 	}
 }
 
-func RegoFunctions(regoOpts *RegoFnOpts) []*tester.Builtin {
+func RegoFunctions(regoOpts *regoFnOpts) []*tester.Builtin {
 	return []*tester.Builtin{
 		{
 			Decl: verifyDecl,
@@ -202,7 +202,7 @@ func RegoFunctions(regoOpts *RegoFnOpts) []*tester.Builtin {
 	}
 }
 
-func fetchInTotoAttestations(regoOpts *RegoFnOpts) rego.Builtin1 {
+func fetchInTotoAttestations(regoOpts *regoFnOpts) rego.Builtin1 {
 	return func(rCtx rego.BuiltinContext, predicateTypeTerm *ast.Term) (*ast.Term, error) {
 		predicateTypeStr, ok := predicateTypeTerm.Value.(ast.String)
 		if !ok {
@@ -232,12 +232,12 @@ func fetchInTotoAttestations(regoOpts *RegoFnOpts) rego.Builtin1 {
 	}
 }
 
-type RegoFnOpts struct {
+type regoFnOpts struct {
 	attestationResolver attestation.Resolver
 	attestationVerifier attestation.Verifier
 }
 
-func verifyInTotoEnvelope(regoOpts *RegoFnOpts) rego.Builtin2 {
+func verifyInTotoEnvelope(regoOpts *regoFnOpts) rego.Builtin2 {
 	return func(rCtx rego.BuiltinContext, envTerm, optsTerm *ast.Term) (*ast.Term, error) {
 		env := new(attestation.Envelope)
 		opts := new(attestation.VerifyOptions)

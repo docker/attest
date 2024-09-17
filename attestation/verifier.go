@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto"
 	"crypto/x509"
-	"encoding/json"
 	"fmt"
 
 	"github.com/docker/attest/tlog"
@@ -18,11 +17,21 @@ func WithTUFDownloader(tufDownloader tuf.Downloader) func(*verifier) {
 	}
 }
 
-func WithTransparencyLog(log tlog.TransparencyLog) func(*verifier) {
+type SignatureVerifierFactory func(ctx context.Context, publicKey crypto.PublicKey, opts *VerifyOptions) (dsse.Verifier, error)
+
+func WithSignatureVerifierFactory(factory SignatureVerifierFactory) func(*verifier) {
 	return func(r *verifier) {
-		r.transparencyLog = log
+		r.signatureVerifierFactory = factory
 	}
 }
+
+func WithLogVerifierFactory(factory LogVerifierFactory) func(*verifier) {
+	return func(r *verifier) {
+		r.logVerifierFactory = factory
+	}
+}
+
+type LogVerifierFactory func(ctx context.Context, opts *VerifyOptions) (tlog.TransparencyLog, error)
 
 func NewVerfier(options ...func(*verifier)) (Verifier, error) {
 	verifier := &verifier{}
@@ -33,6 +42,8 @@ func NewVerfier(options ...func(*verifier)) (Verifier, error) {
 }
 
 type Verifier interface {
+	GetSignatureVerifier(ctx context.Context, publicKey crypto.PublicKey, opts *VerifyOptions) (dsse.Verifier, error)
+	GetLogVerifier(ctx context.Context, opts *VerifyOptions) (tlog.TransparencyLog, error)
 	VerifySignature(ctx context.Context, publicKey crypto.PublicKey, data []byte, signature []byte, opts *VerifyOptions) error
 	VerifyLog(ctx context.Context, keyMeta *KeyMetadata, data []byte, sig *Signature, opts *VerifyOptions) error
 }
@@ -41,57 +52,83 @@ type Verifier interface {
 var _ Verifier = (*verifier)(nil)
 
 type verifier struct {
-	tufDownloader     tuf.Downloader
-	signatureVerifier dsse.Verifier
-	transparencyLog   tlog.TransparencyLog
+	tufDownloader            tuf.Downloader
+	signatureVerifierFactory SignatureVerifierFactory
+	logVerifierFactory       LogVerifierFactory
 }
 
-func (av *verifier) VerifySignature(ctx context.Context, publicKey crypto.PublicKey, data []byte, signature []byte, _ *VerifyOptions) error {
+// GetLogVerifier implements Verifier.
+func (v *verifier) GetLogVerifier(ctx context.Context, opts *VerifyOptions) (tlog.TransparencyLog, error) {
+	if v.logVerifierFactory != nil {
+		return v.logVerifierFactory(ctx, opts)
+	}
+	if opts.SkipTL {
+		return nil, nil
+	}
+	// TODO support other transparency logs
+	var transparencyLog tlog.TransparencyLog
+	switch opts.TransparencyLog {
+	case "", RekorTransparencyLogKind:
+		var err error
+		transparencyLog, err = tlog.NewRekorLog(tlog.WithTUFDownloader(v.tufDownloader))
+		if err != nil {
+			return nil, fmt.Errorf("error failed to create rekor verifier: %w", err)
+		}
+	default:
+		return nil, fmt.Errorf("unsupported transparency log: %s", opts.TransparencyLog)
+	}
+	return transparencyLog, nil
+}
+
+// GetSignatureVerifier implements Verifier.
+func (v *verifier) GetSignatureVerifier(ctx context.Context, publicKey crypto.PublicKey, opts *VerifyOptions) (dsse.Verifier, error) {
+	if v.signatureVerifierFactory != nil {
+		return v.signatureVerifierFactory(ctx, publicKey, opts)
+	}
 	// TODO: use details from opts to decide which algorithm to use here
 	ecdsaVerifier, err := NewECDSAVerifier(publicKey)
 	if err != nil {
-		return fmt.Errorf("error failed to create ecdsa verifier: %w", err)
+		return nil, fmt.Errorf("error failed to create ecdsa verifier: %w", err)
 	}
-	return ecdsaVerifier.Verify(ctx, data, signature)
+	return ecdsaVerifier, nil
 }
 
-func (av *verifier) VerifyLog(ctx context.Context, keyMeta *KeyMetadata, data []byte, sig *Signature, opts *VerifyOptions) error {
+func (v *verifier) VerifySignature(ctx context.Context, publicKey crypto.PublicKey, data []byte, signature []byte, opts *VerifyOptions) error {
+	sigVerifier, err := v.GetSignatureVerifier(ctx, publicKey, opts)
+	if err != nil {
+		return fmt.Errorf("error failed to get verifier: %w", err)
+	}
+	return sigVerifier.Verify(ctx, data, signature)
+}
+
+func (v *verifier) VerifyLog(ctx context.Context, keyMeta *KeyMetadata, encPayload []byte, sig *Signature, opts *VerifyOptions) error {
 	if opts.SkipTL {
 		return nil
 	}
-
-	// TODO support other transparency logs
-	var transparencyLog tlog.TransparencyLog = av.transparencyLog
-	if transparencyLog == nil {
-		switch opts.TransparencyLog {
-		case "":
-			fallthrough
-		case RekorTransparencyLogKind:
-			var err error
-			transparencyLog, err = tlog.NewRekorLogVerifier(av.tufDownloader)
-			if err != nil {
-				return fmt.Errorf("error failed to create rekor verifier: %w", err)
-			}
-
-		default:
-			return fmt.Errorf("unsupported transparency log: %s", opts.TransparencyLog)
-		}
-	}
-
 	if sig.Extension == nil || sig.Extension.Kind == "" {
 		return fmt.Errorf("error missing signature extension")
 	}
 	if sig.Extension.Kind != DockerDSSEExtKind {
 		return fmt.Errorf("error unsupported signature extension kind: %s", sig.Extension.Kind)
 	}
-
-	entry := sig.Extension.Ext.TL.Data
-	entryBytes, err := json.Marshal(entry)
+	transparencyLog, err := v.GetLogVerifier(ctx, opts)
 	if err != nil {
-		return fmt.Errorf("failed to marshal TL entry: %w", err)
+		return fmt.Errorf("error failed to get transparency log verifier: %w", err)
+	}
+	if transparencyLog == nil {
+		return fmt.Errorf("error missing transparency log verifier")
 	}
 
-	integratedTime, err := transparencyLog.VerifyEntry(ctx, entryBytes)
+	// verify TL entry payload
+	publicKey, err := keyMeta.ParsedKey()
+	if err != nil {
+		return fmt.Errorf("error failed to parse public key: %w", err)
+	}
+	encodedPub, err := x509.MarshalPKIXPublicKey(publicKey)
+	if err != nil {
+		return fmt.Errorf("error failed to marshal public key: %w", err)
+	}
+	integratedTime, err := transparencyLog.VerifyEntry(ctx, sig.Extension.Ext.TL, encPayload, encodedPub)
 	if err != nil {
 		return fmt.Errorf("TL entry failed verification: %w", err)
 	}
@@ -100,15 +137,6 @@ func (av *verifier) VerifyLog(ctx context.Context, keyMeta *KeyMetadata, data []
 	}
 	if keyMeta.To != nil && !integratedTime.Before(*keyMeta.To) {
 		return fmt.Errorf("key %s was already %s at TL log time %s (key %s at %s)", keyMeta.ID, keyMeta.Status, integratedTime, keyMeta.Status, *keyMeta.To)
-	}
-	// verify TL entry payload
-	encodedPub, err := x509.MarshalPKIXPublicKey(av.signatureVerifier.Public())
-	if err != nil {
-		return fmt.Errorf("error failed to marshal public key: %w", err)
-	}
-	err = transparencyLog.VerifyEntryPayload(entryBytes, data, encodedPub)
-	if err != nil {
-		return fmt.Errorf("TL entry failed payload verification: %w", err)
 	}
 	return nil
 }

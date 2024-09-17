@@ -2,6 +2,7 @@ package tlog
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -16,35 +17,47 @@ const (
 )
 
 func GetMockTL() TransparencyLog {
-	unmarshalEntry := func(entry []byte) (*models.LogEntryAnon, error) {
-		le := new(models.LogEntryAnon)
-		err := le.UnmarshalBinary(entry)
-		if err != nil {
-			return nil, fmt.Errorf("error failed to unmarshal TL entry: %w", err)
-		}
-		return le, nil
-	}
-
 	return &MockTransparencyLog{
-		UploadLogEntryFunc: func(_ context.Context, _ string, _ []byte, _ []byte, _ dsse.SignerVerifier) ([]byte, error) {
-			return []byte(TestEntry), nil
+		UploadLogEntryFunc: func(_ context.Context, _ string, _ []byte, _ []byte, _ dsse.SignerVerifier) (*DockerTLExtension, error) {
+			return &DockerTLExtension{
+				Kind: "Mock",
+				Data: json.RawMessage(TestEntry),
+			}, nil
 		},
-		VerifyLogEntryFunc: func(_ context.Context, entryBytes []byte) (time.Time, error) {
+		VerifyLogEntryFunc: func(_ context.Context, ext *DockerTLExtension, _, _ []byte) (time.Time, error) {
 			// return the integrated time in the log entry without any checking
-			le, err := unmarshalEntry(entryBytes)
+			entry := new(models.LogEntryAnon)
+			entryBytes, err := json.Marshal(ext.Data)
 			if err != nil {
-				return time.Time{}, err
+				return time.Time{}, fmt.Errorf("error failed to marshal TL entry: %w", err)
 			}
-			if le.IntegratedTime == nil {
+			err = entry.UnmarshalBinary(entryBytes)
+			if err != nil {
+				return time.Time{}, fmt.Errorf("error failed to unmarshal TL entry: %w", err)
+			}
+			if entry.IntegratedTime == nil {
 				return time.Time{}, fmt.Errorf("error missing integrated time in TL entry")
 			}
-			return time.Unix(*le.IntegratedTime, 0), nil
-		},
-		VerifyEntryPayloadFunc: func(_, _, _ []byte) error {
-			return nil
-		},
-		UnmarshalEntryFunc: func(entry []byte) (any, error) {
-			return unmarshalEntry(entry)
+			return time.Unix(*entry.IntegratedTime, 0), nil
 		},
 	}
+}
+
+type MockTransparencyLog struct {
+	UploadLogEntryFunc func(ctx context.Context, subject string, payload, signature []byte, signer dsse.SignerVerifier) (*DockerTLExtension, error)
+	VerifyLogEntryFunc func(ctx context.Context, ext *DockerTLExtension, payload, publicKey []byte) (time.Time, error)
+}
+
+func (tl *MockTransparencyLog) UploadEntry(ctx context.Context, subject string, payload, signature []byte, signer dsse.SignerVerifier) (*DockerTLExtension, error) {
+	if tl.UploadLogEntryFunc != nil {
+		return tl.UploadLogEntryFunc(ctx, subject, payload, signature, signer)
+	}
+	return nil, nil
+}
+
+func (tl *MockTransparencyLog) VerifyEntry(ctx context.Context, ext *DockerTLExtension, payload, publicKey []byte) (time.Time, error) {
+	if tl.VerifyLogEntryFunc != nil {
+		return tl.VerifyLogEntryFunc(ctx, ext, payload, publicKey)
+	}
+	return time.Time{}, nil
 }

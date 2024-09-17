@@ -2,7 +2,10 @@ package test
 
 import (
 	"context"
+	"crypto"
+	"crypto/x509"
 	_ "embed"
+	"encoding/pem"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -82,4 +85,18 @@ func NewLocalRegistry(ctx context.Context, options ...registry.Option) *httptest
 		}
 		regHandler.ServeHTTP(w, r)
 	}))
+}
+
+func PublicKeyToPEM(pubKey crypto.PublicKey) (string, error) {
+	derBytes, err := x509.MarshalPKIXPublicKey(pubKey)
+	if err != nil {
+		return "", err
+	}
+
+	pemBlock := &pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: derBytes,
+	}
+
+	return string(pem.EncodeToMemory(pemBlock)), nil
 }

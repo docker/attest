@@ -11,7 +11,6 @@ import (
 	"github.com/docker/attest/signerverifier"
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -56,14 +55,14 @@ func TestUploadAndVerifyLogEntry(t *testing.T) {
 	var tl TransparencyLog
 	if UseMockTL {
 		tl = &MockTransparencyLog{
-			UploadLogEntryFunc: func(_ context.Context, _ string, _ []byte, _ []byte, _ dsse.SignerVerifier) ([]byte, error) {
-				return []byte(TestEntry), nil
+			UploadLogEntryFunc: func(_ context.Context, _ string, _ []byte, _ []byte, _ dsse.SignerVerifier) (*DockerTLExtension, error) {
+				return &DockerTLExtension{
+					Kind: RekorTLExtKind,
+					Data: []byte(TestEntry),
+				}, nil
 			},
-			VerifyLogEntryFunc: func(_ context.Context, _ []byte) (time.Time, error) {
+			VerifyLogEntryFunc: func(_ context.Context, _ *DockerTLExtension, _, _ []byte) (time.Time, error) {
 				return time.Time{}, nil
-			},
-			VerifyEntryPayloadFunc: func(_, _, _ []byte) error {
-				return nil
 			},
 		}
 	} else {
@@ -75,21 +74,9 @@ func TestUploadAndVerifyLogEntry(t *testing.T) {
 	entry, err := tl.UploadEntry(ctx, "test", payload, sig, signer)
 	assert.NoError(t, err)
 
-	// test verify log entry
-	_, err = tl.VerifyEntry(ctx, entry)
-	assert.NoError(t, err)
-
-	// verify TL entry payload
+	// verify TL entry
 	ecPub, err := x509.MarshalPKIXPublicKey(signer.Public())
 	assert.NoError(t, err)
-	err = tl.VerifyEntryPayload(entry, payload, ecPub)
-	assert.NoError(t, err)
-}
-
-func TestVerifyEntryPayload(t *testing.T) {
-	tl, err := NewRekorLogger()
-	require.NoError(t, err)
-	p, _ := pem.Decode([]byte(TestPublicKey))
-	err = tl.VerifyEntryPayload([]byte(TestEntry), []byte(TestPayload), p.Bytes)
+	_, err = tl.VerifyEntry(ctx, entry, payload, ecPub)
 	assert.NoError(t, err)
 }

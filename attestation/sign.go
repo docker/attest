@@ -38,9 +38,9 @@ func SignDSSE(ctx context.Context, payload []byte, signer dsse.SignerVerifier, o
 		Sig:   base64Encoding.EncodeToString(sig),
 	}
 	if opts.TransparencyLog != nil {
-		ext, err := logSignature(ctx, opts.TransparencyLog, &sig, &encPayload, signer)
+		ext, err := logSignature(ctx, opts.TransparencyLog, sig, encPayload, signer)
 		if err != nil {
-			return nil, fmt.Errorf("failed to log to rekor: %w", err)
+			return nil, fmt.Errorf("failed to log signature: %w", err)
 		}
 		dsseSig.Extension = ext
 	}
@@ -51,27 +51,21 @@ func SignDSSE(ctx context.Context, payload []byte, signer dsse.SignerVerifier, o
 }
 
 // returns a new envelope with the transparency log entry added to the signature extension.
-func logSignature(ctx context.Context, t tlog.TransparencyLog, sig *[]byte, encPayload *[]byte, signer dsse.SignerVerifier) (*Extension, error) {
+func logSignature(ctx context.Context, t tlog.TransparencyLog, sig []byte, encPayload []byte, signer dsse.SignerVerifier) (*Extension, error) {
 	// get Key ID from signer
 	keyID, err := signer.KeyID()
 	if err != nil {
 		return nil, fmt.Errorf("error getting public key ID: %w", err)
 	}
-	entry, err := t.UploadEntry(ctx, keyID, *encPayload, *sig, signer)
+	entry, err := t.UploadEntry(ctx, keyID, encPayload, sig, signer)
 	if err != nil {
 		return nil, fmt.Errorf("error uploading TL entry: %w", err)
 	}
-	entryObj, err := t.UnmarshalEntry(entry)
-	if err != nil {
-		return nil, fmt.Errorf("error unmarshaling tl entry: %w", err)
-	}
+
 	return &Extension{
 		Kind: DockerDSSEExtKind,
 		Ext: &DockerDSSEExtension{
-			TL: &DockerTLExtension{
-				Kind: RekorTLExtKind,
-				Data: entryObj, // transparency log entry metadata
-			},
+			TL: entry,
 		},
 	}, nil
 }

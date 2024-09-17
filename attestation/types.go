@@ -1,6 +1,7 @@
 package attestation
 
 import (
+	"crypto"
 	"encoding/base64"
 	"fmt"
 	"time"
@@ -19,7 +20,6 @@ const (
 	InTotoPredicateType           = "in-toto.io/predicate-type"
 	DockerReferenceDigest         = "vnd.docker.reference.digest"
 	DockerDSSEExtKind             = "application/vnd.docker.attestation-verification.v1+json"
-	RekorTLExtKind                = "Rekor"
 	OCIDescriptorDSSEMediaType    = ociv1.MediaTypeDescriptor + "+dsse"
 	InTotoReferenceLifecycleStage = "vnd.docker.lifecycle-stage"
 	LifecycleStageExperimental    = "experimental"
@@ -74,12 +74,7 @@ type AnnotatedStatement struct {
 }
 
 type DockerDSSEExtension struct {
-	TL *DockerTLExtension `json:"tl"`
-}
-
-type DockerTLExtension struct {
-	Kind string `json:"kind"`
-	Data any    `json:"data"`
+	TL *tlog.DockerTLExtension `json:"tl"`
 }
 
 type TransparencyLogKind string
@@ -104,6 +99,7 @@ type KeyMetadata struct {
 	Status        string     `json:"status"`
 	SigningFormat string     `json:"signing-format"`
 	Distrust      bool       `json:"distrust,omitempty"`
+	publicKey     crypto.PublicKey
 }
 
 type (

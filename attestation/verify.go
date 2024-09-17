@@ -2,6 +2,7 @@ package attestation
 
 import (
 	"context"
+	"crypto"
 	"encoding/base64"
 	"fmt"
 
@@ -43,7 +44,7 @@ func VerifyDSSE(ctx context.Context, verifier Verifier, env *Envelope, opts *Ver
 		if keyMeta.Distrust {
 			return nil, fmt.Errorf("key %s is distrusted", keyMeta.ID)
 		}
-		publicKey, err := signerverifier.ParsePublicKey([]byte(keyMeta.PEM))
+		publicKey, err := keyMeta.ParsedKey()
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse public key: %w", err)
 		}
@@ -67,4 +68,13 @@ func VerifyDSSE(ctx context.Context, verifier Verifier, env *Envelope, opts *Ver
 
 func ValidPayloadType(payloadType string) bool {
 	return payloadType == intoto.PayloadType || payloadType == ociv1.MediaTypeDescriptor
+}
+
+func (km *KeyMetadata) ParsedKey() (crypto.PublicKey, error) {
+	publicKey, err := signerverifier.ParsePublicKey([]byte(km.PEM))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse public key: %w", err)
+	}
+	km.publicKey = publicKey
+	return publicKey, nil
 }

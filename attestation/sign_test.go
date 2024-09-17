@@ -1,6 +1,7 @@
 package attestation_test
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -23,6 +24,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func GetLogVerifier(_ context.Context, _ *attestation.VerifyOptions) (tlog.TransparencyLog, error) {
+	return tlog.GetMockTL(), nil
+}
 
 func TestSignVerifyAttestation(t *testing.T) {
 	ctx, signer := test.Setup(t)
@@ -75,36 +80,36 @@ func TestSignVerifyAttestation(t *testing.T) {
 		status        string
 		expectedError string
 	}{
-		// {
-		// 	name:          "all OK",
-		// 	keyID:         keyID,
-		// 	pem:           pem,
-		// 	distrust:      false,
-		// 	from:          time.Time{},
-		// 	to:            nil,
-		// 	status:        "active",
-		// 	expectedError: "",
-		// },
-		// {
-		// 	name:          "key not found",
-		// 	keyID:         "someotherkey",
-		// 	pem:           pem,
-		// 	distrust:      false,
-		// 	from:          time.Time{},
-		// 	to:            nil,
-		// 	status:        "active",
-		// 	expectedError: fmt.Sprintf("key not found: %s", keyID),
-		// },
-		// {
-		// 	name:          "key distrusted",
-		// 	keyID:         keyID,
-		// 	pem:           pem,
-		// 	distrust:      true,
-		// 	from:          time.Time{},
-		// 	to:            nil,
-		// 	status:        "active",
-		// 	expectedError: "distrusted",
-		// },
+		{
+			name:          "all OK",
+			keyID:         keyID,
+			pem:           pem,
+			distrust:      false,
+			from:          time.Time{},
+			to:            nil,
+			status:        "active",
+			expectedError: "",
+		},
+		{
+			name:          "key not found",
+			keyID:         "someotherkey",
+			pem:           pem,
+			distrust:      false,
+			from:          time.Time{},
+			to:            nil,
+			status:        "active",
+			expectedError: fmt.Sprintf("key not found: %s", keyID),
+		},
+		{
+			name:          "key distrusted",
+			keyID:         keyID,
+			pem:           pem,
+			distrust:      true,
+			from:          time.Time{},
+			to:            nil,
+			status:        "active",
+			expectedError: "distrusted",
+		},
 		{
 			name:          "key not yet valid",
 			keyID:         keyID,
@@ -150,8 +155,9 @@ func TestSignVerifyAttestation(t *testing.T) {
 			opts := &attestation.VerifyOptions{
 				Keys: attestation.Keys{keyMeta},
 			}
-			verifier, err := attestation.NewVerfier(attestation.WithTransparencyLog(tlog.GetMockTL()))
+			verifier, err := attestation.NewVerfier(attestation.WithLogVerifierFactory(GetLogVerifier))
 			require.NoError(t, err)
+
 			_, err = attestation.VerifyDSSE(ctx, verifier, deserializedEnv, opts)
 			if tc.expectedError != "" {
 				require.Error(t, err)

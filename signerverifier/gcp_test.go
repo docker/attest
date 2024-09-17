@@ -48,6 +48,6 @@ func TestGCPKMS_Signer(t *testing.T) {
 	ok = ecdsa.VerifyASN1(ecdsaPublicKey, hash, sig)
 	assert.True(t, ok)
 
-	err = signer.Verify(ctx, hash, sig)
+	err = signer.Verify(ctx, msg, sig)
 	require.NoError(t, err)
 }

@@ -203,7 +203,7 @@ rules:
   - pattern: "^docker[.]io/library/(.*)$"
     policy-id: docker-official-images
   - pattern: "^public[.]ecr[.]aws/docker/library/(.*)$"
-    platforms: ["linux/amd64"] # optional to restrict to specific platforms for this rule (empty matches all)
+    platforms: ["linux/amd64"] # optional: restrict image platforms for matching policies (default: all)
     rewrite: docker.io/library/$1
 ```
 

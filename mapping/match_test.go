@@ -24,81 +24,81 @@ func TestFindPolicyMatch(t *testing.T) {
 		expectedImageName  string
 		platform           string
 	}{
-		// {
-		// 	name:       "alpine",
-		// 	mappingDir: "doi",
-		// 	imageName:  "docker.io/library/alpine",
+		{
+			name:       "alpine",
+			mappingDir: "doi",
+			imageName:  "docker.io/library/alpine",
 
-		// 	expectedMatchType: MatchTypePolicy,
-		// 	expectedPolicyID:  "docker-official-images",
-		// 	expectedImageName: "docker.io/library/alpine",
-		// },
-		// {
-		// 	name:       "no match",
-		// 	mappingDir: "doi",
-		// 	imageName:  "docker.io/something/else",
+			expectedMatchType: MatchTypePolicy,
+			expectedPolicyID:  "docker-official-images",
+			expectedImageName: "docker.io/library/alpine",
+		},
+		{
+			name:       "no match",
+			mappingDir: "doi",
+			imageName:  "docker.io/something/else",
 
-		// 	expectedMatchType: MatchTypeNoMatch,
-		// 	expectedImageName: "docker.io/something/else",
-		// },
-		// {
-		// 	name:       "match, no policy",
-		// 	mappingDir: "local",
-		// 	imageName:  "docker.io/library/alpine",
+			expectedMatchType: MatchTypeNoMatch,
+			expectedImageName: "docker.io/something/else",
+		},
+		{
+			name:       "match, no policy",
+			mappingDir: "local",
+			imageName:  "docker.io/library/alpine",
 
-		// 	expectedMatchType: MatchTypeMatchNoPolicy,
-		// 	expectedImageName: "docker.io/library/alpine",
-		// },
-		// {
-		// 	name:       "simple rewrite",
-		// 	mappingDir: "simple-rewrite",
-		// 	imageName:  "mycoolmirror.org/library/alpine",
+			expectedMatchType: MatchTypeMatchNoPolicy,
+			expectedImageName: "docker.io/library/alpine",
+		},
+		{
+			name:       "simple rewrite",
+			mappingDir: "simple-rewrite",
+			imageName:  "mycoolmirror.org/library/alpine",
 
-		// 	expectedMatchType: MatchTypePolicy,
-		// 	expectedPolicyID:  "docker-official-images",
-		// 	expectedImageName: "docker.io/library/alpine",
-		// },
-		// {
-		// 	name:       "rewrite no match",
-		// 	mappingDir: "rewrite-to-no-match",
-		// 	imageName:  "mycoolmirror.org/library/alpine",
+			expectedMatchType: MatchTypePolicy,
+			expectedPolicyID:  "docker-official-images",
+			expectedImageName: "docker.io/library/alpine",
+		},
+		{
+			name:       "rewrite no match",
+			mappingDir: "rewrite-to-no-match",
+			imageName:  "mycoolmirror.org/library/alpine",
 
-		// 	expectedMatchType: MatchTypeNoMatch,
-		// 	expectedImageName: "badredirect.org/alpine",
-		// },
-		// {
-		// 	name:       "rewrite to match, no policy",
-		// 	mappingDir: "rewrite-to-local",
-		// 	imageName:  "mycoolmirror.org/library/alpine",
+			expectedMatchType: MatchTypeNoMatch,
+			expectedImageName: "badredirect.org/alpine",
+		},
+		{
+			name:       "rewrite to match, no policy",
+			mappingDir: "rewrite-to-local",
+			imageName:  "mycoolmirror.org/library/alpine",
 
-		// 	expectedMatchType: MatchTypeMatchNoPolicy,
-		// 	expectedImageName: "docker.io/library/alpine",
-		// },
-		// {
-		// 	name:       "multiple rewrites",
-		// 	mappingDir: "rewrite-multiple",
-		// 	imageName:  "myevencoolermirror.org/library/alpine",
+			expectedMatchType: MatchTypeMatchNoPolicy,
+			expectedImageName: "docker.io/library/alpine",
+		},
+		{
+			name:       "multiple rewrites",
+			mappingDir: "rewrite-multiple",
+			imageName:  "myevencoolermirror.org/library/alpine",
 
-		// 	expectedMatchType: MatchTypePolicy,
-		// 	expectedPolicyID:  "docker-official-images",
-		// 	expectedImageName: "docker.io/library/alpine",
-		// },
-		// {
-		// 	name:       "rewrite loop",
-		// 	mappingDir: "rewrite-loop",
-		// 	imageName:  "yin/alpine",
+			expectedMatchType: MatchTypePolicy,
+			expectedPolicyID:  "docker-official-images",
+			expectedImageName: "docker.io/library/alpine",
+		},
+		{
+			name:       "rewrite loop",
+			mappingDir: "rewrite-loop",
+			imageName:  "yin/alpine",
 
-		// 	expectError: true,
-		// },
-		// {
-		// 	name:              "alpine with platform",
-		// 	mappingDir:        "doi",
-		// 	imageName:         "docker.io/library/alpine",
-		// 	platform:          "linux/amd64",
-		// 	expectedMatchType: MatchTypePolicy,
-		// 	expectedPolicyID:  "docker-official-images",
-		// 	expectedImageName: "docker.io/library/alpine",
-		// },
+			expectError: true,
+		},
+		{
+			name:              "alpine with platform",
+			mappingDir:        "doi",
+			imageName:         "docker.io/library/alpine",
+			platform:          "linux/amd64",
+			expectedMatchType: MatchTypePolicy,
+			expectedPolicyID:  "docker-official-images",
+			expectedImageName: "docker.io/library/alpine",
+		},
 		{
 			name:              "alpine with platform",
 			mappingDir:        "doi-platform",
@@ -141,13 +141,13 @@ func TestFindPolicyMatch(t *testing.T) {
 			if tc.expectLoadingError {
 				require.Error(t, err)
 				return
-			} else {
-				require.NoError(t, err)
 			}
+			require.NoError(t, err)
 
 			platform := defaultPlatform
 			if tc.platform != "" {
 				platform, err = v1.ParsePlatform(tc.platform)
+				require.NoError(t, err)
 			}
 			match, err := mappings.FindPolicyMatch(tc.imageName, platform)
 			if tc.expectError {

@@ -19,7 +19,7 @@ func LoadKeyPair(priv []byte) (dsse.SignerVerifier, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewECDSASignerVerifier(privateKey), nil
+	return NewECDSASignerVerifier(privateKey)
 }
 
 func parsePriv(privkeyBytes []byte) (*ecdsa.PrivateKey, error) {
@@ -43,22 +43,26 @@ func GenKeyPair() (dsse.SignerVerifier, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewECDSASignerVerifier(signer), nil
+	return NewECDSASignerVerifier(signer)
 }
 
 // ensure it implements crypto.Signer.
 var _ crypto.Signer = (*cryptoSignerWrapper)(nil)
 
 type cryptoSignerWrapper struct {
-	dsse.SignerVerifier
+	sv dsse.SignerVerifier
+}
+
+// Public implements crypto.Signer.
+func (c *cryptoSignerWrapper) Public() crypto.PublicKey {
+	return c.sv.Public()
 }
 
 // Sign implements crypto.Signer.
-// Subtle: this method shadows the method (SignerVerifier).Sign of cryptoSignerWrapper.SignerVerifier.
 func (c *cryptoSignerWrapper) Sign(_ io.Reader, digest []byte, _ crypto.SignerOpts) (signature []byte, err error) {
-	return c.SignerVerifier.Sign(context.Background(), digest)
+	return c.sv.Sign(context.Background(), digest)
 }
 
 func AsCryptoSigner(signer dsse.SignerVerifier) (crypto.Signer, error) {
-	return &cryptoSignerWrapper{SignerVerifier: signer}, nil
+	return &cryptoSignerWrapper{sv: signer}, nil
 }

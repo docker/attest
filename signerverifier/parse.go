@@ -18,15 +18,7 @@ func ParsePublicKey(pubkeyBytes []byte) (crypto.PublicKey, error) {
 	if p.Type != pemType {
 		return nil, fmt.Errorf("pubkey file does not contain a public key")
 	}
-	pubKey, err := x509.ParsePKIXPublicKey(p.Bytes)
-	if err != nil {
-		return nil, fmt.Errorf("error failed to parse public key: %w", err)
-	}
-	pk, ok := pubKey.(crypto.PublicKey)
-	if !ok {
-		return nil, fmt.Errorf("error public key is not a public key: %w", err)
-	}
-	return pk, nil
+	return x509.ParsePKIXPublicKey(p.Bytes)
 }
 
 func ParseECDSAPublicKey(pubkeyBytes []byte) (*ecdsa.PublicKey, error) {
@@ -46,6 +38,5 @@ func ConvertToPEM(ecdsaPubKey *ecdsa.PublicKey) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error failed to marshal public key: %w", err)
 	}
-
 	return pem.EncodeToMemory(&pem.Block{Type: pemType, Bytes: pubKeyBytes}), nil
 }

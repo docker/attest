@@ -21,5 +21,5 @@ func GetGCPSigner(ctx context.Context, reference string, opts ...option.ClientOp
 	if err != nil {
 		return nil, fmt.Errorf("error getting gcp crypto signer: %w", err)
 	}
-	return NewECDSASignerVerifier(cs), nil
+	return NewECDSASignerVerifier(cs)
 }

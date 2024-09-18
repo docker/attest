@@ -18,6 +18,7 @@ require (
 	github.com/secure-systems-lab/go-securesystemslib v0.8.0
 	github.com/sigstore/cosign/v2 v2.4.0
 	github.com/sigstore/rekor v1.3.6
+	github.com/sigstore/sigstore v1.8.8
 	github.com/sigstore/sigstore/pkg/signature/kms/aws v1.8.9
 	github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.8.9
 	github.com/stretchr/testify v1.9.0
@@ -126,7 +127,6 @@ require (
 	github.com/sassoftware/relic v7.2.1+incompatible // indirect
 	github.com/shibumi/go-pathspec v1.3.0 // indirect
 	github.com/sigstore/protobuf-specs v0.3.2 // indirect
-	github.com/sigstore/sigstore v1.8.8 // indirect
 	github.com/sigstore/timestamp-authority v1.2.2 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect

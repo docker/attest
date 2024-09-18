@@ -20,5 +20,5 @@ func GetAWSSigner(ctx context.Context, keyARN string, region string) (dsse.Signe
 	if err != nil {
 		return nil, fmt.Errorf("error getting aws crypto signer: %w", err)
 	}
-	return NewECDSASignerVerifier(cs), nil
+	return NewECDSASignerVerifier(cs)
 }

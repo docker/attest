@@ -61,39 +61,26 @@ var _ dsse.SignerVerifier = (*ecdsa256SignerVerifier)(nil)
 type ecdsa256SignerVerifier struct {
 	signer   crypto.Signer
 	verifier dsse.Verifier
-	// for caching
-	keyID     string
-	publicKey *ecdsa.PublicKey
 }
 
-func NewECDSASignerVerifier(signer crypto.Signer) dsse.SignerVerifier {
-	return &ecdsa256SignerVerifier{
-		signer: signer,
+func NewECDSASignerVerifier(signer crypto.Signer) (dsse.SignerVerifier, error) {
+	verifier, err := NewECDSAVerifier(signer.Public())
+	if err != nil {
+		return nil, fmt.Errorf("failed to create verifier: %w", err)
 	}
+	sv := &ecdsa256SignerVerifier{
+		signer:   signer,
+		verifier: verifier,
+	}
+	return sv, nil
 }
 
 func (s *ecdsa256SignerVerifier) KeyID() (string, error) {
-	if s.keyID != "" {
-		return s.keyID, nil
-	}
-	keyID, err := KeyID(s.Public())
-	if err != nil {
-		return "", err
-	}
-	s.keyID = keyID
-	return keyID, nil
+	return s.verifier.KeyID()
 }
 
 func (s *ecdsa256SignerVerifier) Public() crypto.PublicKey {
-	if s.publicKey != nil {
-		return s.publicKey
-	}
-	pub, ok := s.signer.Public().(*ecdsa.PublicKey)
-	if !ok {
-		return nil
-	}
-	s.publicKey = pub
-	return s.publicKey
+	return s.verifier.Public()
 }
 
 func (s *ecdsa256SignerVerifier) Sign(_ context.Context, data []byte) ([]byte, error) {
@@ -101,12 +88,5 @@ func (s *ecdsa256SignerVerifier) Sign(_ context.Context, data []byte) ([]byte, e
 }
 
 func (s *ecdsa256SignerVerifier) Verify(ctx context.Context, data []byte, sig []byte) error {
-	if s.verifier == nil {
-		var err error
-		s.verifier, err = NewECDSAVerifier(s.Public())
-		if err != nil {
-			return err
-		}
-	}
 	return s.verifier.Verify(ctx, data, sig)
 }

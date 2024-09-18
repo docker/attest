@@ -7,6 +7,8 @@ import (
 	_ "embed"
 	"encoding/pem"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -75,6 +77,7 @@ func Setup(t *testing.T) (context.Context, dsse.SignerVerifier) {
 }
 
 func NewLocalRegistry(ctx context.Context, options ...registry.Option) *httptest.Server {
+	options = append(options, registry.Logger(log.New(io.Discard, "", log.LstdFlags)))
 	regHandler := registry.New(options...)
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Check the user agent

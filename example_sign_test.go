@@ -7,6 +7,7 @@ import (
 	"github.com/docker/attest/attestation"
 	"github.com/docker/attest/oci"
 	"github.com/docker/attest/signerverifier"
+	"github.com/docker/attest/tlog"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/empty"
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
@@ -25,8 +26,14 @@ func ExampleSignStatements_remote() {
 	// signer, err := signerverifier.GetAWSSigner(cmd.Context(), aws_arn, aws_region)
 
 	// configure signing options
+
+	// use rekor transparency log wit static rekor public key (see options to use dynamic rekor public key)
+	rekor, err := tlog.NewRekorLog()
+	if err != nil {
+		panic(err)
+	}
 	opts := &attestation.SigningOptions{
-		TransparencyLog: nil, // set this to log to a transparency log
+		TransparencyLog: rekor, // unset this to disable signature transparency logging
 	}
 
 	// load image index with unsigned attestation-manifests

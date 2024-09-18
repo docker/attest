@@ -207,12 +207,12 @@ func TestSignVerify(t *testing.T) {
 		imageName          string
 		expectedNonSuccess Outcome
 	}{
-		// {name: "happy path", signTL: true, policyDir: PassNoTLPolicyDir},
-		// {name: "sign tl, verify no tl", signTL: true, policyDir: PassPolicyDir},
-		// {name: "no tl", signTL: false, policyDir: PassPolicyDir},
-		// {name: "mirror", signTL: false, policyDir: PassMirrorPolicyDir, imageName: "mirror.org/library/test-image:test"},
-		// {name: "mirror no match", signTL: false, policyDir: PassMirrorPolicyDir, imageName: "incorrect.org/library/test-image:test", expectedNonSuccess: OutcomeNoPolicy},
-		// {name: "verify inputs", signTL: false, policyDir: InputsPolicyDir},
+		{name: "happy path", signTL: true, policyDir: PassNoTLPolicyDir},
+		{name: "sign tl, verify no tl", signTL: true, policyDir: PassPolicyDir},
+		{name: "no tl", signTL: false, policyDir: PassPolicyDir},
+		{name: "mirror", signTL: false, policyDir: PassMirrorPolicyDir, imageName: "mirror.org/library/test-image:test"},
+		{name: "mirror no match", signTL: false, policyDir: PassMirrorPolicyDir, imageName: "incorrect.org/library/test-image:test", expectedNonSuccess: OutcomeNoPolicy},
+		{name: "verify inputs", signTL: false, policyDir: InputsPolicyDir},
 		{name: "mirror with verification", signTL: false, policyDir: LocalKeysPolicy, imageName: "mirror.org/library/test-image:test"},
 	}
 

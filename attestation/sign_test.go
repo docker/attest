@@ -25,10 +25,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func GetLogVerifier(_ context.Context, _ *attestation.VerifyOptions) (tlog.TransparencyLog, error) {
-	return tlog.GetMockTL(), nil
-}
-
 func TestSignVerifyAttestation(t *testing.T) {
 	ctx, signer := test.Setup(t)
 	stmt := &intoto.Statement{
@@ -155,9 +151,14 @@ func TestSignVerifyAttestation(t *testing.T) {
 			opts := &attestation.VerifyOptions{
 				Keys: attestation.Keys{keyMeta},
 			}
-			verifier, err := attestation.NewVerfier(attestation.WithLogVerifierFactory(GetLogVerifier))
+			getTL := func(_ context.Context, opts *attestation.VerifyOptions) (tlog.TransparencyLog, error) {
+				if opts.SkipTL {
+					return nil, nil
+				}
+				return tl, nil
+			}
+			verifier, err := attestation.NewVerfier(attestation.WithLogVerifierFactory(getTL))
 			require.NoError(t, err)
-
 			_, err = attestation.VerifyDSSE(ctx, verifier, deserializedEnv, opts)
 			if tc.expectedError != "" {
 				require.Error(t, err)

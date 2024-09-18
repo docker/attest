@@ -59,8 +59,8 @@ func (v *ecdsaVerifier) KeyID() (string, error) {
 var _ dsse.SignerVerifier = (*ecdsa256SignerVerifier)(nil)
 
 type ecdsa256SignerVerifier struct {
-	signer   crypto.Signer
-	verifier dsse.Verifier
+	signer crypto.Signer
+	dsse.Verifier
 }
 
 func NewECDSASignerVerifier(signer crypto.Signer) (dsse.SignerVerifier, error) {
@@ -70,23 +70,11 @@ func NewECDSASignerVerifier(signer crypto.Signer) (dsse.SignerVerifier, error) {
 	}
 	sv := &ecdsa256SignerVerifier{
 		signer:   signer,
-		verifier: verifier,
+		Verifier: verifier,
 	}
 	return sv, nil
 }
 
-func (s *ecdsa256SignerVerifier) KeyID() (string, error) {
-	return s.verifier.KeyID()
-}
-
-func (s *ecdsa256SignerVerifier) Public() crypto.PublicKey {
-	return s.verifier.Public()
-}
-
 func (s *ecdsa256SignerVerifier) Sign(_ context.Context, data []byte) ([]byte, error) {
 	return s.signer.Sign(rand.Reader, data, crypto.SHA256)
-}
-
-func (s *ecdsa256SignerVerifier) Verify(ctx context.Context, data []byte, sig []byte) error {
-	return s.verifier.Verify(ctx, data, sig)
 }

@@ -133,6 +133,24 @@ func TestFindPolicyMatch(t *testing.T) {
 			platform:           "linux/amd64",
 			expectLoadingError: true,
 		},
+		{
+			name:              "firefox with > 1 platforms in policy",
+			mappingDir:        "doi-platform",
+			imageName:         "docker.io/mozilla/firefox",
+			platform:          "linux/arm64",
+			expectedMatchType: MatchTypePolicy,
+			expectedPolicyID:  "docker-official-images",
+			expectedImageName: "docker.io/mozilla/firefox",
+		},
+		{
+			name:              "firefox with > 1 platforms in policy (no match)",
+			mappingDir:        "doi-platform",
+			imageName:         "docker.io/mozilla/firefox",
+			platform:          "macOs/arm64",
+			expectedMatchType: MatchTypeNoMatch,
+			expectedPolicyID:  "docker-official-images",
+			expectedImageName: "docker.io/mozilla/firefox",
+		},
 	}
 
 	for _, tc := range testCases {

@@ -9,3 +9,6 @@ rules:
   - pattern: "^docker[.]io/library/(.*)$"
     platforms: ["linux/amd64"]
     policy-id: docker-official-images
+  - pattern: "^docker.io/mozilla/(.*)$"
+    platforms: ["linux/amd64", "linux/arm64"]
+    policy-id: docker-official-images

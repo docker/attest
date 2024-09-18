@@ -206,6 +206,11 @@ rules:
     platforms: ["linux/amd64"] # optional: restrict image platforms for matching policies (default: all)
     rewrite: docker.io/library/$1
 ```
+`platforms` in the second rule above is optional and can be used to restrict the platforms for which the policy
+ is evaluated. If the `platforms` field is not present, the policy will be applied to all platforms.
+ It's important to note that the `platforms` field is a filter, and is applied before the `pattern`
+ field is processed, so both `platforms` and `pattern` need to match in order for the policy to be selected
+ (or the rewrite to be processed if present).
 
 As before, any repository in the `docker.io/library` namespace will be evaluated against the policy in `doi/policy.rego`.
 The second rule will rewrite any repository in the `public.ecr.aws/docker/library` namespace to `docker.io/library`.

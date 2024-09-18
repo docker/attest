@@ -12,3 +12,6 @@ rules:
   - pattern: "^docker.io/mozilla/(.*)$"
     platforms: ["linux/amd64", "linux/arm64"]
     policy-id: docker-official-images
+  - pattern: "^mycoolmirror[.]org/library/(.*)$"
+    platforms: ["linux/amd64"]
+    rewrite: "docker.io/library/$1"

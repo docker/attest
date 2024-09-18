@@ -25,18 +25,17 @@ func (mappings *PolicyMappings) FindPolicyMatch(imageName string, platform *v1.P
 	if mappings == nil {
 		return &PolicyMatch{MatchType: MatchTypeNoMatch, MatchedName: imageName}, nil
 	}
-
-	return findPolicyMatchImpl(imageName, platform, mappings, make(map[*PolicyRule]bool))
+	return mappings.findPolicyMatchImpl(imageName, platform, make(map[*PolicyRule]bool))
 }
 
-func findPolicyMatchImpl(imageName string, platform *v1.Platform, mappings *PolicyMappings, matched map[*PolicyRule]bool) (*PolicyMatch, error) {
+func (mappings *PolicyMappings) findPolicyMatchImpl(imageName string, platform *v1.Platform, matched map[*PolicyRule]bool) (*PolicyMatch, error) {
 	for _, rule := range mappings.Rules {
 		platformMatch := false
 		if len(rule.Platforms) == 0 {
 			platformMatch = true
 		}
-		for _, p := range rule.Platforms {
-			if p.Equals(*platform) {
+		for i := range rule.Platforms {
+			if rule.Platforms[i].Equals(*platform) {
 				platformMatch = true
 				break
 			}
@@ -71,9 +70,9 @@ func findPolicyMatchImpl(imageName string, platform *v1.Platform, mappings *Poli
 				}
 				matched[rule] = true
 				imageName = rule.Pattern.ReplaceAllString(imageName, rule.Replacement)
-				return findPolicyMatchImpl(imageName, platform, mappings, matched)
+				return mappings.findPolicyMatchImpl(imageName, platform, matched)
 			}
 		}
 	}
-	return &PolicyMatch{MatchType: MatchTypeNoMatch, MatchedName: imageName}, nil
+	return &PolicyMatch{MatchType: MatchTypeNoMatch}, nil
 }

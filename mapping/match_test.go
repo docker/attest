@@ -13,10 +13,9 @@ func TestFindPolicyMatch(t *testing.T) {
 	defaultPlatform, err := v1.ParsePlatform("linux/amd64")
 	require.NoError(t, err)
 	testCases := []struct {
-		name       string
-		imageName  string
-		mappingDir string
-
+		name               string
+		imageName          string
+		mappingDir         string
 		expectError        bool
 		expectLoadingError bool
 		expectedMatchType  matchType
@@ -39,7 +38,6 @@ func TestFindPolicyMatch(t *testing.T) {
 			imageName:  "docker.io/something/else",
 
 			expectedMatchType: MatchTypeNoMatch,
-			expectedImageName: "docker.io/something/else",
 		},
 		{
 			name:       "match, no policy",
@@ -64,7 +62,6 @@ func TestFindPolicyMatch(t *testing.T) {
 			imageName:  "mycoolmirror.org/library/alpine",
 
 			expectedMatchType: MatchTypeNoMatch,
-			expectedImageName: "badredirect.org/alpine",
 		},
 		{
 			name:       "rewrite to match, no policy",
@@ -115,7 +112,6 @@ func TestFindPolicyMatch(t *testing.T) {
 			platform:          "linux/arm64",
 			expectedMatchType: MatchTypeNoMatch,
 			expectedPolicyID:  "docker-official-images",
-			expectedImageName: "docker.io/library/alpine",
 		},
 		{
 			name:              "alpine with platform",
@@ -149,7 +145,23 @@ func TestFindPolicyMatch(t *testing.T) {
 			platform:          "macOs/arm64",
 			expectedMatchType: MatchTypeNoMatch,
 			expectedPolicyID:  "docker-official-images",
-			expectedImageName: "docker.io/mozilla/firefox",
+		},
+		{
+			name:              "rewrite and platform",
+			mappingDir:        "doi-platform",
+			imageName:         "mycoolmirror.org/library/alpine",
+			platform:          "linux/amd64",
+			expectedMatchType: MatchTypePolicy,
+			expectedPolicyID:  "docker-official-images",
+			expectedImageName: "docker.io/library/alpine",
+		},
+		{
+			name:              "rewrite and platform mismatch",
+			mappingDir:        "doi-platform",
+			imageName:         "mycoolmirror.org/library/alpine",
+			platform:          "macOs/amd64",
+			expectedMatchType: MatchTypeNoMatch,
+			expectedPolicyID:  "docker-official-images",
 		},
 	}
 
@@ -180,7 +192,9 @@ func TestFindPolicyMatch(t *testing.T) {
 					assert.Equal(t, tc.expectedPolicyID, match.Policy.ID)
 				}
 			}
-			assert.Equal(t, tc.expectedImageName, match.MatchedName)
+			if match.MatchType == MatchTypeMatchNoPolicy || match.MatchType == MatchTypePolicy {
+				assert.Equal(t, tc.expectedImageName, match.MatchedName)
+			}
 		})
 	}
 }

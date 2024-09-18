@@ -30,17 +30,7 @@ func (mappings *PolicyMappings) FindPolicyMatch(imageName string, platform *v1.P
 
 func (mappings *PolicyMappings) findPolicyMatchImpl(imageName string, platform *v1.Platform, matched map[*PolicyRule]bool) (*PolicyMatch, error) {
 	for _, rule := range mappings.Rules {
-		platformMatch := false
-		if len(rule.Platforms) == 0 {
-			platformMatch = true
-		}
-		for i := range rule.Platforms {
-			if rule.Platforms[i].Equals(*platform) {
-				platformMatch = true
-				break
-			}
-		}
-		if !platformMatch {
+		if !rule.matchesPlatform(platform) {
 			continue
 		}
 		if rule.Pattern.MatchString(imageName) {
@@ -75,4 +65,16 @@ func (mappings *PolicyMappings) findPolicyMatchImpl(imageName string, platform *
 		}
 	}
 	return &PolicyMatch{MatchType: MatchTypeNoMatch}, nil
+}
+
+func (rule *PolicyRule) matchesPlatform(platform *v1.Platform) bool {
+	if len(rule.Platforms) == 0 {
+		return true
+	}
+	for i := range rule.Platforms {
+		if rule.Platforms[i].Equals(*platform) {
+			return true
+		}
+	}
+	return false
 }

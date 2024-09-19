@@ -1,12 +1,14 @@
 package policy
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 
+	"github.com/docker-library/bashbrew/manifest"
 	"github.com/docker/attest/attestation"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/open-policy-agent/opa/ast"
@@ -149,6 +151,12 @@ var attestDecl = &ast.Builtin{
 	Nondeterministic: true,
 }
 
+var internalParseLibraryDefinitionDecl = &ast.Builtin{
+	Name:             "attest.internals.parse_library_definition",
+	Decl:             types.NewFunction(types.Args(types.S), dynamicObj),
+	Nondeterministic: false,
+}
+
 func wrapFunctionResult(value *ast.Term, err error) (*ast.Term, error) {
 	var terms [][2]*ast.Term
 	if err != nil {
@@ -174,28 +182,50 @@ func handleErrors2(f func(rCtx rego.BuiltinContext, a, b *ast.Term) (*ast.Term, 
 
 func RegoFunctions(regoOpts *RegoFnOpts) []*tester.Builtin {
 	return []*tester.Builtin{
-		{
-			Decl: verifyDecl,
-			Func: rego.Function2(
-				&rego.Function{
-					Name:             verifyDecl.Name,
-					Decl:             verifyDecl.Decl,
-					Memoize:          true,
-					Nondeterministic: verifyDecl.Nondeterministic,
-				},
-				handleErrors2(regoOpts.verifyInTotoEnvelope)),
-		},
-		{
-			Decl: attestDecl,
-			Func: rego.Function1(
-				&rego.Function{
-					Name:             attestDecl.Name,
-					Decl:             attestDecl.Decl,
-					Memoize:          true,
-					Nondeterministic: attestDecl.Nondeterministic,
-				},
-				handleErrors1(regoOpts.fetchInTotoAttestations)),
-		},
+		builtin2(verifyDecl, regoOpts.verifyInTotoEnvelope),
+		builtin1(attestDecl, regoOpts.fetchInTotoAttestations),
+		builtin1(internalParseLibraryDefinitionDecl, regoOpts.internalParseLibraryDefinition),
+	}
+}
+
+func builtin1(decl *ast.Builtin, f rego.Builtin1) *tester.Builtin {
+	return &tester.Builtin{
+		Decl: decl,
+		Func: rego.Function1(
+			&rego.Function{
+				Name:             decl.Name,
+				Decl:             decl.Decl,
+				Memoize:          true,
+				Nondeterministic: decl.Nondeterministic,
+			},
+			handleErrors1(f)),
+	}
+}
+
+func builtin2(decl *ast.Builtin, f rego.Builtin2) *tester.Builtin {
+	return &tester.Builtin{
+		Decl: decl,
+		Func: rego.Function2(
+			&rego.Function{
+				Name:             decl.Name,
+				Decl:             decl.Decl,
+				Memoize:          true,
+				Nondeterministic: decl.Nondeterministic,
+			},
+			handleErrors2(f)),
+	}
+}
+
+type RegoFnOpts struct {
+	attestationResolver attestation.Resolver
+	attestationVerifier attestation.Verifier
+}
+
+// this is exported for testing here and in clients of the library.
+func NewRegoFunctionOptions(resolver attestation.Resolver, verifier attestation.Verifier) *RegoFnOpts {
+	return &RegoFnOpts{
+		attestationResolver: resolver,
+		attestationVerifier: verifier,
 	}
 }
 
@@ -227,19 +257,6 @@ func (regoOpts *RegoFnOpts) fetchInTotoAttestations(rCtx rego.BuiltinContext, pr
 	set := ast.NewTerm(ast.NewSet(values...))
 
 	return set, nil
-}
-
-type RegoFnOpts struct {
-	attestationResolver attestation.Resolver
-	attestationVerifier attestation.Verifier
-}
-
-// this is exported for testing here and in clients of the library.
-func NewRegoFunctionOptions(resolver attestation.Resolver, verifier attestation.Verifier) *RegoFnOpts {
-	return &RegoFnOpts{
-		attestationResolver: resolver,
-		attestationVerifier: verifier,
-	}
 }
 
 // because we don't control the signature here (blame rego)
@@ -279,6 +296,26 @@ func (regoOpts *RegoFnOpts) verifyInTotoEnvelope(rCtx rego.BuiltinContext, envTe
 	}
 
 	value, err := ast.InterfaceToValue(statement)
+	if err != nil {
+		return nil, err
+	}
+	return ast.NewTerm(value), nil
+}
+
+// because we don't control the signature here (blame rego)
+// nolint:gocritic
+func (regoOpts *RegoFnOpts) internalParseLibraryDefinition(_ rego.BuiltinContext, definitionTerm *ast.Term) (*ast.Term, error) {
+	definitionStr, ok := definitionTerm.Value.(ast.String)
+	if !ok {
+		return nil, fmt.Errorf("predicateTypeTerm is not a string")
+	}
+	definition := string(definitionStr)
+	defBuffer := bytes.NewBufferString(definition)
+	parsed, err := manifest.Parse2822(defBuffer)
+	if err != nil {
+		return nil, err
+	}
+	value, err := ast.InterfaceToValue(parsed)
 	if err != nil {
 		return nil, err
 	}

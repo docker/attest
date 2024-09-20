@@ -27,13 +27,21 @@ func TestRekor(t *testing.T) {
 	assert.NoError(t, err)
 	sig, err := signer.Sign(context.Background(), hash)
 	assert.NoError(t, err)
+	opts := tuf.NewDockerDefaultClientOptions(t.TempDir())
+	// use testing prefix in prod TUF
+	opts.PathPrefix = "testing"
+
+	real, err := tuf.NewClient(context.Background(), opts)
+	require.NoError(t, err)
+
 	tests := []struct {
 		name          string
 		tufDownloader tuf.Downloader
 		pubKeysDir    string
 	}{
 		{name: "TestRekor (no tuf)"},
-		{name: "TestRekor (with tuf)", tufDownloader: tuf.NewMockTufClient("."), pubKeysDir: "keys"},
+		{name: "TestRekor (with mock tuf)", tufDownloader: tuf.NewMockTufClient("."), pubKeysDir: "keys"},
+		{name: "TestRekor (with real tuf)", tufDownloader: real},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -45,7 +53,9 @@ func TestRekor(t *testing.T) {
 				require.NoError(t, err)
 				rekorPublicKey = []byte(keyStr)
 			}
-
+			if tt.pubKeysDir == "" {
+				tt.pubKeysDir = defaultPublicKeysDir
+			}
 			rekor, err := NewRekorLog(WithTUFDownloader(tt.tufDownloader), WithTUFPublicKeysDir(tt.pubKeysDir))
 
 			require.NoError(t, err)

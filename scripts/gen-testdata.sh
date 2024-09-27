@@ -12,7 +12,7 @@ function cleanup_testdata () {
     echo "Cleaning up existing testdata..."
     rm -rf "${TESTDATA_PATH:?}/${UNSIGNED_INDEX_DIR:?}"
     rm -rf "${TESTDATA_PATH:?}/${NO_PROVENANCE_INDEX_DIR:?}"
-    rm -rf "${TESTDATA_PATH:?}/${NO_SBOM_NO_PROVENANCE_INDEX_DIR:?}"
+    rm -rf "${TESTDATA_PATH:?}/${UNSIGNED_IMAGE_DIR:?}"
 }
 
 function build_unsigned_index () {
@@ -28,9 +28,9 @@ function build_no_provenance_index () {
 }
 
 function build_image () {
-    echo "Building $NO_SBOM_NO_PROVENANCE_INDEX_DIR..."
+    echo "Building $UNSIGNED_IMAGE_DIR..."
     docker buildx build "$TEST_INDEX_DOCKERFILE_PATH" --sbom false --provenance false --platform linux/amd64 \
-      --output type=oci,tar=false,name="$TEST_INDEX_REPO:$TEST_INDEX_TAG",dest="$TESTDATA_PATH/$NO_SBOM_NO_PROVENANCE_INDEX_DIR"
+      --output type=oci,tar=false,name="$TEST_INDEX_REPO:$TEST_INDEX_TAG",dest="$TESTDATA_PATH/$UNSIGNED_IMAGE_DIR"
 }
 
 # Check required commands
@@ -42,7 +42,7 @@ TEST_INDEX_REPO="test-index"
 TEST_INDEX_TAG="test"
 UNSIGNED_INDEX_DIR="unsigned-index"
 NO_PROVENANCE_INDEX_DIR="no-provenance-index"
-NO_SBOM_NO_PROVENANCE_INDEX_DIR="no-sbom-no-provenance-index"
+UNSIGNED_IMAGE_DIR="unsigned-image"
 ATTESTATION_PAYLOADTYPE="application/vnd.in-toto+json"
 
 # Run steps

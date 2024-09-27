@@ -12,6 +12,7 @@ function cleanup_testdata () {
     echo "Cleaning up existing testdata..."
     rm -rf "${TESTDATA_PATH:?}/${UNSIGNED_INDEX_DIR:?}"
     rm -rf "${TESTDATA_PATH:?}/${NO_PROVENANCE_INDEX_DIR:?}"
+    rm -rf "${TESTDATA_PATH:?}/${NO_SBOM_NO_PROVENANCE_INDEX_DIR:?}"
 }
 
 function build_unsigned_index () {

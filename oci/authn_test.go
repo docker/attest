@@ -12,7 +12,7 @@ import (
 )
 
 func TestRegistryAuth(t *testing.T) {
-	attIdx, err := oci.IndexFromPath(test.UnsignedTestImage(".."))
+	attIdx, err := oci.IndexFromPath(test.UnsignedTestIndex(".."))
 	require.NoError(t, err)
 	// test cases for ecr, gcr and dockerhub
 	testCases := []struct {

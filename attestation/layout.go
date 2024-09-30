@@ -14,6 +14,9 @@ import (
 )
 
 // implementation of Resolver that closes over attestations from an oci layout.
+
+var _ Resolver = (*LayoutResolver)(nil)
+
 type LayoutResolver struct {
 	*Manifest
 	*oci.ImageSpec
@@ -86,38 +89,49 @@ func (r *LayoutResolver) ImagePlatform(_ context.Context) (*v1.Platform, error) 
 }
 
 func manifestFromOCILayout(path string, platform *v1.Platform) (*Manifest, error) {
-	idx, err := layout.ImageIndexFromPath(path)
+	layoutIndex, err := layout.ImageIndexFromPath(path)
 	if err != nil {
 		return nil, err
 	}
 
-	idxm, err := idx.IndexManifest()
+	layoutIndexManifest, err := layoutIndex.IndexManifest()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get digest: %w", err)
 	}
 
-	idxDescriptor := idxm.Manifests[0]
-	idxDigest := idxDescriptor.Digest
-	subjectName := idxDescriptor.Annotations[ocispec.AnnotationRefName]
+	layoutDescriptor := layoutIndexManifest.Manifests[0]
+	layoutDescriptorDigest := layoutDescriptor.Digest
+	subjectName := layoutDescriptor.Annotations[ocispec.AnnotationRefName]
 	if _, err := reference.ParseNamed(subjectName); err != nil {
 		// try the containerd annotation if the org.opencontainers.image.ref.name is not a full name
-		subjectName = idxDescriptor.Annotations[containerd.AnnotationImageName]
+		subjectName = layoutDescriptor.Annotations[containerd.AnnotationImageName]
 		if _, err := reference.ParseNamed(subjectName); err != nil {
 			return nil, fmt.Errorf("failed to find subject name in annotations")
 		}
 	}
 
-	mfs, err := idx.ImageIndex(idxDigest)
-	if err != nil {
-		return nil, fmt.Errorf("failed to extract ImageIndex for digest %s: %w", idxDigest.String(), err)
+	// check if digest refers to an image or an index
+	_, err = layoutIndex.Image(layoutDescriptorDigest)
+	if err == nil {
+		return &Manifest{
+			OriginalLayers:     nil,
+			OriginalDescriptor: nil,
+			SubjectName:        subjectName,
+			SubjectDescriptor:  &layoutDescriptor,
+		}, nil
 	}
-	mfs2, err := mfs.IndexManifest()
+
+	subjectIndex, err := layoutIndex.ImageIndex(layoutDescriptorDigest)
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract ImageIndex for digest %s: %w", layoutDescriptorDigest.String(), err)
+	}
+	subjectIndexManifest, err := subjectIndex.IndexManifest()
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract IndexManifest from ImageIndex: %w", err)
 	}
 	var subjectDescriptor *v1.Descriptor
-	for i := range mfs2.Manifests {
-		manifest := &mfs2.Manifests[i]
+	for i := range subjectIndexManifest.Manifests {
+		manifest := &subjectIndexManifest.Manifests[i]
 		if manifest.Platform != nil {
 			if manifest.Platform.Equals(*platform) {
 				subjectDescriptor = manifest
@@ -128,8 +142,8 @@ func manifestFromOCILayout(path string, platform *v1.Platform) (*Manifest, error
 	if subjectDescriptor == nil {
 		return nil, fmt.Errorf("platform not found in index")
 	}
-	for i := range mfs2.Manifests {
-		mf := &mfs2.Manifests[i]
+	for i := range subjectIndexManifest.Manifests {
+		mf := &subjectIndexManifest.Manifests[i]
 		if mf.Annotations[DockerReferenceType] != AttestationManifestType {
 			continue
 		}
@@ -138,7 +152,7 @@ func manifestFromOCILayout(path string, platform *v1.Platform) (*Manifest, error
 			continue
 		}
 
-		attestationImage, err := mfs.Image(mf.Digest)
+		attestationImage, err := subjectIndex.Image(mf.Digest)
 		if err != nil {
 			return nil, fmt.Errorf("failed to extract attestation image with digest %s: %w", mf.Digest.String(), err)
 		}

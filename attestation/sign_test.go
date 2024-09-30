@@ -249,7 +249,7 @@ func TestSimpleStatementSigning(t *testing.T) {
 					PredicateType: attestation.VSAPredicateType,
 				},
 			}
-			digest, err := v1.NewHash("sha256:da8b190665956ea07890a0273e2a9c96bfe291662f08e2860e868eef69c34620")
+			digest, err := v1.NewHash(test.UnsignedLinuxAMD64ImageDigest)
 			require.NoError(t, err)
 			subject := &v1.Descriptor{
 				MediaType: "application/vnd.oci.image.manifest.v1+json",

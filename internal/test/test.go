@@ -23,14 +23,20 @@ import (
 )
 
 const (
-	UseMockKMS = true
-
-	AWSRegion    = "us-east-1"
-	AWSKMSKeyARN = "arn:aws:kms:us-east-1:175142243308:alias/doi-signing" // sandbox
+	UseMockKMS                    = true
+	AWSRegion                     = "us-east-1"
+	AWSKMSKeyARN                  = "arn:aws:kms:us-east-1:175142243308:alias/doi-signing" // sandbox
+	UnsignedLinuxAMD64ImageDigest = "sha256:da8b190665956ea07890a0273e2a9c96bfe291662f08e2860e868eef69c34620"
+	UnsignedLinuxArm64ImageDigest = "sha256:7a76cec943853f9f7105b1976afa1bf7cd5bb6afc4e9d5852dd8da7cf81ae86e"
 )
 
+func UnsignedTestIndex(rel ...string) string {
+	rel = append(rel, "test", "testdata", "unsigned-index")
+	return filepath.Join(rel...)
+}
+
 func UnsignedTestImage(rel ...string) string {
-	rel = append(rel, "test", "testdata", "unsigned-test-image")
+	rel = append(rel, "test", "testdata", "unsigned-image")
 	return filepath.Join(rel...)
 }
 

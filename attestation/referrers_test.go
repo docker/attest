@@ -89,7 +89,7 @@ func TestAttestationReferenceTypes(t *testing.T) {
 			require.NoError(t, err)
 
 			opts := &attestation.SigningOptions{}
-			attIdx, err := oci.IndexFromPath(test.UnsignedTestImage(".."))
+			attIdx, err := oci.IndexFromPath(test.UnsignedTestIndex(".."))
 			require.NoError(t, err)
 
 			indexName := fmt.Sprintf("%s/repo:root", u.Host)
@@ -209,7 +209,7 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 		require.NoError(t, err)
 
 		opts := &attestation.SigningOptions{}
-		attIdx, err := oci.IndexFromPath(test.UnsignedTestImage(".."))
+		attIdx, err := oci.IndexFromPath(test.UnsignedTestIndex(".."))
 		require.NoError(t, err)
 
 		indexName := fmt.Sprintf("%s/%s:latest", serverURL.Host, repoName)
@@ -233,7 +233,7 @@ func TestReferencesInDifferentRepo(t *testing.T) {
 			require.NoError(t, err)
 
 			opts := &attestation.SigningOptions{}
-			attIdx, err := oci.IndexFromPath(test.UnsignedTestImage(".."))
+			attIdx, err := oci.IndexFromPath(test.UnsignedTestIndex(".."))
 			require.NoError(t, err)
 
 			indexName := fmt.Sprintf("%s/%s:latest", serverURL.Host, repoName)
@@ -286,7 +286,7 @@ func TestCorrectArtifactTypeInTagFallback(t *testing.T) {
 	repoName := "repo"
 
 	opts := &attestation.SigningOptions{}
-	attIdx, err := oci.IndexFromPath(test.UnsignedTestImage(".."))
+	attIdx, err := oci.IndexFromPath(test.UnsignedTestIndex(".."))
 	require.NoError(t, err)
 
 	indexName := fmt.Sprintf("%s/%s:latest", serverURL.Host, repoName)

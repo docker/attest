@@ -18,7 +18,7 @@ import (
 
 func TestSavingIndex(t *testing.T) {
 	outputLayout := test.CreateTempDir(t, "", "mirror-test")
-	attIdx, err := oci.IndexFromPath(test.UnsignedTestImage(".."))
+	attIdx, err := oci.IndexFromPath(test.UnsignedTestIndex(".."))
 	require.NoError(t, err)
 
 	ctx := context.Background()
@@ -73,7 +73,7 @@ func TestSavingReferrers(t *testing.T) {
 		},
 	}
 
-	digest, err := v1.NewHash("sha256:da8b190665956ea07890a0273e2a9c96bfe291662f08e2860e868eef69c34620")
+	digest, err := v1.NewHash(test.UnsignedLinuxAMD64ImageDigest)
 	require.NoError(t, err)
 	subject := &v1.Descriptor{
 		MediaType: "application/vnd.oci.image.manifest.v1+json",

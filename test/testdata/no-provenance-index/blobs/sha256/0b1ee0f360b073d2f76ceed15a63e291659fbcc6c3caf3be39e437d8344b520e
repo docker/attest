@@ -3,13 +3,13 @@
   "mediaType": "application/vnd.oci.image.manifest.v1+json",
   "config": {
     "mediaType": "application/vnd.oci.image.config.v1+json",
-    "digest": "sha256:2e82727457f04f320b643cb6e13bcbafb8e0dc0adc0443f1a25666f9518c5071",
+    "digest": "sha256:816b20ea86474dcfb2906ffaf4410262dfcb0d49fdfb60698775f7bc10aad7fb",
     "size": 167
   },
   "layers": [
     {
       "mediaType": "application/vnd.in-toto+json",
-      "digest": "sha256:da5651e8877b960aa30f32f317fbeba28f5e06f1ce4d3895b3b8770140280a2e",
+      "digest": "sha256:f0dac65dd0ff6a656c419c654ac672c38029a3f1a4b4acce062bd2f5a923ffae",
       "size": 946,
       "annotations": {
         "in-toto.io/predicate-type": "https://spdx.dev/Document"

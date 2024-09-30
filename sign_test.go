@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	NoProvenanceImage   = filepath.Join("test", "testdata", "no-provenance-image")
+	NoProvenanceImage   = filepath.Join("test", "testdata", "no-provenance-index")
 	PassPolicyDir       = filepath.Join("test", "testdata", "local-policy-pass")
 	PassMirrorPolicyDir = filepath.Join("test", "testdata", "local-policy-mirror")
 	PassNoTLPolicyDir   = filepath.Join("test", "testdata", "local-policy-no-tl")
@@ -35,8 +35,8 @@ func TestSignVerifyOCILayout(t *testing.T) {
 		expectedAttestations int
 		replace              bool
 	}{
-		{"signed replaced", test.UnsignedTestImage(), 0, 4, true},
-		{"without replace", test.UnsignedTestImage(), 4, 4, false},
+		{"signed replaced", test.UnsignedTestIndex(), 0, 4, true},
+		{"without replace", test.UnsignedTestIndex(), 4, 4, false},
 		// image without provenance doesn't fail
 		{"no provenance (replace)", NoProvenanceImage, 0, 2, true},
 		{"no provenance (no replace)", NoProvenanceImage, 2, 2, false},

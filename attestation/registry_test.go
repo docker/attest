@@ -24,7 +24,7 @@ func TestRegistry(t *testing.T) {
 	require.NoError(t, err)
 
 	opts := &attestation.SigningOptions{}
-	attIdx, err := oci.IndexFromPath(test.UnsignedTestImage(".."))
+	attIdx, err := oci.IndexFromPath(test.UnsignedTestIndex(".."))
 	require.NoError(t, err)
 	signedManifests, err := attest.SignStatements(ctx, attIdx.Index, signer, opts)
 	require.NoError(t, err)
@@ -46,4 +46,14 @@ func TestRegistry(t *testing.T) {
 	require.NoError(t, err)
 	digest := desc.Digest.String()
 	assert.True(t, strings.Contains(digest, "sha256:"))
+
+	// resolver also works with platform specific digest
+	spec, err = oci.ParseImageSpec(fmt.Sprintf("%s@%s", indexName, digest))
+	require.NoError(t, err)
+
+	resolver, err = policy.CreateImageDetailsResolver(spec)
+	require.NoError(t, err)
+	desc, err = resolver.ImageDescriptor(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, desc.Digest.String(), digest)
 }

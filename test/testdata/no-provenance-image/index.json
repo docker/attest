@@ -1,1 +1,0 @@
-{"schemaVersion":2,"manifests":[{"mediaType":"application/vnd.oci.image.index.v1+json","digest":"sha256:1effe3a77c594e579388dc4553dbbe762e4457a099ab8b706e67f5f9fc934701","size":1607,"annotations":{"org.opencontainers.image.created":"2024-04-29T10:23:48Z","org.opencontainers.image.ref.name":"docker.io/library/test-image:test"}}]}

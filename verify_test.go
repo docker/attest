@@ -80,7 +80,7 @@ func TestVSA(t *testing.T) {
 	opts := &attestation.SigningOptions{
 		TransparencyLog: tlog.GetMockTL(),
 	}
-	attIdx, err := oci.IndexFromPath(test.UnsignedTestImage())
+	attIdx, err := oci.IndexFromPath(test.UnsignedTestIndex())
 	assert.NoError(t, err)
 	signedManifests, err := SignStatements(ctx, attIdx.Index, signer, opts)
 	require.NoError(t, err)
@@ -106,7 +106,7 @@ func TestVSA(t *testing.T) {
 	assert.Empty(t, results.Violations)
 
 	if assert.NotNil(t, results.Input) {
-		assert.Equal(t, "sha256:da8b190665956ea07890a0273e2a9c96bfe291662f08e2860e868eef69c34620", results.Input.Digest)
+		assert.Equal(t, test.UnsignedLinuxAMD64ImageDigest, results.Input.Digest)
 		assert.NotNil(t, results.Input.Tag)
 	}
 
@@ -135,7 +135,7 @@ func TestVerificationFailure(t *testing.T) {
 	opts := &attestation.SigningOptions{
 		TransparencyLog: tlog.GetMockTL(),
 	}
-	attIdx, err := oci.IndexFromPath(test.UnsignedTestImage())
+	attIdx, err := oci.IndexFromPath(test.UnsignedTestIndex())
 	assert.NoError(t, err)
 	signedManifests, err := SignStatements(ctx, attIdx.Index, signer, opts)
 	require.NoError(t, err)
@@ -216,7 +216,7 @@ func TestSignVerify(t *testing.T) {
 		{name: "mirror with verification", signTL: false, policyDir: LocalKeysPolicy, imageName: "mirror.org/library/test-image:test"},
 	}
 
-	attIdx, err := oci.IndexFromPath(test.UnsignedTestImage())
+	attIdx, err := oci.IndexFromPath(test.UnsignedTestIndex())
 	assert.NoError(t, err)
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {

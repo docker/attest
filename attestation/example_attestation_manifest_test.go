@@ -31,7 +31,7 @@ func ExampleManifest() {
 
 	ref := "docker/image-signer-verifier:latest"
 
-	digest, err := v1.NewHash("sha256:da8b190665956ea07890a0273e2a9c96bfe291662f08e2860e868eef69c34620")
+	digest, err := v1.NewHash("sha256:7ae6b41655929ad8e1848064874a98ac3f68884996c79907f6525e3045f75390")
 	if err != nil {
 		panic(err)
 	}

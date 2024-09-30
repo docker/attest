@@ -12,7 +12,7 @@ import (
 const ExpectedStatements = 4
 
 func TestExtractAnnotatedStatements(t *testing.T) {
-	statements, err := attestation.ExtractAnnotatedStatements(test.UnsignedTestImage(".."), intoto.PayloadType)
+	statements, err := attestation.ExtractAnnotatedStatements(test.UnsignedTestIndex(".."), intoto.PayloadType)
 	assert.NoError(t, err)
 	assert.Equalf(t, len(statements), ExpectedStatements, "expected %d statement, got %d", ExpectedStatements, len(statements))
 }

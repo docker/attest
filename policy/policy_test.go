@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/docker/attest/attestation"
@@ -357,6 +358,7 @@ func TestVerifySubject(t *testing.T) {
 		},
 	}
 
+	digestHex := strings.TrimPrefix(test.UnsignedLinuxAMD64ImageDigest, "sha256:")
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			defaultResolver.Image = tc.img
@@ -365,7 +367,7 @@ func TestVerifySubject(t *testing.T) {
 				return &v1.Platform{Architecture: "amd64", OS: "linux"}, nil
 			}
 			// digest from mock resolver
-			tc.subject[0].Digest = map[string]string{"sha256": "da8b190665956ea07890a0273e2a9c96bfe291662f08e2860e868eef69c34620"}
+			tc.subject[0].Digest = map[string]string{"sha256": digestHex}
 			if tc.digest != "" {
 				tc.subject[0].Digest = map[string]string{"sha256": tc.digest}
 			}
@@ -381,7 +383,7 @@ func TestVerifySubject(t *testing.T) {
 	subject := []intoto.Subject{
 		{
 			Name:   "pkg:docker/alpine@latest?platform=linux%2Famd64",
-			Digest: map[string]string{"sha256": "da8b190665956ea07890a0273e2a9c96bfe291662f08e2860e868eef69c34620"},
+			Digest: map[string]string{"sha256": digestHex},
 		},
 	}
 

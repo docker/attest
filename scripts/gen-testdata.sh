@@ -38,7 +38,7 @@ check_command docker
 
 TESTDATA_PATH="../test/testdata"
 TEST_INDEX_DOCKERFILE_PATH="../test"
-TEST_INDEX_REPO="test-index"
+TEST_INDEX_REPO="test-image"
 TEST_INDEX_TAG="test"
 UNSIGNED_INDEX_DIR="unsigned-index"
 NO_PROVENANCE_INDEX_DIR="no-provenance-index"

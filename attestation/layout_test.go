@@ -1,6 +1,7 @@
 package attestation_test
 
 import (
+	"context"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -25,7 +26,7 @@ func TestAttestationFromOCILayout(t *testing.T) {
 	}
 
 	opts := &attestation.SigningOptions{}
-	attIdx, err := oci.IndexFromPath(test.UnsignedTestImage(".."))
+	attIdx, err := oci.IndexFromPath(test.UnsignedTestIndex(".."))
 	require.NoError(t, err)
 	signedManifests, err := attest.SignStatements(ctx, attIdx.Index, signer, opts)
 	require.NoError(t, err)
@@ -74,7 +75,7 @@ func TestSubjectNameAnnotations(t *testing.T) {
 		ociLayoutPath string
 		errorStr      string
 	}{
-		{name: "oci annotation", ociLayoutPath: test.UnsignedTestImage("..")},
+		{name: "oci annotation", ociLayoutPath: test.UnsignedTestIndex("..")},
 		{name: "containerd annotation", ociLayoutPath: filepath.Join("..", "test", "testdata", "containerd-subject-layout")},
 		{name: "missing subject name", ociLayoutPath: filepath.Join("..", "test", "testdata", "missing-subject-layout"), errorStr: "failed to find subject name in annotations"},
 	}
@@ -92,4 +93,15 @@ func TestSubjectNameAnnotations(t *testing.T) {
 			require.NoError(t, err)
 		})
 	}
+}
+
+func TestImageDetailsFromImageLayout(t *testing.T) {
+	spec, err := oci.ParseImageSpec(oci.LocalPrefix+test.UnsignedTestImage(".."), oci.WithPlatform("linux/arm64"))
+	require.NoError(t, err)
+	resolver, err := policy.CreateImageDetailsResolver(spec)
+	require.NoError(t, err)
+	desc, err := resolver.ImageDescriptor(context.Background())
+	require.NoError(t, err)
+	digest := desc.Digest.String()
+	assert.Equal(t, "sha256:7ae6b41655929ad8e1848064874a98ac3f68884996c79907f6525e3045f75390", digest)
 }

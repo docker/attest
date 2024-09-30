@@ -67,7 +67,7 @@ func TestRefToPurl(t *testing.T) {
 
 // Test fix for https://github.com/docker/secure-artifacts-team-issues/issues/202
 func TestImageDigestForPlatform(t *testing.T) {
-	idx, err := layout.ImageIndexFromPath(test.UnsignedTestImage(".."))
+	idx, err := layout.ImageIndexFromPath(test.UnsignedTestIndex(".."))
 	assert.NoError(t, err)
 
 	idxm, err := idx.IndexManifest()
@@ -86,14 +86,14 @@ func TestImageDigestForPlatform(t *testing.T) {
 	desc, err := oci.ImageDescriptor(mfs2, p)
 	assert.NoError(t, err)
 	digest := desc.Digest.String()
-	assert.Equal(t, "sha256:da8b190665956ea07890a0273e2a9c96bfe291662f08e2860e868eef69c34620", digest)
+	assert.Equal(t, test.UnsignedLinuxAMD64ImageDigest, digest)
 
 	p, err = oci.ParsePlatform("linux/arm64")
 	assert.NoError(t, err)
 	desc, err = oci.ImageDescriptor(mfs2, p)
 	assert.NoError(t, err)
 	digest = desc.Digest.String()
-	assert.Equal(t, "sha256:7a76cec943853f9f7105b1976afa1bf7cd5bb6afc4e9d5852dd8da7cf81ae86e", digest)
+	assert.Equal(t, test.UnsignedLinuxArm64ImageDigest, digest)
 }
 
 func TestWithoutTag(t *testing.T) {

@@ -3,6 +3,7 @@ package attestation
 import (
 	"context"
 
+	"github.com/docker/attest/internal/test"
 	"github.com/docker/attest/oci"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 )
@@ -36,7 +37,7 @@ func (r MockResolver) ImageDescriptor(_ context.Context) (*v1.Descriptor, error)
 	if r.DescriptorFn != nil {
 		return r.DescriptorFn()
 	}
-	digest, err := v1.NewHash("sha256:da8b190665956ea07890a0273e2a9c96bfe291662f08e2860e868eef69c34620")
+	digest, err := v1.NewHash(test.UnsignedLinuxAMD64ImageDigest)
 	if err != nil {
 		return nil, err
 	}

@@ -24,7 +24,7 @@ require (
 	github.com/sigstore/sigstore/pkg/signature/kms/aws v1.8.9
 	github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.8.9
 	github.com/stretchr/testify v1.9.0
-	github.com/theupdateframework/go-tuf/v2 v2.0.1
+	github.com/theupdateframework/go-tuf/v2 v2.0.2
 	google.golang.org/api v0.199.0
 	sigs.k8s.io/yaml v1.4.0
 )

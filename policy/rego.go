@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 
 	"github.com/docker-library/bashbrew/manifest"
 	"github.com/docker/attest/attestation"
+	v1 "github.com/google/go-containerregistry/pkg/v1"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/rego"
@@ -259,7 +261,7 @@ func (regoOpts *RegoFnOpts) fetchInTotoAttestations(rCtx rego.BuiltinContext, pr
 	return set, nil
 }
 
-// because we don't control the signature here (blame rego)
+// because we don't control the function signature here (blame rego)
 // nolint:gocritic
 func (regoOpts *RegoFnOpts) verifyInTotoEnvelope(rCtx rego.BuiltinContext, envTerm, optsTerm *ast.Term) (*ast.Term, error) {
 	env := new(attestation.Envelope)
@@ -271,6 +273,11 @@ func (regoOpts *RegoFnOpts) verifyInTotoEnvelope(rCtx rego.BuiltinContext, envTe
 	err = ast.As(optsTerm.Value, &opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to cast verifier options: %w", err)
+	}
+
+	err = regoOpts.filterRepoExpiries(rCtx.Context, opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to filter repo expiries: %w", err)
 	}
 	payload, err := attestation.VerifyDSSE(rCtx.Context, regoOpts.attestationVerifier, env, opts)
 	if err != nil {
@@ -300,6 +307,67 @@ func (regoOpts *RegoFnOpts) verifyInTotoEnvelope(rCtx rego.BuiltinContext, envTe
 		return nil, err
 	}
 	return ast.NewTerm(value), nil
+}
+
+func (regoOpts *RegoFnOpts) filterRepoExpiries(ctx context.Context, opts *attestation.VerifyOptions) error {
+	// remove any keys that match the pattern but not the platform
+	imageName, err := regoOpts.attestationResolver.ImageName(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to resolve image name: %w", err)
+	}
+	platform, err := regoOpts.attestationResolver.ImagePlatform(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get image platform: %w", err)
+	}
+	for i := range opts.Keys {
+		key := opts.Keys[i]
+		// if there are NO custom expiries, assume all keys can be checked as normal
+		if len(key.Expiries) == 0 {
+			continue
+		}
+		// when there are custom expiries, we only keep those that match the image name and platform
+		// so that the log verifier can check the 'to' time
+		expiries := make([]*attestation.KeyExpiry, 0)
+		for j := range key.Expiries {
+			expiry := key.Expiries[j]
+			if len(expiry.Patterns) == 0 {
+				return fmt.Errorf("error need at least one expiry pattern")
+			}
+			if expiry.To == nil {
+				return fmt.Errorf("error missing expiry 'to' time")
+			}
+			for _, pattern := range expiry.Patterns {
+				if pattern == "" {
+					return fmt.Errorf("error empty expiry pattern")
+				}
+				patternRegex, err := regexp.Compile(pattern)
+				if err != nil {
+					return fmt.Errorf("error failed to compile expiry repo pattern: %w", err)
+				}
+				// if there's an image match, then platforms must match too
+				if patternRegex.MatchString(imageName) {
+					// either there are no platforms, or at least one must match
+					if len(expiry.Platforms) == 0 {
+						expiries = append(expiries, expiry)
+						break
+					}
+					for _, expiryPlatform := range expiry.Platforms {
+						parsedPlatform, err := v1.ParsePlatform(expiryPlatform)
+						if err != nil {
+							return fmt.Errorf("failed to parse platform %s: %w", expiryPlatform, err)
+						}
+						if parsedPlatform.Equals(*platform) {
+							expiries = append(expiries, expiry)
+							break
+						}
+					}
+				}
+			}
+		}
+		// any matching expiries are kept so that the 'to' time can be checked
+		key.Expiries = expiries
+	}
+	return nil
 }
 
 // because we don't control the signature here (blame rego)

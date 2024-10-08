@@ -1,0 +1,14 @@
+
+version: v1
+kind: policy-mapping
+policies:
+  - id: test
+    description: "Example of dual policy with per repo key expirey"
+    files:
+      - path: policy.rego
+      - path: config.yaml #auto generated
+    attestations:
+      style: attached
+rules:
+  - pattern: "^docker[.]io/library/.*$"
+    policy-id: test

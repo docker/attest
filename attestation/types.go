@@ -98,6 +98,13 @@ type KeyMetadata struct {
 	SigningFormat string     `json:"signing-format"`
 	Distrust      bool       `json:"distrust,omitempty"`
 	publicKey     crypto.PublicKey
+	Expiries      []*KeyExpiry `json:"expiries,omitempty"`
+}
+
+type KeyExpiry struct {
+	Patterns  []string   `json:"patterns"`
+	Platforms []string   `json:"platforms"`
+	To        *time.Time `json:"to"`
 }
 
 type (

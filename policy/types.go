@@ -38,7 +38,6 @@ type Options struct {
 	Debug               bool
 	AttestationVerifier attestation.Verifier
 }
-
 type Policy struct {
 	InputFiles   []*File
 	Query        string

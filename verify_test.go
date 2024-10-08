@@ -27,6 +27,7 @@ import (
 var (
 	ExampleAttestation = filepath.Join("test", "testdata", "example_attestation.json")
 	LocalKeysPolicy    = filepath.Join("test", "testdata", "local-policy-real")
+	LocalParamPolicy   = filepath.Join("test", "testdata", "local-policy-param")
 	ExpiresPolicy      = filepath.Join("test", "testdata", "expires")
 )
 
@@ -61,7 +62,7 @@ func TestVerifyAttestations(t *testing.T) {
 					return policy.AllowedResult(), tc.policyEvaluationError
 				},
 			}
-			_, err := VerifyAttestations(ctx, resolver, &mockPE, &policy.Policy{ResolvedName: ""})
+			_, err := verifyAttestations(ctx, resolver, &mockPE, &policy.Policy{ResolvedName: ""}, &policy.Options{})
 			if tc.expectedError != nil {
 				if assert.Error(t, err) {
 					assert.Equal(t, tc.expectedError.Error(), err.Error())
@@ -201,16 +202,19 @@ func TestSignVerify(t *testing.T) {
 		expectedNonSuccess Outcome
 		spitConfig         bool
 		expires            *attestation.KeyExpiry
+		param              string
 	}{
-		// {name: "happy path", signTL: true, policyDir: PassNoTLPolicyDir},
-		// {name: "sign tl, verify no tl", signTL: true, policyDir: PassPolicyDir},
-		// {name: "no tl", signTL: false, policyDir: PassPolicyDir},
-		// {name: "mirror", signTL: false, policyDir: PassMirrorPolicyDir, imageName: "mirror.org/library/test-image:test"},
-		// {name: "mirror no match", signTL: false, policyDir: PassMirrorPolicyDir, imageName: "incorrect.org/library/test-image:test", expectedNonSuccess: OutcomeNoPolicy},
-		// {name: "verify inputs", signTL: false, policyDir: InputsPolicyDir},
+		{name: "happy path", signTL: true, policyDir: PassNoTLPolicyDir},
+		{name: "sign tl, verify no tl", signTL: true, policyDir: PassPolicyDir},
+		{name: "no tl", signTL: false, policyDir: PassPolicyDir},
+		{name: "mirror", signTL: false, policyDir: PassMirrorPolicyDir, imageName: "mirror.org/library/test-image:test"},
+		{name: "mirror no match", signTL: false, policyDir: PassMirrorPolicyDir, imageName: "incorrect.org/library/test-image:test", expectedNonSuccess: OutcomeNoPolicy},
+		{name: "verify inputs", signTL: false, policyDir: InputsPolicyDir},
 		{name: "mirror with verification", signTL: false, policyDir: LocalKeysPolicy, imageName: "mirror.org/library/test-image:test", spitConfig: true},
 		{name: "with per repo expirey (valid)", signTL: true, policyDir: ExpiresPolicy, spitConfig: true, expires: &attestation.KeyExpiry{To: &validTime, Patterns: []string{attIdx.Name}, Platforms: []string{"linux/amd64"}}},
 		{name: "with per repo expirey (expired)", signTL: true, policyDir: ExpiresPolicy, spitConfig: true, expires: &attestation.KeyExpiry{To: &expiredTime, Patterns: []string{attIdx.Name}, Platforms: []string{"linux/amd64"}}, expectedNonSuccess: OutcomeFailure},
+		{name: "policy with input params", spitConfig: true, signTL: false, policyDir: LocalParamPolicy, param: "bar"},
+		{name: "policy without expected param", spitConfig: true, signTL: false, policyDir: LocalParamPolicy, param: "baz", expectedNonSuccess: OutcomeFailure},
 	}
 
 	for _, tc := range testCases {
@@ -266,7 +270,9 @@ func TestSignVerify(t *testing.T) {
 				require.NoError(t, err)
 				policyOpts.AttestationVerifier = verifier
 			}
-
+			if tc.param != "" {
+				policyOpts.Parameters = &policy.Parameters{"foo": tc.param}
+			}
 			results, err := Verify(ctx, spec, policyOpts)
 			require.NoError(t, err)
 			if tc.expectedNonSuccess != "" {

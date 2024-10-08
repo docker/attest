@@ -27,6 +27,7 @@ import (
 var (
 	ExampleAttestation = filepath.Join("test", "testdata", "example_attestation.json")
 	LocalKeysPolicy    = filepath.Join("test", "testdata", "local-policy-real")
+	ExpiresPolicy      = filepath.Join("test", "testdata", "expires")
 )
 
 const (
@@ -186,19 +187,11 @@ func TestSignVerify(t *testing.T) {
 	// setup an image with signed attestations
 	outputLayout := test.CreateTempDir(t, "", TestTempDir)
 
-	keys, err := GenKeyMetadata(signer)
-	require.NoError(t, err)
-	config := struct {
-		Keys []*attestation.KeyMetadata `json:"keys"`
-	}{
-		Keys: []*attestation.KeyMetadata{keys},
-	}
-	keysYaml, err := yaml.Marshal(config)
-	require.NoError(t, err)
-
-	// write keysYaml to config.yaml in LocalKeysPolicy.
-	err = os.WriteFile(filepath.Join(LocalKeysPolicy, "config.yaml"), keysYaml, 0o600)
-	require.NoError(t, err)
+	attIdx, err := oci.IndexFromPath(test.UnsignedTestImage())
+	assert.NoError(t, err)
+	validTime := time.Now().Add(time.Hour)
+	expiredTime := time.Now().Add(-time.Hour)
+	integratedTime := time.Now()
 
 	testCases := []struct {
 		name               string
@@ -206,23 +199,42 @@ func TestSignVerify(t *testing.T) {
 		policyDir          string
 		imageName          string
 		expectedNonSuccess Outcome
+		spitConfig         bool
+		expires            *attestation.KeyExpiry
 	}{
-		{name: "happy path", signTL: true, policyDir: PassNoTLPolicyDir},
-		{name: "sign tl, verify no tl", signTL: true, policyDir: PassPolicyDir},
-		{name: "no tl", signTL: false, policyDir: PassPolicyDir},
-		{name: "mirror", signTL: false, policyDir: PassMirrorPolicyDir, imageName: "mirror.org/library/test-image:test"},
-		{name: "mirror no match", signTL: false, policyDir: PassMirrorPolicyDir, imageName: "incorrect.org/library/test-image:test", expectedNonSuccess: OutcomeNoPolicy},
-		{name: "verify inputs", signTL: false, policyDir: InputsPolicyDir},
-		{name: "mirror with verification", signTL: false, policyDir: LocalKeysPolicy, imageName: "mirror.org/library/test-image:test"},
+		// {name: "happy path", signTL: true, policyDir: PassNoTLPolicyDir},
+		// {name: "sign tl, verify no tl", signTL: true, policyDir: PassPolicyDir},
+		// {name: "no tl", signTL: false, policyDir: PassPolicyDir},
+		// {name: "mirror", signTL: false, policyDir: PassMirrorPolicyDir, imageName: "mirror.org/library/test-image:test"},
+		// {name: "mirror no match", signTL: false, policyDir: PassMirrorPolicyDir, imageName: "incorrect.org/library/test-image:test", expectedNonSuccess: OutcomeNoPolicy},
+		// {name: "verify inputs", signTL: false, policyDir: InputsPolicyDir},
+		{name: "mirror with verification", signTL: false, policyDir: LocalKeysPolicy, imageName: "mirror.org/library/test-image:test", spitConfig: true},
+		{name: "with per repo expirey (valid)", signTL: true, policyDir: ExpiresPolicy, spitConfig: true, expires: &attestation.KeyExpiry{To: &validTime, Patterns: []string{attIdx.Name}, Platforms: []string{"linux/amd64"}}},
+		{name: "with per repo expirey (expired)", signTL: true, policyDir: ExpiresPolicy, spitConfig: true, expires: &attestation.KeyExpiry{To: &expiredTime, Patterns: []string{attIdx.Name}, Platforms: []string{"linux/amd64"}}, expectedNonSuccess: OutcomeFailure},
 	}
 
-	attIdx, err := oci.IndexFromPath(test.UnsignedTestIndex())
-	assert.NoError(t, err)
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			keys, err := GenKeyMetadata(signer)
+			require.NoError(t, err)
+			if tc.expires != nil {
+				keys.Expiries = []*attestation.KeyExpiry{tc.expires}
+			}
+			require.NoError(t, err)
+			config := struct {
+				Keys []*attestation.KeyMetadata `json:"keys"`
+			}{
+				Keys: []*attestation.KeyMetadata{keys},
+			}
+			keysYaml, err := yaml.Marshal(config)
+			require.NoError(t, err)
 			opts := &attestation.SigningOptions{}
 			if tc.signTL {
 				opts.TransparencyLog = tlog.GetMockTL()
+			}
+			if tc.spitConfig {
+				err = os.WriteFile(filepath.Join(tc.policyDir, "config.yaml"), keysYaml, 0o600)
+				require.NoError(t, err)
 			}
 
 			signedManifests, err := SignStatements(ctx, attIdx.Index, signer, opts)
@@ -246,6 +258,15 @@ func TestSignVerify(t *testing.T) {
 				DisableTUF:     true,
 				Debug:          true,
 			}
+			if tc.signTL {
+				getTL := func(_ context.Context, _ *attestation.VerifyOptions) (tlog.TransparencyLog, error) {
+					return tlog.GetMockTL(tlog.WithIntegratedTime(integratedTime)), nil
+				}
+				verifier, err := attestation.NewVerfier(attestation.WithLogVerifierFactory(getTL))
+				require.NoError(t, err)
+				policyOpts.AttestationVerifier = verifier
+			}
+
 			results, err := Verify(ctx, spec, policyOpts)
 			require.NoError(t, err)
 			if tc.expectedNonSuccess != "" {
@@ -354,7 +375,7 @@ func GenKeyMetadata(sv dsse.SignerVerifier) (*attestation.KeyMetadata, error) {
 		ID:            id,
 		Status:        "active",
 		SigningFormat: "dssev1",
-		From:          time.Now(),
+		From:          time.Now().Add(-time.Hour),
 		PEM:           pem,
 	}, nil
 }

@@ -75,7 +75,7 @@ func (verifier *ImageVerifier) Verify(ctx context.Context, src *oci.ImageSpec) (
 			Outcome: OutcomeNoPolicy,
 		}, nil
 	}
-	// this is overriding the mapping with a referrers config. Useful for testing if nothing else
+	// this is overriding the mapping/policy with a referrers config. Useful for testing if nothing else
 	if verifier.opts.ReferrersRepo != "" {
 		resolvedPolicy.Mapping.Attestations = &mapping.AttestationConfig{
 			Repo:  verifier.opts.ReferrersRepo,

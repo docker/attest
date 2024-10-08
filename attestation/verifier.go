@@ -136,7 +136,21 @@ func (v *verifier) VerifyLog(ctx context.Context, keyMeta *KeyMetadata, encPaylo
 	if integratedTime.Before(keyMeta.From) {
 		return fmt.Errorf("key %s was not yet valid at TL log time %s (key valid from %s)", keyMeta.ID, integratedTime, keyMeta.From)
 	}
-	if keyMeta.To != nil && !integratedTime.Before(*keyMeta.To) {
+
+	// any repo expirey still on the keys must match the 'to' time
+	if keyMeta.Expiries != nil {
+		match := false
+		// must match at least one
+		for _, filter := range keyMeta.Expiries {
+			if filter.To != nil && integratedTime.Before(*filter.To) {
+				match = true
+				break
+			}
+		}
+		if !match {
+			return fmt.Errorf("key %s was not valid at TL log time %s", keyMeta.ID, integratedTime)
+		}
+	} else if keyMeta.To != nil && !integratedTime.Before(*keyMeta.To) {
 		return fmt.Errorf("key %s was already %s at TL log time %s (key %s at %s)", keyMeta.ID, keyMeta.Status, integratedTime, keyMeta.Status, *keyMeta.To)
 	}
 	return nil

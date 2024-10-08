@@ -138,8 +138,8 @@ func (v *verifier) VerifyLog(ctx context.Context, keyMeta *KeyMetadata, encPaylo
 	}
 
 	// any repo expirey still on the keys must match the 'to' time
-	if keyMeta.Expiries != nil {
-		match := false
+	match := false
+	if len(keyMeta.Expiries) > 0 {
 		// must match at least one
 		for _, filter := range keyMeta.Expiries {
 			if filter.To != nil && integratedTime.Before(*filter.To) {

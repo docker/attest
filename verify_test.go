@@ -188,8 +188,8 @@ func TestSignVerify(t *testing.T) {
 	// setup an image with signed attestations
 	outputLayout := test.CreateTempDir(t, "", TestTempDir)
 
-	attIdx, err := oci.IndexFromPath(test.UnsignedTestImage())
-	assert.NoError(t, err)
+	attIdx, err := oci.IndexFromPath(test.UnsignedTestIndex())
+	require.NoError(t, err)
 	validTime := time.Now().Add(time.Hour)
 	expiredTime := time.Now().Add(-time.Hour)
 	integratedTime := time.Now()

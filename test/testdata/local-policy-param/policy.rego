@@ -3,12 +3,7 @@ package attest
 import rego.v1
 
 import data.keys
-
-split_digest := split(input.digest, ":")
-
-digest_type := split_digest[0]
-
-digest := split_digest[1]
+import input.parameters
 
 provs(pred) := p if {
 	res := attest.fetch(pred)
@@ -17,23 +12,22 @@ provs(pred) := p if {
 }
 
 atts := union({
+	provs("https://slsa.dev/provenance/v0.2"),
 	provs("https://spdx.dev/Document"),
 })
 
-statements contains merged if {
+opts := {"keys": keys, "skip_tl": true}
+
+statements contains s if {
+	parameters.foo == "bar"
 	some att in atts
-	some key in keys
-	opts := {"keys": [key], "skip_tl": false}
 	res := attest.verify(att, opts)
 	not res.error
 	s := res.value
-	# capture the key used to verify the statement for later use
-	merged = object.union(s, {"key": key})
 }
 
 subjects contains subject if {
 	some statement in statements
-	statement.key.status == "active"
 	some subject in statement.subject
 }
 
@@ -45,7 +39,6 @@ unsafe_statement_from_attestation(att) := statement if {
 violations contains violation if {
 	some att in atts
 	statement := unsafe_statement_from_attestation(att)
-	opts := {"keys": keys, "skip_tl": false}
 	res := attest.verify(att, opts)
 	err := res.error
 	violation := {
@@ -57,7 +50,7 @@ violations contains violation if {
 }
 
 result := {
-	"success": count(subjects) > 0,
+	"success": count(statements) > 0,
 	"violations": violations,
 	"summary": {
 		"subjects": subjects,

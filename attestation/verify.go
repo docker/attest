@@ -8,7 +8,6 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/distribution/reference"
 	"github.com/docker/attest/signerverifier"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
@@ -86,7 +85,7 @@ func (km *KeyMetadata) ParsedKey() (crypto.PublicKey, error) {
 	return publicKey, nil
 }
 
-func (km *KeyMetadata) updateImageExpirey(imageName string, platform *v1.Platform) error {
+func (km *KeyMetadata) UpdateImageExpirey(imageName string, platform *v1.Platform) error {
 	// if there are NO custom expiries, assume key can be checked as normal
 	if len(km.Expiries) == 0 {
 		return nil
@@ -145,28 +144,6 @@ func (km *KeyMetadata) EnsureValid(t *time.Time) error {
 	}
 	if km.From != nil && t.Before(*km.From) {
 		return fmt.Errorf("key %s was not yet valid at TL log time %s (key valid from %s)", km.ID, t, km.From)
-	}
-	return nil
-}
-
-func (opts *VerifyOptions) ProcessKeys(ctx context.Context, resolver Resolver) error {
-	imageName, err := resolver.ImageName(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to resolve image name: %w", err)
-	}
-	parsed, err := reference.ParseNormalizedNamed(imageName)
-	if err != nil {
-		return fmt.Errorf("failed to parse image name: %w", err)
-	}
-	imageName = parsed.Name()
-	platform, err := resolver.ImagePlatform(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get image platform: %w", err)
-	}
-	for _, key := range opts.Keys {
-		if err := key.updateImageExpirey(imageName, platform); err != nil {
-			return fmt.Errorf("error failed to process expiries for key %s: %w", key.ID, err)
-		}
 	}
 	return nil
 }

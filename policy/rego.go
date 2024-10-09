@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/distribution/reference"
 	"github.com/docker-library/bashbrew/manifest"
 	"github.com/docker/attest/attestation"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
@@ -273,7 +274,7 @@ func (regoOpts *RegoFnOpts) verifyInTotoEnvelope(rCtx rego.BuiltinContext, envTe
 		return nil, fmt.Errorf("failed to cast verifier options: %w", err)
 	}
 	// normally this could be done in the constructor, but we don't control it
-	err = opts.ProcessKeys(rCtx.Context, regoOpts.attestationResolver)
+	err = processKeys(rCtx.Context, regoOpts.attestationResolver, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to process keys: %w", err)
 	}
@@ -339,4 +340,26 @@ func loadYAML(path string, bs []byte) (interface{}, error) {
 		return nil, fmt.Errorf("%s: %w", path, err)
 	}
 	return x, nil
+}
+
+func processKeys(ctx context.Context, resolver attestation.Resolver, opts *attestation.VerifyOptions) error {
+	imageName, err := resolver.ImageName(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to resolve image name: %w", err)
+	}
+	parsed, err := reference.ParseNormalizedNamed(imageName)
+	if err != nil {
+		return fmt.Errorf("failed to parse image name: %w", err)
+	}
+	imageName = parsed.Name()
+	platform, err := resolver.ImagePlatform(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get image platform: %w", err)
+	}
+	for _, key := range opts.Keys {
+		if err := key.UpdateImageExpirey(imageName, platform); err != nil {
+			return fmt.Errorf("error failed to process expiries for key %s: %w", key.ID, err)
+		}
+	}
+	return nil
 }

@@ -163,7 +163,7 @@ func TestRegoFnOpts_filterRepoExpiries(t *testing.T) {
 			opts := &attestation.VerifyOptions{
 				Keys: attestation.Keys{tt.key},
 			}
-			if err := opts.ProcessKeys(context.Background(), resolver); (err != nil) != tt.wantErr {
+			if err := processKeys(context.Background(), resolver, opts); (err != nil) != tt.wantErr {
 				t.Fatalf("RegoFnOpts.filterRepoExpiries() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if !tt.wantErr {

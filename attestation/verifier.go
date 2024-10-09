@@ -134,7 +134,9 @@ func (v *verifier) VerifyLog(ctx context.Context, keyMeta *KeyMetadata, encPaylo
 		return fmt.Errorf("TL entry failed verification: %w", err)
 	}
 
-	if len(keyMeta.Expiries) > 0 {
+	// important to allow an empty array here so that we don't fail open
+	// search for test 'no match should fail closed'
+	if keyMeta.Expiries != nil {
 		// any repo expirey still on the keys must match the times
 		toMatch := false
 		fromMatch := false
@@ -154,7 +156,6 @@ func (v *verifier) VerifyLog(ctx context.Context, keyMeta *KeyMetadata, encPaylo
 			return fmt.Errorf("Log entry is not within the expiry range of the key: %s", keyMeta.ID)
 		}
 	} else {
-		// ignore key level to/from if we have custom expiries otherwise it fails open
 		if keyMeta.To != nil && !integratedTime.Before(*keyMeta.To) {
 			return fmt.Errorf("key %s was already %s at TL log time %s (key %s at %s)", keyMeta.ID, keyMeta.Status, integratedTime, keyMeta.Status, *keyMeta.To)
 		}

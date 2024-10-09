@@ -170,7 +170,7 @@ func TestRegoFnOpts_filterRepoExpiries(t *testing.T) {
 			} else {
 				switch {
 				case tt.expiryRemoved:
-					assert.Empty(t, opts.Keys)
+					assert.Empty(t, opts.Keys[0].Expiries)
 				case tt.keyKept:
 					assert.NotEmpty(t, opts.Keys)
 				default:

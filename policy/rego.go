@@ -325,12 +325,10 @@ func (regoOpts *RegoFnOpts) filterRepoExpiries(ctx context.Context, opts *attest
 	if err != nil {
 		return fmt.Errorf("failed to get image platform: %w", err)
 	}
-	keys := []*attestation.KeyMetadata{}
 	for i := range opts.Keys {
 		key := opts.Keys[i]
 		// if there are NO custom expiries, assume key can be checked as normal
 		if len(key.Expiries) == 0 {
-			keys = append(keys, key)
 			continue
 		}
 		if key.From != nil || key.To != nil {
@@ -372,12 +370,9 @@ func (regoOpts *RegoFnOpts) filterRepoExpiries(ctx context.Context, opts *attest
 				}
 			}
 		}
-		if len(expiries) > 0 {
-			key.Expiries = expiries
-			keys = append(keys, key)
-		}
+		// if this is empty, then the time check later will fail on the key
+		key.Expiries = expiries
 	}
-	opts.Keys = keys
 	return nil
 }
 

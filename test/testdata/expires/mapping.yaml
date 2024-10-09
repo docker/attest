@@ -3,7 +3,7 @@ version: v1
 kind: policy-mapping
 policies:
   - id: test
-    description: "Example of dual policy with per repo key expirey"
+    description: "Example of dual policy with per repo key expiry"
     files:
       - path: policy.rego
       - path: config.yaml #auto generated

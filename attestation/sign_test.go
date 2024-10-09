@@ -117,14 +117,14 @@ func TestSignVerifyAttestation(t *testing.T) {
 			expectedError: "not yet valid",
 		},
 		{
-			name:          "key already revoked",
+			name:          "key was expired",
 			keyID:         keyID,
 			pem:           pem,
 			distrust:      false,
 			from:          time.Time{},
 			to:            new(time.Time),
 			status:        "revoked",
-			expectedError: "already revoked",
+			expectedError: "was expired",
 		},
 		{
 			name:          "bad key",

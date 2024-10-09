@@ -134,34 +134,9 @@ func (v *verifier) VerifyLog(ctx context.Context, keyMeta *KeyMetadata, encPaylo
 		return fmt.Errorf("TL entry failed verification: %w", err)
 	}
 
-	// important to allow an empty array here so that we don't fail open
-	// search for test 'no match should fail closed'
-	if keyMeta.Expiries != nil {
-		// any repo expirey still on the keys must match the times
-		toMatch := false
-		fromMatch := false
-		// must match at least one - nil is open ended
-		for _, filter := range keyMeta.Expiries {
-			if filter.To == nil || (filter.To != nil && integratedTime.Before(*filter.To)) {
-				toMatch = true
-			}
-			if filter.From == nil || (filter.From != nil && integratedTime.After(*filter.From)) {
-				fromMatch = true
-			}
-			if toMatch && fromMatch {
-				break
-			}
-		}
-		if !toMatch || !fromMatch {
-			return fmt.Errorf("Log entry is not within the expiry range of the key: %s", keyMeta.ID)
-		}
-	} else {
-		if keyMeta.To != nil && !integratedTime.Before(*keyMeta.To) {
-			return fmt.Errorf("key %s was already %s at TL log time %s (key %s at %s)", keyMeta.ID, keyMeta.Status, integratedTime, keyMeta.Status, *keyMeta.To)
-		}
-		if keyMeta.From != nil && integratedTime.Before(*keyMeta.From) {
-			return fmt.Errorf("key %s was not yet valid at TL log time %s (key valid from %s)", keyMeta.ID, integratedTime, keyMeta.From)
-		}
+	err = keyMeta.EnsureValid(&integratedTime)
+	if err != nil {
+		return fmt.Errorf("error key %s was not valid at integrated time: %w", keyMeta.ID, err)
 	}
 	return nil
 }

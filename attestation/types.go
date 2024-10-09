@@ -109,6 +109,7 @@ type KeyMetadata struct {
 	SigningFormat string     `json:"signing-format" yaml:"signing-format"`
 	Distrust      bool       `json:"distrust,omitempty" yaml:"distrust,omitempty"`
 	publicKey     crypto.PublicKey
+	expired       bool
 	Expiries      []*KeyExpiry `json:"expiries,omitempty" yaml:"expiries,omitempty"`
 }
 

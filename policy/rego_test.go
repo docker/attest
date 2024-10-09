@@ -96,18 +96,18 @@ func (r *NullAttestationResolver) Attestations(_ context.Context, _ string) ([]*
 
 func TestRegoFnOpts_filterRepoExpiries(t *testing.T) {
 	now := time.Now()
+	validTime := now.Add(-time.Hour)
 	tests := []struct {
-		name          string
-		imageName     string
-		key           *attestation.KeyMetadata
-		wantErr       bool
-		expiryRemoved bool
-		keyKept       bool
+		name      string
+		imageName string
+		key       *attestation.KeyMetadata
+		wantErr   bool
+		expired   bool
 	}{
-		{name: "no custom expirey", key: &attestation.KeyMetadata{}, keyKept: true},
-		{name: "no custom expirey", key: &attestation.KeyMetadata{
+		{name: "no custom expiry", key: &attestation.KeyMetadata{}},
+		{name: "no custom expiry", key: &attestation.KeyMetadata{
 			Expiries: []*attestation.KeyExpiry{},
-		}, keyKept: true},
+		}},
 		{name: "malformed pattern", key: &attestation.KeyMetadata{
 			Expiries: []*attestation.KeyExpiry{
 				{Patterns: []string{"[]"}, To: &now},
@@ -122,7 +122,7 @@ func TestRegoFnOpts_filterRepoExpiries(t *testing.T) {
 			Expiries: []*attestation.KeyExpiry{
 				{Patterns: []string{"bar"}, To: &now},
 			},
-		}, expiryRemoved: true},
+		}, expired: true},
 		{name: "matching image, no platforms", key: &attestation.KeyMetadata{
 			Expiries: []*attestation.KeyExpiry{
 				{Patterns: []string{"foo"}, To: &now},
@@ -132,7 +132,7 @@ func TestRegoFnOpts_filterRepoExpiries(t *testing.T) {
 			Expiries: []*attestation.KeyExpiry{
 				{Patterns: []string{"foo"}, Platforms: []string{"linux/arm64"}, To: &now},
 			},
-		}, expiryRemoved: true},
+		}, expired: true},
 		{name: "matching image, matching platform", key: &attestation.KeyMetadata{
 			Expiries: []*attestation.KeyExpiry{
 				{Patterns: []string{"foo"}, Platforms: []string{"linux/amd64"}, To: &now},
@@ -155,26 +155,23 @@ func TestRegoFnOpts_filterRepoExpiries(t *testing.T) {
 			if imageName == "" {
 				imageName = "foo"
 			}
-			regoOpts := &RegoFnOpts{
-				attestationResolver: &NullAttestationResolver{
-					imageName: imageName,
-					platform:  &v1.Platform{OS: "linux", Architecture: "amd64"},
-				},
+			resolver := &NullAttestationResolver{
+				imageName: imageName,
+				platform:  &v1.Platform{OS: "linux", Architecture: "amd64"},
 			}
 
 			opts := &attestation.VerifyOptions{
 				Keys: attestation.Keys{tt.key},
 			}
-			if err := regoOpts.filterRepoExpiries(context.Background(), opts); (err != nil) != tt.wantErr {
+			if err := opts.ProcessKeys(context.Background(), resolver); (err != nil) != tt.wantErr {
 				t.Fatalf("RegoFnOpts.filterRepoExpiries() error = %v, wantErr %v", err, tt.wantErr)
-			} else {
+			}
+			if !tt.wantErr {
 				switch {
-				case tt.expiryRemoved:
-					assert.Empty(t, opts.Keys[0].Expiries)
-				case tt.keyKept:
-					assert.NotEmpty(t, opts.Keys)
+				case tt.expired:
+					assert.Error(t, opts.Keys[0].EnsureValid(&validTime))
 				default:
-					assert.NotEmpty(t, opts.Keys[0].Expiries)
+					assert.NoError(t, opts.Keys[0].EnsureValid(&validTime))
 				}
 			}
 		})

@@ -5,8 +5,12 @@ import (
 	"crypto"
 	"encoding/base64"
 	"fmt"
+	"regexp"
+	"time"
 
+	"github.com/distribution/reference"
 	"github.com/docker/attest/signerverifier"
+	v1 "github.com/google/go-containerregistry/pkg/v1"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
@@ -80,4 +84,89 @@ func (km *KeyMetadata) ParsedKey() (crypto.PublicKey, error) {
 	}
 	km.publicKey = publicKey
 	return publicKey, nil
+}
+
+func (km *KeyMetadata) updateImageExpirey(imageName string, platform *v1.Platform) error {
+	// if there are NO custom expiries, assume key can be checked as normal
+	if len(km.Expiries) == 0 {
+		return nil
+	}
+	if km.From != nil || km.To != nil {
+		return fmt.Errorf("error key has 'from' or 'to' time set which is not supported when `expiries` is set")
+	}
+	// update the key with the first matching expiry's times
+	for _, expiry := range km.Expiries {
+		if len(expiry.Patterns) == 0 {
+			return fmt.Errorf("error need at least one expiry pattern")
+		}
+		for _, pattern := range expiry.Patterns {
+			if pattern == "" {
+				return fmt.Errorf("error empty expiry pattern")
+			}
+			patternRegex, err := regexp.Compile(pattern)
+			if err != nil {
+				return fmt.Errorf("error failed to compile expiry repo pattern: %w", err)
+			}
+			// if there's an image match, then platforms must match too
+			if patternRegex.MatchString(imageName) {
+				// either there are no platforms, or at least one must match
+				if len(expiry.Platforms) == 0 {
+					km.To = expiry.To
+					km.From = expiry.From
+					km.expired = false
+					return nil
+				}
+				for _, expiryPlatform := range expiry.Platforms {
+					parsedPlatform, err := v1.ParsePlatform(expiryPlatform)
+					if err != nil {
+						return fmt.Errorf("failed to parse platform %s: %w", expiryPlatform, err)
+					}
+					if parsedPlatform.Equals(*platform) {
+						km.To = expiry.To
+						km.From = expiry.From
+						km.expired = false
+						return nil
+					}
+				}
+			}
+		}
+		// if we get here, and no expirey match the image, the key is expired
+		km.expired = true
+	}
+	return nil
+}
+
+func (km *KeyMetadata) EnsureValid(t *time.Time) error {
+	if km.expired {
+		return fmt.Errorf("key %s was not valid at signing time %s", km.ID, t)
+	}
+	if km.To != nil && !t.Before(*km.To) {
+		return fmt.Errorf("key %s was expired TL log time %s (key valid to %s)", km.ID, t, km.To)
+	}
+	if km.From != nil && t.Before(*km.From) {
+		return fmt.Errorf("key %s was not yet valid at TL log time %s (key valid from %s)", km.ID, t, km.From)
+	}
+	return nil
+}
+
+func (opts *VerifyOptions) ProcessKeys(ctx context.Context, resolver Resolver) error {
+	imageName, err := resolver.ImageName(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to resolve image name: %w", err)
+	}
+	parsed, err := reference.ParseNormalizedNamed(imageName)
+	if err != nil {
+		return fmt.Errorf("failed to parse image name: %w", err)
+	}
+	imageName = parsed.Name()
+	platform, err := resolver.ImagePlatform(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get image platform: %w", err)
+	}
+	for _, key := range opts.Keys {
+		if err := key.updateImageExpirey(imageName, platform); err != nil {
+			return fmt.Errorf("error failed to process expiries for key %s: %w", key.ID, err)
+		}
+	}
+	return nil
 }

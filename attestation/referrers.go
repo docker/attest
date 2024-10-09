@@ -109,12 +109,12 @@ func (r *ReferrersResolver) resolveAttestations(ctx context.Context, predicateTy
 	return aManifests, nil
 }
 
-func (r *ReferrersResolver) Attestations(ctx context.Context, predicateType string) ([]*Envelope, error) {
+func (r *ReferrersResolver) Attestations(ctx context.Context, predicateType string) ([]*EnvelopeReference, error) {
 	manifests, err := r.resolveAttestations(ctx, predicateType)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve attestations: %w", err)
 	}
-	var envs []*Envelope
+	var envs []*EnvelopeReference
 	for _, attest := range manifests {
 		es, err := ExtractEnvelopes(attest, predicateType)
 		if err != nil {

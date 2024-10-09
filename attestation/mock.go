@@ -12,14 +12,14 @@ import (
 var _ oci.ImageDetailsResolver = MockResolver{}
 
 type MockResolver struct {
-	Envs         []*Envelope
+	Envs         []*EnvelopeReference
 	Image        string
 	PlatformFn   func() (*v1.Platform, error)
 	DescriptorFn func() (*v1.Descriptor, error)
 	ImangeNameFn func() (string, error)
 }
 
-func (r MockResolver) Attestations(_ context.Context, _ string) ([]*Envelope, error) {
+func (r MockResolver) Attestations(_ context.Context, _ string) ([]*EnvelopeReference, error) {
 	return r.Envs, nil
 }
 

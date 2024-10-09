@@ -189,6 +189,7 @@ func toVerificationResult(p *policy.Policy, input *policy.Input, result *policy.
 				Policy:             vsaPolicy,
 				VerificationResult: outcomeStr,
 				VerifiedLevels:     result.Summary.SLSALevels,
+				InputAttestations:  result.Summary.Inputs,
 			},
 		},
 	}, nil

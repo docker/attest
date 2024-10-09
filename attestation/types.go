@@ -67,6 +67,17 @@ type Extension struct {
 	Ext  *DockerDSSEExtension `json:"ext"`
 }
 
+type EnvelopeReference struct {
+	*Envelope
+	ResourceDescriptor *ResourceDescriptor `json:"resourceDescriptor"`
+}
+
+type ResourceDescriptor struct {
+	MediaType string            `json:"mediaType"`
+	Digest    map[string]string `json:"digest"`
+	URI       string            `json:"uri,omitempty"`
+}
+
 type AnnotatedStatement struct {
 	OCIDescriptor   *v1.Descriptor
 	InTotoStatement *intoto.Statement

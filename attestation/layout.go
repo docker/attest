@@ -45,8 +45,8 @@ func (r *LayoutResolver) fetchManifest() (*Manifest, error) {
 	return r.Manifest, nil
 }
 
-func (r *LayoutResolver) Attestations(_ context.Context, predicateType string) ([]*Envelope, error) {
-	var envs []*Envelope
+func (r *LayoutResolver) Attestations(_ context.Context, predicateType string) ([]*EnvelopeReference, error) {
+	var envs []*EnvelopeReference
 	dsseMediaType, err := DSSEMediaType(predicateType)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get DSSE media type for predicate '%s': %w", predicateType, err)
@@ -60,16 +60,25 @@ func (r *LayoutResolver) Attestations(_ context.Context, predicateType string) (
 		if mts != dsseMediaType {
 			continue
 		}
-		env := new(Envelope)
+		env := new(EnvelopeReference)
 		// parse layer blob as json
-		r, err := attestationLayer.Layer.Uncompressed()
+		layer, err := attestationLayer.Layer.Uncompressed()
 		if err != nil {
 			return nil, fmt.Errorf("failed to get layer contents: %w", err)
 		}
-		defer r.Close()
-		err = json.NewDecoder(r).Decode(env)
+		defer layer.Close()
+		err = json.NewDecoder(layer).Decode(env)
 		if err != nil {
 			return nil, fmt.Errorf("failed to decode envelope: %w", err)
+		}
+		var uri string
+		if len(r.Manifest.OriginalDescriptor.URLs) > 0 {
+			uri = r.Manifest.OriginalDescriptor.URLs[0]
+		}
+		env.ResourceDescriptor = &ResourceDescriptor{
+			MediaType: string(mt),
+			Digest:    map[string]string{r.Manifest.OriginalDescriptor.Digest.Algorithm: r.Manifest.OriginalDescriptor.Digest.Hex},
+			URI:       uri,
 		}
 		envs = append(envs, env)
 	}

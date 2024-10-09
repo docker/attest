@@ -8,5 +8,5 @@ import (
 
 type Resolver interface {
 	oci.ImageDetailsResolver
-	Attestations(ctx context.Context, mediaType string) ([]*Envelope, error)
+	Attestations(ctx context.Context, mediaType string) ([]*EnvelopeReference, error)
 }

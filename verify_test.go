@@ -39,11 +39,11 @@ func TestVerifyAttestations(t *testing.T) {
 	ex, err := os.ReadFile(ExampleAttestation)
 	assert.NoError(t, err)
 
-	env := new(attestation.Envelope)
+	env := new(attestation.EnvelopeReference)
 	err = json.Unmarshal(ex, env)
 	assert.NoError(t, err)
 	resolver := &attestation.MockResolver{
-		Envs: []*attestation.Envelope{env},
+		Envs: []*attestation.EnvelopeReference{env},
 	}
 
 	testCases := []struct {
@@ -126,7 +126,15 @@ func TestVSA(t *testing.T) {
 	assert.Equal(t, PassPolicyDir+"/policy.rego", attestationPredicate.Policy.DownloadLocation)
 	assert.Equal(t, "https://docker.com/official/policy/v0.1", attestationPredicate.Policy.URI)
 	// this is the digest of the policy file
-	assert.Equal(t, map[string]string{"sha256": "ae71defe3b9ecebdf4f939a396b68884d0cba3c2c9d78ce5e64146d9487b0ade"}, attestationPredicate.Policy.Digest)
+	assert.Equal(t, map[string]string{"sha256": "fe1d4973f3521009a3adec206946e12aae935a2aceeb1e01f52b5d4cb9de79a5"}, attestationPredicate.Policy.Digest)
+	assert.Greater(t, len(attestationPredicate.InputAttestations), 0)
+	for _, input := range attestationPredicate.InputAttestations {
+		require.NotEmpty(t, input.Digest)
+		digest, ok := input.Digest["sha256"]
+		assert.True(t, ok)
+		assert.NotEmpty(t, digest)
+		assert.Contains(t, []string{"application/vnd.in-toto.provenance+dsse", "application/vnd.in-toto.spdx+dsse"}, input.MediaType)
+	}
 }
 
 func TestVerificationFailure(t *testing.T) {

@@ -37,11 +37,17 @@ subjects contains subject if {
 	some subject in statement.subject
 }
 
+inputs contains desc if {
+	some att in atts
+	desc := att.resourceDescriptor
+}
+
 result := {
 	"success": true,
 	"violations": set(),
 	"summary": {
 		"subjects": subjects,
+		"input_attestations": inputs,
 		"slsa_levels": ["SLSA_BUILD_LEVEL_3"],
 		"verifier": "docker-official-images",
 		"policy_uri": "https://docker.com/official/policy/v0.1",

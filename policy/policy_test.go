@@ -20,13 +20,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func loadAttestation(t *testing.T, path string) *attestation.Envelope {
+func loadAttestation(t *testing.T, path string) *attestation.EnvelopeReference {
 	ex, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	env := new(attestation.Envelope)
+	env := new(attestation.EnvelopeReference)
 	err = json.Unmarshal(ex, env)
 	if err != nil {
 		t.Fatal(err)
@@ -44,7 +44,7 @@ func TestRegoEvaluator_Evaluate(t *testing.T) {
 	require.NoError(t, err)
 	re := policy.NewRegoEvaluator(true, verifier)
 	defaultResolver := attestation.MockResolver{
-		Envs: []*attestation.Envelope{loadAttestation(t, ExampleAttestation)},
+		Envs: []*attestation.EnvelopeReference{loadAttestation(t, ExampleAttestation)},
 	}
 	defaultPlatform, err := v1.ParsePlatform("linux/amd64")
 	require.NoError(t, err)
@@ -122,7 +122,7 @@ func TestLoadingMappings(t *testing.T) {
 
 func TestCreateAttestationResolver(t *testing.T) {
 	mockResolver := attestation.MockResolver{
-		Envs: []*attestation.Envelope{},
+		Envs: []*attestation.EnvelopeReference{},
 	}
 	layoutResolver := &attestation.LayoutResolver{}
 	registryResolver := &oci.RegistryImageDetailsResolver{}

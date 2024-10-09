@@ -316,8 +316,8 @@ func buildImageFromLayers(layers []*Layer, manifest *v1.Descriptor, subject *v1.
 	return newImg, nil
 }
 
-func ExtractEnvelopes(manifest *Manifest, predicateType string) ([]*Envelope, error) {
-	var envs []*Envelope
+func ExtractEnvelopes(manifest *Manifest, predicateType string) ([]*EnvelopeReference, error) {
+	var envs []*EnvelopeReference
 	dsseMediaType, err := DSSEMediaType(predicateType)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get DSSE media type for predicate '%s': %w", predicateType, err)
@@ -333,10 +333,19 @@ func ExtractEnvelopes(manifest *Manifest, predicateType string) ([]*Envelope, er
 				return nil, fmt.Errorf("failed to get layer contents: %w", err)
 			}
 			defer reader.Close()
-			env := new(Envelope)
+			env := new(EnvelopeReference)
 			err = json.NewDecoder(reader).Decode(&env)
 			if err != nil {
 				return nil, fmt.Errorf("failed to decode envelope: %w", err)
+			}
+			var uri string
+			if len(manifest.OriginalDescriptor.URLs) > 0 {
+				uri = manifest.OriginalDescriptor.URLs[0]
+			}
+			env.ResourceDescriptor = &ResourceDescriptor{
+				MediaType: string(mt),
+				Digest:    map[string]string{manifest.OriginalDescriptor.Digest.Algorithm: manifest.OriginalDescriptor.Digest.Hex},
+				URI:       uri,
 			}
 			envs = append(envs, env)
 		}

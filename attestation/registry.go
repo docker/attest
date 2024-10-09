@@ -24,7 +24,7 @@ func NewRegistryResolver(src *oci.RegistryImageDetailsResolver) (*RegistryResolv
 	}, nil
 }
 
-func (r *RegistryResolver) Attestations(ctx context.Context, predicateType string) ([]*Envelope, error) {
+func (r *RegistryResolver) Attestations(ctx context.Context, predicateType string) ([]*EnvelopeReference, error) {
 	if r.Manifest == nil {
 		attest, err := FetchManifest(ctx, r.Identifier, r.ImageSpec.Platform)
 		if err != nil {

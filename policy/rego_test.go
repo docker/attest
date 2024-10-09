@@ -89,7 +89,7 @@ func (r *NullAttestationResolver) ImageDescriptor(_ context.Context) (*v1.Descri
 	return nil, nil
 }
 
-func (r *NullAttestationResolver) Attestations(_ context.Context, _ string) ([]*attestation.Envelope, error) {
+func (r *NullAttestationResolver) Attestations(_ context.Context, _ string) ([]*attestation.EnvelopeReference, error) {
 	r.called = true
 	return nil, nil
 }

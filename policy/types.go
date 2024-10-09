@@ -8,10 +8,11 @@ import (
 )
 
 type Summary struct {
-	Subjects   []intoto.Subject `json:"subjects"`
-	SLSALevels []string         `json:"slsa_levels"`
-	Verifier   string           `json:"verifier"`
-	PolicyURI  string           `json:"policy_uri"`
+	Subjects   []intoto.Subject                 `json:"subjects"`
+	Inputs     []attestation.ResourceDescriptor `json:"input_attestations"`
+	SLSALevels []string                         `json:"slsa_levels"`
+	Verifier   string                           `json:"verifier"`
+	PolicyURI  string                           `json:"policy_uri"`
 }
 
 type Violation struct {

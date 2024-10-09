@@ -133,25 +133,34 @@ func (v *verifier) VerifyLog(ctx context.Context, keyMeta *KeyMetadata, encPaylo
 	if err != nil {
 		return fmt.Errorf("TL entry failed verification: %w", err)
 	}
-	if integratedTime.Before(keyMeta.From) {
-		return fmt.Errorf("key %s was not yet valid at TL log time %s (key valid from %s)", keyMeta.ID, integratedTime, keyMeta.From)
-	}
 
-	// any repo expirey still on the keys must match the 'to' time
-	match := false
 	if len(keyMeta.Expiries) > 0 {
-		// must match at least one
+		// any repo expirey still on the keys must match the times
+		toMatch := false
+		fromMatch := false
+		// must match at least one - nil is open ended
 		for _, filter := range keyMeta.Expiries {
-			if filter.To != nil && integratedTime.Before(*filter.To) {
-				match = true
+			if filter.To == nil || (filter.To != nil && integratedTime.Before(*filter.To)) {
+				toMatch = true
+			}
+			if filter.From == nil || (filter.From != nil && integratedTime.After(*filter.From)) {
+				fromMatch = true
+			}
+			if toMatch && fromMatch {
 				break
 			}
 		}
-		if !match {
-			return fmt.Errorf("key %s was not valid at TL log time %s", keyMeta.ID, integratedTime)
+		if !toMatch || !fromMatch {
+			return fmt.Errorf("Log entry is not within the expiry range of the key: %s", keyMeta.ID)
 		}
-	} else if keyMeta.To != nil && !integratedTime.Before(*keyMeta.To) {
-		return fmt.Errorf("key %s was already %s at TL log time %s (key %s at %s)", keyMeta.ID, keyMeta.Status, integratedTime, keyMeta.Status, *keyMeta.To)
+	} else {
+		// ignore key level to/from if we have custom expiries otherwise it fails open
+		if keyMeta.To != nil && !integratedTime.Before(*keyMeta.To) {
+			return fmt.Errorf("key %s was already %s at TL log time %s (key %s at %s)", keyMeta.ID, keyMeta.Status, integratedTime, keyMeta.Status, *keyMeta.To)
+		}
+		if keyMeta.From != nil && integratedTime.Before(*keyMeta.From) {
+			return fmt.Errorf("key %s was not yet valid at TL log time %s (key valid from %s)", keyMeta.ID, integratedTime, keyMeta.From)
+		}
 	}
 	return nil
 }

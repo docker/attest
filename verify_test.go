@@ -21,7 +21,7 @@ import (
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"sigs.k8s.io/yaml"
+	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -193,7 +193,7 @@ func TestSignVerify(t *testing.T) {
 	validTime := time.Now().Add(time.Hour)
 	expiredTime := time.Now().Add(-time.Hour)
 	integratedTime := time.Now()
-
+	testImageName := "test-image"
 	testCases := []struct {
 		name               string
 		signTL             bool
@@ -211,24 +211,28 @@ func TestSignVerify(t *testing.T) {
 		{name: "mirror no match", signTL: false, policyDir: PassMirrorPolicyDir, imageName: "incorrect.org/library/test-image:test", expectedNonSuccess: OutcomeNoPolicy},
 		{name: "verify inputs", signTL: false, policyDir: InputsPolicyDir},
 		{name: "mirror with verification", signTL: false, policyDir: LocalKeysPolicy, imageName: "mirror.org/library/test-image:test", spitConfig: true},
-		{name: "with per repo expirey (valid)", signTL: true, policyDir: ExpiresPolicy, spitConfig: true, expires: &attestation.KeyExpiry{To: &validTime, Patterns: []string{attIdx.Name}, Platforms: []string{"linux/amd64"}}},
-		{name: "with per repo expirey (expired)", signTL: true, policyDir: ExpiresPolicy, spitConfig: true, expires: &attestation.KeyExpiry{To: &expiredTime, Patterns: []string{attIdx.Name}, Platforms: []string{"linux/amd64"}}, expectedNonSuccess: OutcomeFailure},
+		{name: "with per repo expirey (valid)", signTL: true, policyDir: ExpiresPolicy, spitConfig: true, expires: &attestation.KeyExpiry{To: &validTime, Patterns: []string{testImageName}, Platforms: []string{"linux/amd64"}}},
+		{name: "with per repo expirey (expired)", signTL: true, policyDir: ExpiresPolicy, spitConfig: true, expires: &attestation.KeyExpiry{To: &expiredTime, Patterns: []string{testImageName}, Platforms: []string{"linux/amd64"}}, expectedNonSuccess: OutcomeFailure},
+		{name: "with per repo expirey (not yet valid)", signTL: true, policyDir: ExpiresPolicy, spitConfig: true, expires: &attestation.KeyExpiry{From: &validTime, Patterns: []string{testImageName}, Platforms: []string{"linux/amd64"}}, expectedNonSuccess: OutcomeFailure},
 		{name: "policy with input params", spitConfig: true, signTL: false, policyDir: LocalParamPolicy, param: "bar"},
 		{name: "policy without expected param", spitConfig: true, signTL: false, policyDir: LocalParamPolicy, param: "baz", expectedNonSuccess: OutcomeFailure},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			keys, err := GenKeyMetadata(signer)
+			key, err := GenKeyMetadata(signer)
 			require.NoError(t, err)
 			if tc.expires != nil {
-				keys.Expiries = []*attestation.KeyExpiry{tc.expires}
+				key.Expiries = []*attestation.KeyExpiry{tc.expires}
+				// now allowed together
+				key.To = nil
+				key.From = nil
 			}
 			require.NoError(t, err)
 			config := struct {
-				Keys []*attestation.KeyMetadata `json:"keys"`
+				Keys []*attestation.KeyMetadata `yaml:"keys"`
 			}{
-				Keys: []*attestation.KeyMetadata{keys},
+				Keys: []*attestation.KeyMetadata{key},
 			}
 			keysYaml, err := yaml.Marshal(config)
 			require.NoError(t, err)
@@ -376,12 +380,14 @@ func GenKeyMetadata(sv dsse.SignerVerifier) (*attestation.KeyMetadata, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	earlier := time.Now().Add(-time.Hour)
+	later := time.Now().Add(time.Hour)
 	return &attestation.KeyMetadata{
 		ID:            id,
 		Status:        "active",
 		SigningFormat: "dssev1",
-		From:          time.Now().Add(-time.Hour),
+		From:          &earlier,
+		To:            &later,
 		PEM:           pem,
 	}, nil
 }

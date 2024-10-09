@@ -97,29 +97,20 @@ func (r *NullAttestationResolver) Attestations(_ context.Context, _ string) ([]*
 func TestRegoFnOpts_filterRepoExpiries(t *testing.T) {
 	now := time.Now()
 	tests := []struct {
-		name      string
-		imageName string
-		key       *attestation.KeyMetadata
-		wantErr   bool
-		isRemoved bool
+		name          string
+		imageName     string
+		key           *attestation.KeyMetadata
+		wantErr       bool
+		expiryRemoved bool
+		keyKept       bool
 	}{
-		{name: "no custsom expirey", key: &attestation.KeyMetadata{}, isRemoved: true},
-		{name: "no custsom expirey", key: &attestation.KeyMetadata{
+		{name: "no custom expirey", key: &attestation.KeyMetadata{}, keyKept: true},
+		{name: "no custom expirey", key: &attestation.KeyMetadata{
 			Expiries: []*attestation.KeyExpiry{},
-		}, isRemoved: true},
-		{name: "missing 'to'", key: &attestation.KeyMetadata{
-			Expiries: []*attestation.KeyExpiry{
-				{Patterns: []string{"foo"}},
-			},
-		}, wantErr: true},
+		}, keyKept: true},
 		{name: "malformed pattern", key: &attestation.KeyMetadata{
 			Expiries: []*attestation.KeyExpiry{
 				{Patterns: []string{"[]"}, To: &now},
-			},
-		}, wantErr: true},
-		{name: "missing pattern and 'to'", key: &attestation.KeyMetadata{
-			Expiries: []*attestation.KeyExpiry{
-				{},
 			},
 		}, wantErr: true},
 		{name: "missing pattern", key: &attestation.KeyMetadata{
@@ -131,7 +122,7 @@ func TestRegoFnOpts_filterRepoExpiries(t *testing.T) {
 			Expiries: []*attestation.KeyExpiry{
 				{Patterns: []string{"bar"}, To: &now},
 			},
-		}, isRemoved: true},
+		}, expiryRemoved: true},
 		{name: "matching image, no platforms", key: &attestation.KeyMetadata{
 			Expiries: []*attestation.KeyExpiry{
 				{Patterns: []string{"foo"}, To: &now},
@@ -141,10 +132,15 @@ func TestRegoFnOpts_filterRepoExpiries(t *testing.T) {
 			Expiries: []*attestation.KeyExpiry{
 				{Patterns: []string{"foo"}, Platforms: []string{"linux/arm64"}, To: &now},
 			},
-		}, isRemoved: true},
+		}, expiryRemoved: true},
 		{name: "matching image, matching platform", key: &attestation.KeyMetadata{
 			Expiries: []*attestation.KeyExpiry{
 				{Patterns: []string{"foo"}, Platforms: []string{"linux/amd64"}, To: &now},
+			},
+		}},
+		{name: "matching canonical image, matching platform", key: &attestation.KeyMetadata{
+			Expiries: []*attestation.KeyExpiry{
+				{Patterns: []string{"^docker.io/library/foo$"}, Platforms: []string{"linux/amd64"}, To: &now},
 			},
 		}},
 		{name: "matching image, matching platform (on of many)", key: &attestation.KeyMetadata{
@@ -172,9 +168,12 @@ func TestRegoFnOpts_filterRepoExpiries(t *testing.T) {
 			if err := regoOpts.filterRepoExpiries(context.Background(), opts); (err != nil) != tt.wantErr {
 				t.Fatalf("RegoFnOpts.filterRepoExpiries() error = %v, wantErr %v", err, tt.wantErr)
 			} else {
-				if tt.isRemoved {
-					assert.Empty(t, opts.Keys[0].Expiries)
-				} else {
+				switch {
+				case tt.expiryRemoved:
+					assert.Empty(t, opts.Keys)
+				case tt.keyKept:
+					assert.NotEmpty(t, opts.Keys)
+				default:
 					assert.NotEmpty(t, opts.Keys[0].Expiries)
 				}
 			}

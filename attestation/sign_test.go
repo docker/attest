@@ -144,7 +144,7 @@ func TestSignVerifyAttestation(t *testing.T) {
 				ID:       tc.keyID,
 				PEM:      string(tc.pem),
 				Distrust: tc.distrust,
-				From:     tc.from,
+				From:     &tc.from,
 				To:       tc.to,
 				Status:   tc.status,
 			}

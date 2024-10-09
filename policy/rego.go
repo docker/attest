@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 
+	"github.com/distribution/reference"
 	"github.com/docker-library/bashbrew/manifest"
 	"github.com/docker/attest/attestation"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
@@ -315,26 +316,33 @@ func (regoOpts *RegoFnOpts) filterRepoExpiries(ctx context.Context, opts *attest
 	if err != nil {
 		return fmt.Errorf("failed to resolve image name: %w", err)
 	}
+	parsed, err := reference.ParseNormalizedNamed(imageName)
+	if err != nil {
+		return fmt.Errorf("failed to parse image name: %w", err)
+	}
+	imageName = parsed.Name()
 	platform, err := regoOpts.attestationResolver.ImagePlatform(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get image platform: %w", err)
 	}
+	keys := []*attestation.KeyMetadata{}
 	for i := range opts.Keys {
 		key := opts.Keys[i]
-		// if there are NO custom expiries, assume all keys can be checked as normal
+		// if there are NO custom expiries, assume key can be checked as normal
 		if len(key.Expiries) == 0 {
+			keys = append(keys, key)
 			continue
 		}
+		if key.From != nil || key.To != nil {
+			return fmt.Errorf("error key has 'from' or 'to' time set which is not supported when `expiries` is set")
+		}
 		// when there are custom expiries, we only keep those that match the image name and platform
-		// so that the log verifier can check the 'to' time
+		// so that the log verifier can check the from/to times
 		expiries := make([]*attestation.KeyExpiry, 0)
 		for j := range key.Expiries {
 			expiry := key.Expiries[j]
 			if len(expiry.Patterns) == 0 {
 				return fmt.Errorf("error need at least one expiry pattern")
-			}
-			if expiry.To == nil {
-				return fmt.Errorf("error missing expiry 'to' time")
 			}
 			for _, pattern := range expiry.Patterns {
 				if pattern == "" {
@@ -364,9 +372,12 @@ func (regoOpts *RegoFnOpts) filterRepoExpiries(ctx context.Context, opts *attest
 				}
 			}
 		}
-		// any matching expiries are kept so that the 'to' time can be checked
-		key.Expiries = expiries
+		if len(expiries) > 0 {
+			key.Expiries = expiries
+			keys = append(keys, key)
+		}
 	}
+	opts.Keys = keys
 	return nil
 }
 

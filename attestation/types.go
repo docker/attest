@@ -90,21 +90,22 @@ type VerifyOptions struct {
 }
 
 type KeyMetadata struct {
-	ID            string     `json:"id"`
-	PEM           string     `json:"key"`
-	From          time.Time  `json:"from"`
-	To            *time.Time `json:"to"`
-	Status        string     `json:"status"`
-	SigningFormat string     `json:"signing-format"`
-	Distrust      bool       `json:"distrust,omitempty"`
+	ID            string     `json:"id" yaml:"id"`
+	PEM           string     `json:"key" yaml:"key"`
+	From          *time.Time `json:"from" yaml:"from"`
+	To            *time.Time `json:"to" yaml:"to"`
+	Status        string     `json:"status" yaml:"status"`
+	SigningFormat string     `json:"signing-format" yaml:"signing-format"`
+	Distrust      bool       `json:"distrust,omitempty" yaml:"distrust,omitempty"`
 	publicKey     crypto.PublicKey
-	Expiries      []*KeyExpiry `json:"expiries,omitempty"`
+	Expiries      []*KeyExpiry `json:"expiries,omitempty" yaml:"expiries,omitempty"`
 }
 
 type KeyExpiry struct {
 	Patterns  []string   `json:"patterns"`
 	Platforms []string   `json:"platforms"`
 	To        *time.Time `json:"to"`
+	From      *time.Time `json:"from"`
 }
 
 type (

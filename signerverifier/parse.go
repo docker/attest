@@ -13,10 +13,10 @@ const pemType = "PUBLIC KEY"
 func ParsePublicKey(pubkeyBytes []byte) (crypto.PublicKey, error) {
 	p, _ := pem.Decode(pubkeyBytes)
 	if p == nil {
-		return nil, fmt.Errorf("pubkey file does not contain any PEM data")
+		return nil, fmt.Errorf("pubkeyBytes does not contain any PEM data")
 	}
 	if p.Type != pemType {
-		return nil, fmt.Errorf("pubkey file does not contain a public key")
+		return nil, fmt.Errorf("pubkeyBytes does not contain a public key")
 	}
 	return x509.ParsePKIXPublicKey(p.Bytes)
 }

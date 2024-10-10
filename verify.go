@@ -93,7 +93,7 @@ func (verifier *ImageVerifier) Verify(ctx context.Context, src *oci.ImageSpec) (
 		return nil, fmt.Errorf("failed to create attestation resolver: %w", err)
 	}
 	evaluator := policy.NewRegoEvaluator(verifier.opts.Debug, verifier.attestationVerifier)
-	result, err = VerifyAttestations(ctx, resolver, evaluator, resolvedPolicy)
+	result, err = verifyAttestations(ctx, resolver, evaluator, resolvedPolicy, verifier.opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to evaluate policy: %w", err)
 	}
@@ -195,7 +195,7 @@ func toVerificationResult(p *policy.Policy, input *policy.Input, result *policy.
 	}, nil
 }
 
-func VerifyAttestations(ctx context.Context, resolver attestation.Resolver, evaluator policy.Evaluator, resolvedPolicy *policy.Policy) (*VerificationResult, error) {
+func verifyAttestations(ctx context.Context, resolver attestation.Resolver, evaluator policy.Evaluator, resolvedPolicy *policy.Policy, opts *policy.Options) (*VerificationResult, error) {
 	desc, err := resolver.ImageDescriptor(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get image descriptor: %w", err)
@@ -247,6 +247,7 @@ func VerifyAttestations(ctx context.Context, resolver attestation.Resolver, eval
 		Domain:         reference.Domain(ref),
 		NormalizedName: reference.Path(ref),
 		FamiliarName:   reference.FamiliarName(ref),
+		Parameters:     opts.Parameters,
 	}
 	// rego has null strings
 	if tag != "" {

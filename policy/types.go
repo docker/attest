@@ -38,7 +38,11 @@ type Options struct {
 	AttestationStyle    mapping.AttestationStyle
 	Debug               bool
 	AttestationVerifier attestation.Verifier
+	// extra parameters to pass through to rego as policy inputs
+	Parameters *Parameters
 }
+
+type Parameters map[string]string
 
 type Policy struct {
 	InputFiles   []*File
@@ -50,13 +54,14 @@ type Policy struct {
 }
 
 type Input struct {
-	Digest         string `json:"digest"`
-	PURL           string `json:"purl"`
-	Tag            string `json:"tag,omitempty"`
-	Domain         string `json:"domain"`
-	NormalizedName string `json:"normalized_name"`
-	FamiliarName   string `json:"familiar_name"`
-	Platform       string `json:"platform"`
+	Digest         string      `json:"digest"`
+	PURL           string      `json:"purl"`
+	Tag            string      `json:"tag,omitempty"`
+	Domain         string      `json:"domain"`
+	NormalizedName string      `json:"normalized_name"`
+	FamiliarName   string      `json:"familiar_name"`
+	Platform       string      `json:"platform"`
+	Parameters     *Parameters `json:"parameters"`
 }
 
 type File struct {

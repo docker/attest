@@ -27,6 +27,8 @@ import (
 var (
 	ExampleAttestation = filepath.Join("test", "testdata", "example_attestation.json")
 	LocalKeysPolicy    = filepath.Join("test", "testdata", "local-policy-real")
+	LocalParamPolicy   = filepath.Join("test", "testdata", "local-policy-param")
+	ExpiresPolicy      = filepath.Join("test", "testdata", "expires")
 )
 
 const (
@@ -60,7 +62,7 @@ func TestVerifyAttestations(t *testing.T) {
 					return policy.AllowedResult(), tc.policyEvaluationError
 				},
 			}
-			_, err := VerifyAttestations(ctx, resolver, &mockPE, &policy.Policy{ResolvedName: ""})
+			_, err := verifyAttestations(ctx, resolver, &mockPE, &policy.Policy{ResolvedName: ""}, &policy.Options{})
 			if tc.expectedError != nil {
 				if assert.Error(t, err) {
 					assert.Equal(t, tc.expectedError.Error(), err.Error())
@@ -204,16 +206,14 @@ func TestSignVerify(t *testing.T) {
 	keysYaml, err := yaml.Marshal(config)
 	require.NoError(t, err)
 
-	// write keysYaml to config.yaml in LocalKeysPolicy.
-	err = os.WriteFile(filepath.Join(LocalKeysPolicy, "config.yaml"), keysYaml, 0o600)
-	require.NoError(t, err)
-
 	testCases := []struct {
 		name               string
 		signTL             bool
 		policyDir          string
 		imageName          string
 		expectedNonSuccess Outcome
+		spitConfig         bool
+		param              string
 	}{
 		{name: "happy path", signTL: true, policyDir: PassNoTLPolicyDir},
 		{name: "sign tl, verify no tl", signTL: true, policyDir: PassPolicyDir},
@@ -222,6 +222,10 @@ func TestSignVerify(t *testing.T) {
 		{name: "mirror no match", signTL: false, policyDir: PassMirrorPolicyDir, imageName: "incorrect.org/library/test-image:test", expectedNonSuccess: OutcomeNoPolicy},
 		{name: "verify inputs", signTL: false, policyDir: InputsPolicyDir},
 		{name: "mirror with verification", signTL: false, policyDir: LocalKeysPolicy, imageName: "mirror.org/library/test-image:test"},
+		{name: "mirror with verification", signTL: false, policyDir: LocalKeysPolicy, imageName: "mirror.org/library/test-image:test", spitConfig: true},
+
+		{name: "policy with input params", spitConfig: true, signTL: false, policyDir: LocalParamPolicy, param: "bar"},
+		{name: "policy without expected param", spitConfig: true, signTL: false, policyDir: LocalParamPolicy, param: "baz", expectedNonSuccess: OutcomeFailure},
 	}
 
 	attIdx, err := oci.IndexFromPath(test.UnsignedTestIndex())
@@ -231,6 +235,11 @@ func TestSignVerify(t *testing.T) {
 			opts := &attestation.SigningOptions{}
 			if tc.signTL {
 				opts.TransparencyLog = tlog.GetMockTL()
+			}
+			if tc.spitConfig {
+				// write keysYaml to config.yaml in LocalKeysPolicy.
+				err = os.WriteFile(filepath.Join(tc.policyDir, "config.yaml"), keysYaml, 0o600)
+				require.NoError(t, err)
 			}
 
 			signedManifests, err := SignStatements(ctx, attIdx.Index, signer, opts)
@@ -253,6 +262,17 @@ func TestSignVerify(t *testing.T) {
 				LocalPolicyDir: tc.policyDir,
 				DisableTUF:     true,
 				Debug:          true,
+			}
+			if tc.signTL {
+				getTL := func(_ context.Context, _ *attestation.VerifyOptions) (tlog.TransparencyLog, error) {
+					return tlog.GetMockTL(), nil
+				}
+				verifier, err := attestation.NewVerfier(attestation.WithLogVerifierFactory(getTL))
+				require.NoError(t, err)
+				policyOpts.AttestationVerifier = verifier
+			}
+			if tc.param != "" {
+				policyOpts.Parameters = &policy.Parameters{"foo": tc.param}
 			}
 			results, err := Verify(ctx, spec, policyOpts)
 			require.NoError(t, err)

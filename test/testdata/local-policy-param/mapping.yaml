@@ -1,0 +1,15 @@
+version: v1
+kind: policy-mapping
+policies:
+  - id: test-images
+    description: Local test images
+    files:
+      - path: policy.rego
+      - path: config.yaml #auto generated
+    attestations:
+      style: attached
+rules:
+  - pattern: "^docker[.]io/library/test-image$"
+    policy-id: test-images
+  - pattern: "^mirror[.]org/library/(.*)$"
+    rewrite: docker.io/library/$1

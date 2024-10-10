@@ -98,22 +98,24 @@ type VerifyOptions struct {
 	Keys            []*KeyMetadata      `json:"keys"`
 	SkipTL          bool                `json:"skip_tl"`
 	TransparencyLog TransparencyLogKind `json:"tl"`
+	Resolver        Resolver
 }
 
 type KeyMetadata struct {
-	ID            string     `json:"id" yaml:"id"`
-	PEM           string     `json:"key" yaml:"key"`
-	From          *time.Time `json:"from" yaml:"from"`
-	To            *time.Time `json:"to" yaml:"to"`
-	Status        string     `json:"status" yaml:"status"`
-	SigningFormat string     `json:"signing-format" yaml:"signing-format"`
-	Distrust      bool       `json:"distrust,omitempty" yaml:"distrust,omitempty"`
-	publicKey     crypto.PublicKey
-	expired       bool
-	Expiries      []*KeyExpiry `json:"expiries,omitempty" yaml:"expiries,omitempty"`
+	ID  string `json:"id" yaml:"id"`
+	PEM string `json:"key" yaml:"key"`
+	// From/To are deprecated in favor of Ranges
+	From *time.Time `json:"from" yaml:"from"`
+	To   *time.Time `json:"to" yaml:"to"`
+
+	Status         string `json:"status" yaml:"status"`
+	SigningFormat  string `json:"signing-format" yaml:"signing-format"`
+	Distrust       bool   `json:"distrust,omitempty" yaml:"distrust,omitempty"`
+	publicKey      crypto.PublicKey
+	ValidityRanges []*ValidityRange `json:"validity,omitempty" yaml:"validity,omitempty"`
 }
 
-type KeyExpiry struct {
+type ValidityRange struct {
 	Patterns  []string   `json:"patterns"`
 	Platforms []string   `json:"platforms"`
 	To        *time.Time `json:"to"`

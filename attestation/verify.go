@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/distribution/reference"
 	"github.com/docker/attest/signerverifier"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
@@ -25,11 +26,6 @@ func VerifyDSSE(ctx context.Context, verifier Verifier, env *Envelope, opts *Ver
 		return nil, fmt.Errorf("no signatures found")
 	}
 
-	keys := make(map[string]*KeyMetadata, len(opts.Keys))
-	for _, key := range opts.Keys {
-		keys[key.ID] = key
-	}
-
 	payload, err := base64Encoding.DecodeString(env.Payload)
 	if err != nil {
 		return nil, fmt.Errorf("error failed to decode payload: %w", err)
@@ -39,8 +35,8 @@ func VerifyDSSE(ctx context.Context, verifier Verifier, env *Envelope, opts *Ver
 	// verify signatures and transparency log entry
 	for _, sig := range env.Signatures {
 		// resolve public key used to sign
-		keyMeta, ok := keys[sig.KeyID]
-		if !ok {
+		keyMeta := opts.FindKey(sig.KeyID)
+		if keyMeta == nil {
 			return nil, fmt.Errorf("error key not found: %s", sig.KeyID)
 		}
 
@@ -85,65 +81,114 @@ func (km *KeyMetadata) ParsedKey() (crypto.PublicKey, error) {
 	return publicKey, nil
 }
 
-func (km *KeyMetadata) UpdateImageExpirey(imageName string, platform *v1.Platform) error {
-	// if there are NO custom expiries, assume key can be checked as normal
-	if len(km.Expiries) == 0 {
-		return nil
-	}
-	if km.From != nil || km.To != nil {
-		return fmt.Errorf("error key has 'from' or 'to' time set which is not supported when `expiries` is set")
-	}
-	// update the key with the first matching expiry's times
-	for _, expiry := range km.Expiries {
-		if len(expiry.Patterns) == 0 {
-			return fmt.Errorf("error need at least one expiry pattern")
-		}
-		for _, pattern := range expiry.Patterns {
-			if pattern == "" {
-				return fmt.Errorf("error empty expiry pattern")
-			}
-			patternRegex, err := regexp.Compile(pattern)
-			if err != nil {
-				return fmt.Errorf("error failed to compile expiry repo pattern: %w", err)
-			}
-			// if there's an image match, then platforms must match too
-			if patternRegex.MatchString(imageName) {
-				// either there are no platforms, or at least one must match
-				if len(expiry.Platforms) == 0 {
-					km.To = expiry.To
-					km.From = expiry.From
-					km.expired = false
-					return nil
-				}
-				for _, expiryPlatform := range expiry.Platforms {
-					parsedPlatform, err := v1.ParsePlatform(expiryPlatform)
-					if err != nil {
-						return fmt.Errorf("failed to parse platform %s: %w", expiryPlatform, err)
-					}
-					if parsedPlatform.Equals(*platform) {
-						km.To = expiry.To
-						km.From = expiry.From
-						km.expired = false
-						return nil
-					}
-				}
-			}
-		}
-		// if we get here, and no expirey match the image, the key is expired
-		km.expired = true
-	}
-	return nil
-}
-
-func (km *KeyMetadata) EnsureValid(t *time.Time) error {
-	if km.expired {
-		return fmt.Errorf("key %s was not valid at signing time %s", km.ID, t)
-	}
+func (km *KeyMetadata) EnsureValid(imageName string, platform *v1.Platform, t *time.Time) error {
+	// time must always be in the to/from range (if set)
 	if km.To != nil && !t.Before(*km.To) {
 		return fmt.Errorf("key %s was expired TL log time %s (key valid to %s)", km.ID, t, km.To)
 	}
 	if km.From != nil && t.Before(*km.From) {
 		return fmt.Errorf("key %s was not yet valid at TL log time %s (key valid from %s)", km.ID, t, km.From)
+	}
+
+	if len(km.ValidityRanges) == 0 {
+		return nil
+	}
+	parsed, err := reference.ParseNormalizedNamed(imageName)
+	if err != nil {
+		return fmt.Errorf("failed to parse image name: %w", err)
+	}
+	imageName = parsed.Name()
+	// check that each range lies within the key's validity at the top level
+	for _, validity := range km.ValidityRanges {
+		if validity.To != nil && km.To != nil && !validity.To.Before(*km.To) {
+			return fmt.Errorf("malformed validity range: %s is not before %s's valid 'to' date %s", validity.To, km.ID, km.To)
+		}
+		if validity.From != nil && km.From != nil && validity.From.Before(*km.From) {
+			return fmt.Errorf("malformed validity range: %s is before %s's valid 'from' date %s", validity.From, km.ID, km.From)
+		}
+	}
+
+	// find all validity ranges that match the image name and platform
+	patternMatches := []*ValidityRange{}
+	for _, validity := range km.ValidityRanges {
+		if len(validity.Patterns) == 0 {
+			return fmt.Errorf("error need at least one validity range pattern")
+		}
+		for _, pattern := range validity.Patterns {
+			if pattern == "" {
+				return fmt.Errorf("error empty validity pattern")
+			}
+			patternRegex, err := regexp.Compile(pattern)
+			if err != nil {
+				return fmt.Errorf("error failed to compile validity repo pattern: %w", err)
+			}
+			// if there's an image match, then platforms must match too
+			if patternRegex.MatchString(imageName) {
+				// either there are no platforms, or at least one must match
+				if len(validity.Platforms) == 0 {
+					patternMatches = append(patternMatches, validity)
+				}
+				for _, validityPlatform := range validity.Platforms {
+					parsedPlatform, err := v1.ParsePlatform(validityPlatform)
+					if err != nil {
+						return fmt.Errorf("failed to parse platform %s: %w", validityPlatform, err)
+					}
+					if parsedPlatform.Equals(*platform) {
+						patternMatches = append(patternMatches, validity)
+					}
+				}
+			}
+		}
+	}
+	if len(patternMatches) == 0 {
+		return fmt.Errorf("no matching validity range found for key %s", km.ID)
+	}
+	if len(patternMatches) > 1 {
+		return fmt.Errorf("key %s invalid, multiple matching validity ranges found", km.ID)
+	}
+
+	// now verify the time is within the validity range
+	match := patternMatches[0]
+	if match.To != nil && !t.Before(*match.To) {
+		return fmt.Errorf("key %s was expired at TL log time %s (valid to %s)", km.ID, t, match.To)
+	}
+	if match.From != nil && t.Before(*match.From) {
+		return fmt.Errorf("key %s was not yet valid at TL log time %s (valid from %s)", km.ID, t, match.From)
+	}
+	return nil
+}
+
+func (v *VerifyOptions) EnsureValid(ctx context.Context, km *KeyMetadata, t *time.Time) error {
+	if v.Resolver == nil {
+		return fmt.Errorf("error missing resolver")
+	}
+	imageName, err := v.Resolver.ImageName(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to resolve image name: %w", err)
+	}
+	platform, err := v.Resolver.ImagePlatform(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get image platform: %w", err)
+	}
+	err = km.EnsureValid(imageName, platform, t)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func NewVerifyOptions(resolver Resolver) *VerifyOptions {
+	v := &VerifyOptions{
+		Resolver: resolver,
+	}
+	return v
+}
+
+func (v *VerifyOptions) FindKey(id string) *KeyMetadata {
+	for _, key := range v.Keys {
+		if key.ID == id {
+			return key
+		}
 	}
 	return nil
 }

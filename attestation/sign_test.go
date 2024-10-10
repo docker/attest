@@ -151,6 +151,7 @@ func TestSignVerifyAttestation(t *testing.T) {
 			opts := &attestation.VerifyOptions{
 				Keys: attestation.Keys{keyMeta},
 			}
+			opts.Resolver = &NullAttestationResolver{}
 			getTL := func(_ context.Context, opts *attestation.VerifyOptions) (tlog.TransparencyLog, error) {
 				if opts.SkipTL {
 					return nil, nil

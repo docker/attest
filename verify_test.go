@@ -209,7 +209,7 @@ func TestSignVerify(t *testing.T) {
 		imageName          string
 		expectedNonSuccess Outcome
 		spitConfig         bool
-		expires            *attestation.KeyExpiry
+		validity           *attestation.ValidityRange
 		param              string
 	}{
 		{name: "happy path", signTL: true, policyDir: PassNoTLPolicyDir},
@@ -219,10 +219,10 @@ func TestSignVerify(t *testing.T) {
 		{name: "mirror no match", signTL: false, policyDir: PassMirrorPolicyDir, imageName: "incorrect.org/library/test-image:test", expectedNonSuccess: OutcomeNoPolicy},
 		{name: "verify inputs", signTL: false, policyDir: InputsPolicyDir},
 		{name: "mirror with verification", signTL: false, policyDir: LocalKeysPolicy, imageName: "mirror.org/library/test-image:test", spitConfig: true},
-		{name: "with per repo expiry (valid)", signTL: true, policyDir: ExpiresPolicy, spitConfig: true, expires: &attestation.KeyExpiry{To: &validTime, Patterns: []string{testImageName}, Platforms: []string{"linux/amd64"}}},
-		{name: "with per repo expiry (expired)", signTL: true, policyDir: ExpiresPolicy, spitConfig: true, expires: &attestation.KeyExpiry{To: &expiredTime, Patterns: []string{testImageName}, Platforms: []string{"linux/amd64"}}, expectedNonSuccess: OutcomeFailure},
-		{name: "with per repo expiry (not yet valid)", signTL: true, policyDir: ExpiresPolicy, spitConfig: true, expires: &attestation.KeyExpiry{From: &validTime, Patterns: []string{testImageName}, Platforms: []string{"linux/amd64"}}, expectedNonSuccess: OutcomeFailure},
-		{name: "no match should fail closed", signTL: true, policyDir: ExpiresPolicy, spitConfig: true, expires: &attestation.KeyExpiry{To: &validTime, Patterns: []string{"nomatch"}, Platforms: []string{"linux/arm64"}}, expectedNonSuccess: OutcomeFailure},
+		{name: "with per repo validity (valid)", signTL: true, policyDir: ExpiresPolicy, spitConfig: true, validity: &attestation.ValidityRange{To: &validTime, Patterns: []string{testImageName}, Platforms: []string{"linux/amd64"}}},
+		{name: "with per repo validity (expired)", signTL: true, policyDir: ExpiresPolicy, spitConfig: true, validity: &attestation.ValidityRange{To: &expiredTime, Patterns: []string{testImageName}, Platforms: []string{"linux/amd64"}}, expectedNonSuccess: OutcomeFailure},
+		{name: "with per repo validity (not yet valid)", signTL: true, policyDir: ExpiresPolicy, spitConfig: true, validity: &attestation.ValidityRange{From: &validTime, Patterns: []string{testImageName}, Platforms: []string{"linux/amd64"}}, expectedNonSuccess: OutcomeFailure},
+		{name: "no match should fail closed", signTL: true, policyDir: ExpiresPolicy, spitConfig: true, validity: &attestation.ValidityRange{To: &validTime, Patterns: []string{"nomatch"}, Platforms: []string{"linux/arm64"}}, expectedNonSuccess: OutcomeFailure},
 		{name: "policy with input params", spitConfig: true, signTL: false, policyDir: LocalParamPolicy, param: "bar"},
 		{name: "policy without expected param", spitConfig: true, signTL: false, policyDir: LocalParamPolicy, param: "baz", expectedNonSuccess: OutcomeFailure},
 	}
@@ -231,8 +231,8 @@ func TestSignVerify(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			key, err := GenKeyMetadata(signer)
 			require.NoError(t, err)
-			if tc.expires != nil {
-				key.Expiries = []*attestation.KeyExpiry{tc.expires}
+			if tc.validity != nil {
+				key.ValidityRanges = []*attestation.ValidityRange{tc.validity}
 				// now allowed together
 				key.To = nil
 				key.From = nil

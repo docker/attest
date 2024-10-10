@@ -134,7 +134,7 @@ func (v *verifier) VerifyLog(ctx context.Context, keyMeta *KeyMetadata, encPaylo
 		return fmt.Errorf("TL entry failed verification: %w", err)
 	}
 
-	err = keyMeta.EnsureValid(&integratedTime)
+	err = opts.EnsureValid(ctx, keyMeta, &integratedTime)
 	if err != nil {
 		return fmt.Errorf("error key %s was not valid at integrated time: %w", keyMeta.ID, err)
 	}

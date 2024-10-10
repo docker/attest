@@ -221,9 +221,7 @@ func TestSignVerify(t *testing.T) {
 		{name: "mirror", signTL: false, policyDir: PassMirrorPolicyDir, imageName: "mirror.org/library/test-image:test"},
 		{name: "mirror no match", signTL: false, policyDir: PassMirrorPolicyDir, imageName: "incorrect.org/library/test-image:test", expectedNonSuccess: OutcomeNoPolicy},
 		{name: "verify inputs", signTL: false, policyDir: InputsPolicyDir},
-		{name: "mirror with verification", signTL: false, policyDir: LocalKeysPolicy, imageName: "mirror.org/library/test-image:test"},
 		{name: "mirror with verification", signTL: false, policyDir: LocalKeysPolicy, imageName: "mirror.org/library/test-image:test", spitConfig: true},
-
 		{name: "policy with input params", spitConfig: true, signTL: false, policyDir: LocalParamPolicy, param: "bar"},
 		{name: "policy without expected param", spitConfig: true, signTL: false, policyDir: LocalParamPolicy, param: "baz", expectedNonSuccess: OutcomeFailure},
 	}

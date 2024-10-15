@@ -270,7 +270,7 @@ func TestSignVerify(t *testing.T) {
 				policyOpts.AttestationVerifier = verifier
 			}
 			if tc.param != "" {
-				policyOpts.Parameters = &policy.Parameters{"foo": tc.param}
+				policyOpts.Parameters = policy.Parameters{"foo": tc.param}
 			}
 			results, err := Verify(ctx, spec, policyOpts)
 			require.NoError(t, err)

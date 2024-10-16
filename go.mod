@@ -27,7 +27,7 @@ require (
 	github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.8.9
 	github.com/stretchr/testify v1.9.0
 	github.com/theupdateframework/go-tuf/v2 v2.0.2
-	google.golang.org/api v0.200.0
+	google.golang.org/api v0.201.0
 	sigs.k8s.io/yaml v1.4.0
 )
 
@@ -35,7 +35,7 @@ require (
 replace github.com/google/go-containerregistry => github.com/docker/go-containerregistry v0.0.0-20240808132857-c8bfc44af7c8
 
 require (
-	cloud.google.com/go v0.115.1 // indirect
+	cloud.google.com/go v0.116.0 // indirect
 	cloud.google.com/go/auth v0.9.8 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.4 // indirect
 	cloud.google.com/go/compute/metadata v0.5.2 // indirect

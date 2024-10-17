@@ -19,6 +19,8 @@ package policy
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -26,6 +28,7 @@ import (
 
 	"github.com/docker-library/bashbrew/manifest"
 	"github.com/docker/attest/attestation"
+	"github.com/docker/attest/internal/git"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/rego"
@@ -173,6 +176,12 @@ var internalParseLibraryDefinitionDecl = &ast.Builtin{
 	Nondeterministic: false,
 }
 
+var internalReproducibleGitChecksumDecl = &ast.Builtin{
+	Name:             "attest.internals.reproducible_git_checksum",
+	Decl:             types.NewFunction(types.Args(types.S, types.S, types.S), types.S),
+	Nondeterministic: false,
+}
+
 func wrapFunctionResult(value *ast.Term, err error) (*ast.Term, error) {
 	var terms [][2]*ast.Term
 	if err != nil {
@@ -196,11 +205,18 @@ func handleErrors2(f func(rCtx rego.BuiltinContext, a, b *ast.Term) (*ast.Term, 
 	}
 }
 
+func handleErrors3(f func(rCtx rego.BuiltinContext, a, b, c *ast.Term) (*ast.Term, error)) rego.Builtin3 {
+	return func(rCtx rego.BuiltinContext, a, b, c *ast.Term) (*ast.Term, error) {
+		return wrapFunctionResult(f(rCtx, a, b, c))
+	}
+}
+
 func RegoFunctions(regoOpts *RegoFnOpts) []*tester.Builtin {
 	return []*tester.Builtin{
 		builtin2(verifyDecl, regoOpts.verifyInTotoEnvelope),
 		builtin1(attestDecl, regoOpts.fetchInTotoAttestations),
 		builtin1(internalParseLibraryDefinitionDecl, regoOpts.internalParseLibraryDefinition),
+		builtin3(internalReproducibleGitChecksumDecl, regoOpts.internalReproducibleGitChecksum),
 	}
 }
 
@@ -229,6 +245,20 @@ func builtin2(decl *ast.Builtin, f rego.Builtin2) *tester.Builtin {
 				Nondeterministic: decl.Nondeterministic,
 			},
 			handleErrors2(f)),
+	}
+}
+
+func builtin3(decl *ast.Builtin, f rego.Builtin3) *tester.Builtin {
+	return &tester.Builtin{
+		Decl: decl,
+		Func: rego.Function3(
+			&rego.Function{
+				Name:             decl.Name,
+				Decl:             decl.Decl,
+				Memoize:          true,
+				Nondeterministic: decl.Nondeterministic,
+			},
+			handleErrors3(f)),
 	}
 }
 
@@ -323,7 +353,7 @@ func (regoOpts *RegoFnOpts) verifyInTotoEnvelope(rCtx rego.BuiltinContext, envTe
 func (regoOpts *RegoFnOpts) internalParseLibraryDefinition(_ rego.BuiltinContext, definitionTerm *ast.Term) (*ast.Term, error) {
 	definitionStr, ok := definitionTerm.Value.(ast.String)
 	if !ok {
-		return nil, fmt.Errorf("predicateTypeTerm is not a string")
+		return nil, fmt.Errorf("definitionTerm is not a string")
 	}
 	definition := string(definitionStr)
 	defBuffer := bytes.NewBufferString(definition)
@@ -336,6 +366,57 @@ func (regoOpts *RegoFnOpts) internalParseLibraryDefinition(_ rego.BuiltinContext
 		return nil, err
 	}
 	return ast.NewTerm(value), nil
+}
+
+// because we don't control the signature here (blame rego)
+// nolint:gocritic
+func (regoOpts *RegoFnOpts) internalReproducibleGitChecksum(rCtx rego.BuiltinContext, gitRepoTerm, gitCommitTerm, gitDirectoryTerm *ast.Term) (*ast.Term, error) {
+	gitRepoStr, ok := gitRepoTerm.Value.(ast.String)
+	if !ok {
+		return nil, fmt.Errorf("gitRepoTerm is not a string")
+	}
+	gitCommitStr, ok := gitCommitTerm.Value.(ast.String)
+	if !ok {
+		return nil, fmt.Errorf("gitCommitTerm is not a string")
+	}
+	gitDirectoryStr, ok := gitDirectoryTerm.Value.(ast.String)
+	if !ok {
+		return nil, fmt.Errorf("gitDirectoryTerm is not a string")
+	}
+	gitRepo := string(gitRepoStr)
+	gitCommit := string(gitCommitStr)
+	gitDirectory := string(gitDirectoryStr)
+	checksum, err := reproducibleGitChecksum(rCtx.Context, gitRepo, gitCommit, gitDirectory)
+	if err != nil {
+		return nil, err
+	}
+	value, err := ast.InterfaceToValue(checksum)
+	if err != nil {
+		return nil, err
+	}
+	return ast.NewTerm(value), nil
+}
+
+func reproducibleGitChecksum(ctx context.Context, gitRepo, gitCommit, gitDirectory string) (string, error) {
+	repoDir, err := os.MkdirTemp("", "git-clone-")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temporary directory: %w", err)
+	}
+	defer os.RemoveAll(repoDir)
+
+	err = git.Clone(ctx, gitRepo, gitCommit, repoDir)
+	if err != nil {
+		return "", fmt.Errorf("failed to clone git repository: %w", err)
+	}
+
+	h := sha256.New()
+	err = git.TarScrub(git.Archive(ctx, repoDir, gitDirectory), h)
+	if err != nil {
+		return "", fmt.Errorf("failed to get git archive: %w", err)
+	}
+
+	digest := h.Sum(nil)
+	return hex.EncodeToString(digest), nil
 }
 
 func loadYAML(path string, bs []byte) (interface{}, error) {

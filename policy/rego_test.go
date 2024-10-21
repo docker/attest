@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/docker/attest/attestation"
+	"github.com/docker/attest/internal/git"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/open-policy-agent/opa/tester"
 	"github.com/stretchr/testify/assert"
@@ -96,7 +97,37 @@ func TestReproGitChecksum(t *testing.T) {
 	results := buffer(ch)
 	t.Log(string(results[0].Output))
 	assert.Equalf(t, 1, len(results), "expected 1 results, got %d", len(results))
-	assert.Truef(t, results[0].Pass(), "expected result 1 to pass, got %v", results[0].Location)
+	assert.Truef(t, results[0].Pass(), "expected result 1 to pass, got failure at %v", results[0].Location)
+}
+
+func TestReproGitChecksum_GitMissing(t *testing.T) {
+	oldGitCommand := git.GitCommand
+	git.GitCommand = "nonexistent"
+	defer func() {
+		git.GitCommand = oldGitCommand
+	}()
+
+	paths := []string{"testdata/policies/test/git_checksum"}
+	modules, store, err := tester.Load(paths, nil)
+	require.NoError(t, err)
+	resolver := &NullAttestationResolver{}
+
+	opts := NewRegoFunctionOptions(resolver, nil)
+	ctx := context.Background()
+	ch, err := tester.NewRunner().
+		SetStore(store).
+		AddCustomBuiltins(RegoFunctions(opts)).
+		CapturePrintOutput(true).
+		RaiseBuiltinErrors(true).
+		EnableTracing(true).
+		SetModules(modules).
+		RunTests(ctx, nil)
+	require.NoError(t, err)
+	require.NoError(t, err)
+	results := buffer(ch)
+	t.Log(string(results[0].Output))
+	assert.Equalf(t, 1, len(results), "expected 1 results, got %d", len(results))
+	assert.Truef(t, results[0].Fail, "expected result 1 to fail, got success at %v", results[0].Location)
 }
 
 func buffer[T any](ch chan T) []T {

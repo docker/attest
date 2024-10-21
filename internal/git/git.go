@@ -30,6 +30,9 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
+// GitCommand is the path to the git binary, overridden in tests to check behavior when git is not installed
+var GitCommand = "git"
+
 func Clone(ctx context.Context, gitRepo string, gitCommit string, targetDir string) error {
 	const localBranch = "FETCH_HEAD"
 
@@ -119,7 +122,7 @@ func runArchiveCmd(ctx context.Context, stdout io.Writer, gitRepoDir string, git
 
 	treeish := fmt.Sprintf("HEAD:%s", gitDir)
 
-	cmd := exec.CommandContext(ctx, "git", "archive", "--format=tar", treeish)
+	cmd := exec.CommandContext(ctx, GitCommand, "archive", "--format=tar", treeish)
 	cmd.Dir = gitRepoDir // run the command inside the git repo directory
 
 	// set the standard output to the provided writer

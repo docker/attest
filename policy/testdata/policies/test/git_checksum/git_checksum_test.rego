@@ -15,4 +15,8 @@ test_reproducible_git_checksum if {
 	result := attest.internals.reproducible_git_checksum(repo, commit, dir)
 	actual_checksum := result.value
 	actual_checksum == expected_checksum
+
+	invalid_commit := "0000000000000000000000000000000000000000"
+	bad_result := attest.internals.reproducible_git_checksum(repo, invalid_commit, dir)
+	contains(bad_result.error, "failed to fetch")
 }

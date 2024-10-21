@@ -156,30 +156,40 @@ func jsonGenerator[T any]() func(t *ast.Term, ec *rego.EvalContext) (any, error)
 	}
 }
 
-var dynamicObj = types.NewObject(nil, types.NewDynamicProperty(types.A, types.A))
+var (
+	dynamicObj    = types.NewObject(nil, types.NewDynamicProperty(types.A, types.A))
+	valueErrorObj = types.NewObject([]*types.StaticProperty{
+		types.NewStaticProperty("value", types.A),
+		types.NewStaticProperty("error", types.S),
+	}, nil)
+)
 
-var verifyDecl = &ast.Builtin{
+var verifyDecl = &rego.Function{
 	Name:             "attest.verify",
-	Decl:             types.NewFunction(types.Args(dynamicObj, dynamicObj), dynamicObj),
+	Decl:             types.NewFunction(types.Args(dynamicObj, dynamicObj), valueErrorObj),
 	Nondeterministic: true,
+	Memoize:          true,
 }
 
-var attestDecl = &ast.Builtin{
+var attestDecl = &rego.Function{
 	Name:             "attest.fetch",
-	Decl:             types.NewFunction(types.Args(types.S), dynamicObj),
+	Decl:             types.NewFunction(types.Args(types.S), valueErrorObj),
 	Nondeterministic: true,
+	Memoize:          true,
 }
 
-var internalParseLibraryDefinitionDecl = &ast.Builtin{
+var internalParseLibraryDefinitionDecl = &rego.Function{
 	Name:             "attest.internals.parse_library_definition",
-	Decl:             types.NewFunction(types.Args(types.S), dynamicObj),
+	Decl:             types.NewFunction(types.Args(types.S), valueErrorObj),
 	Nondeterministic: false,
+	Memoize:          true,
 }
 
-var internalReproducibleGitChecksumDecl = &ast.Builtin{
+var internalReproducibleGitChecksumDecl = &rego.Function{
 	Name:             "attest.internals.reproducible_git_checksum",
-	Decl:             types.NewFunction(types.Args(types.S, types.S, types.S), dynamicObj),
-	Nondeterministic: false,
+	Decl:             types.NewFunction(types.Args(types.S, types.S, types.S), valueErrorObj),
+	Nondeterministic: false, // TODO: is this correct?
+	Memoize:          true,
 }
 
 func wrapFunctionResult(value *ast.Term, err error) (*ast.Term, error) {
@@ -193,19 +203,19 @@ func wrapFunctionResult(value *ast.Term, err error) (*ast.Term, error) {
 	return ast.ObjectTerm(terms...), nil
 }
 
-func handleErrors1(f func(rCtx rego.BuiltinContext, a *ast.Term) (*ast.Term, error)) rego.Builtin1 {
+func handleErrors1(f rego.Builtin1) rego.Builtin1 {
 	return func(rCtx rego.BuiltinContext, a *ast.Term) (*ast.Term, error) {
 		return wrapFunctionResult(f(rCtx, a))
 	}
 }
 
-func handleErrors2(f func(rCtx rego.BuiltinContext, a, b *ast.Term) (*ast.Term, error)) rego.Builtin2 {
+func handleErrors2(f rego.Builtin2) rego.Builtin2 {
 	return func(rCtx rego.BuiltinContext, a, b *ast.Term) (*ast.Term, error) {
 		return wrapFunctionResult(f(rCtx, a, b))
 	}
 }
 
-func handleErrors3(f func(rCtx rego.BuiltinContext, a, b, c *ast.Term) (*ast.Term, error)) rego.Builtin3 {
+func handleErrors3(f rego.Builtin3) rego.Builtin3 {
 	return func(rCtx rego.BuiltinContext, a, b, c *ast.Term) (*ast.Term, error) {
 		return wrapFunctionResult(f(rCtx, a, b, c))
 	}
@@ -220,45 +230,33 @@ func RegoFunctions(regoOpts *RegoFnOpts) []*tester.Builtin {
 	}
 }
 
-func builtin1(decl *ast.Builtin, f rego.Builtin1) *tester.Builtin {
+func builtin1(decl *rego.Function, f rego.Builtin1) *tester.Builtin {
 	return &tester.Builtin{
-		Decl: decl,
-		Func: rego.Function1(
-			&rego.Function{
-				Name:             decl.Name,
-				Decl:             decl.Decl,
-				Memoize:          true,
-				Nondeterministic: decl.Nondeterministic,
-			},
-			handleErrors1(f)),
+		Decl: regoFuncToBuiltin(decl),
+		Func: rego.Function1(decl, handleErrors1(f)),
 	}
 }
 
-func builtin2(decl *ast.Builtin, f rego.Builtin2) *tester.Builtin {
+func builtin2(decl *rego.Function, f rego.Builtin2) *tester.Builtin {
 	return &tester.Builtin{
-		Decl: decl,
-		Func: rego.Function2(
-			&rego.Function{
-				Name:             decl.Name,
-				Decl:             decl.Decl,
-				Memoize:          true,
-				Nondeterministic: decl.Nondeterministic,
-			},
-			handleErrors2(f)),
+		Decl: regoFuncToBuiltin(decl),
+		Func: rego.Function2(decl, handleErrors2(f)),
 	}
 }
 
-func builtin3(decl *ast.Builtin, f rego.Builtin3) *tester.Builtin {
+func builtin3(decl *rego.Function, f rego.Builtin3) *tester.Builtin {
 	return &tester.Builtin{
-		Decl: decl,
-		Func: rego.Function3(
-			&rego.Function{
-				Name:             decl.Name,
-				Decl:             decl.Decl,
-				Memoize:          true,
-				Nondeterministic: decl.Nondeterministic,
-			},
-			handleErrors3(f)),
+		Decl: regoFuncToBuiltin(decl),
+		Func: rego.Function3(decl, handleErrors3(f)),
+	}
+}
+
+func regoFuncToBuiltin(decl *rego.Function) *ast.Builtin {
+	return &ast.Builtin{
+		Name:             decl.Name,
+		Description:      decl.Description,
+		Decl:             decl.Decl,
+		Nondeterministic: decl.Nondeterministic,
 	}
 }
 

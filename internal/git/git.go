@@ -168,8 +168,7 @@ func TarScrub(in io.Reader, out io.Writer) error {
 		if err := tw.WriteHeader(newHdr); err != nil {
 			return err
 		}
-		// TODO: I think it's fine to ignore the gosec warning here but double-check
-		_, err = io.Copy(tw, tr) // #nosec G110
+		_, err = io.CopyN(tw, tr, hdr.Size)
 		if err != nil {
 			return err
 		}

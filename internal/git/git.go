@@ -30,7 +30,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
-// GitCommand is the path to the git binary, overridden in tests to check behavior when git is not installed
+// GitCommand is the path to the git binary, overridden in tests to check behavior when git is not installed.
 var GitCommand = "git"
 
 func Clone(ctx context.Context, gitRepo string, gitCommit string, targetDir string) error {

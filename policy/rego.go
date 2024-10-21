@@ -178,7 +178,7 @@ var internalParseLibraryDefinitionDecl = &ast.Builtin{
 
 var internalReproducibleGitChecksumDecl = &ast.Builtin{
 	Name:             "attest.internals.reproducible_git_checksum",
-	Decl:             types.NewFunction(types.Args(types.S, types.S, types.S), types.S),
+	Decl:             types.NewFunction(types.Args(types.S, types.S, types.S), dynamicObj),
 	Nondeterministic: false,
 }
 

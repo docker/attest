@@ -75,6 +75,30 @@ func TestPolicyDefParse(t *testing.T) {
 	assert.Truef(t, results[0].Pass(), "expected result 1 to pass, got %v", results[0].Location)
 }
 
+func TestReproGitChecksum(t *testing.T) {
+	paths := []string{"testdata/policies/test/git_checksum"}
+	modules, store, err := tester.Load(paths, nil)
+	require.NoError(t, err)
+	resolver := &NullAttestationResolver{}
+
+	opts := NewRegoFunctionOptions(resolver, nil)
+	ctx := context.Background()
+	ch, err := tester.NewRunner().
+		SetStore(store).
+		AddCustomBuiltins(RegoFunctions(opts)).
+		CapturePrintOutput(true).
+		RaiseBuiltinErrors(true).
+		EnableTracing(true).
+		SetModules(modules).
+		RunTests(ctx, nil)
+	require.NoError(t, err)
+	require.NoError(t, err)
+	results := buffer(ch)
+	t.Log(string(results[0].Output))
+	assert.Equalf(t, 1, len(results), "expected 1 results, got %d", len(results))
+	assert.Truef(t, results[0].Pass(), "expected result 1 to pass, got %v", results[0].Location)
+}
+
 func buffer[T any](ch chan T) []T {
 	var out []T
 	for v := range ch {

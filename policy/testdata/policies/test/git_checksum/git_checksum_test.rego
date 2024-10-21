@@ -17,6 +17,10 @@ test_reproducible_git_checksum if {
 	actual_checksum == expected_checksum
 
 	invalid_commit := "0000000000000000000000000000000000000000"
-	bad_result := attest.internals.reproducible_git_checksum(repo, invalid_commit, dir)
-	contains(bad_result.error, "failed to fetch")
+	bad_commit_result := attest.internals.reproducible_git_checksum(repo, invalid_commit, dir)
+	contains(bad_commit_result.error, "failed to fetch")
+
+	invalid_dir := "not_a_real_dir"
+	bad_dir_result := attest.internals.reproducible_git_checksum(repo, commit, invalid_dir)
+	contains(bad_dir_result.error, "not a valid object name")
 }

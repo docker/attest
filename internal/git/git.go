@@ -89,10 +89,16 @@ func (e *execError) Unwrap() error {
 	return e.ExitError
 }
 
-func Archive(ctx context.Context, gitRepoDir string, gitDir string) (io.Reader, error) {
+// Archive creates a tar archive of the files in the subdirectory given by subdir of the git repository at gitRepoDir.
+// This is accomplished by running `git archive --format=tar HEAD:subdir` in the git repository directory.
+//
+// The archive is written to the returned io.Reader. It is not necessary to close the returned reader.
+// Any error encountered while starting the command will be returned immediately.
+// Any error encountered after the command is running will be returned on the next read from the returned io.Reader.
+func Archive(ctx context.Context, gitRepoDir string, subdir string) (io.Reader, error) {
 	readPipe, writePipe := io.Pipe()
 
-	treeish := fmt.Sprintf("HEAD:%s", gitDir)
+	treeish := fmt.Sprintf("HEAD:%s", subdir)
 	cmd := exec.CommandContext(ctx, GitCommand, "archive", "--format=tar", treeish)
 	// run the command inside the git repo directory
 	cmd.Dir = gitRepoDir

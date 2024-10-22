@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/docker-library/bashbrew/manifest"
 	"github.com/docker/attest/attestation"
@@ -407,10 +408,19 @@ func reproducibleGitChecksum(ctx context.Context, gitRepo, gitCommit, gitDirecto
 		return "", fmt.Errorf("failed to clone git repository: %w", err)
 	}
 
-	h := sha256.New()
-	err = git.TarScrub(git.Archive(ctx, repoDir, gitDirectory), h)
+	// set a timeout to avoid the archive command hanging indefinitely
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	r, err := git.Archive(ctx, repoDir, gitDirectory)
 	if err != nil {
 		return "", fmt.Errorf("failed to get git archive: %w", err)
+	}
+
+	h := sha256.New()
+	err = git.TarScrub(r, h)
+	if err != nil {
+		return "", fmt.Errorf("failed to calculate hash of git archive: %w", err)
 	}
 
 	digest := h.Sum(nil)

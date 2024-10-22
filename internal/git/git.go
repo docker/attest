@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
-	"time"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
@@ -90,9 +89,27 @@ func (e *execError) Unwrap() error {
 	return e.ExitError
 }
 
-func Archive(ctx context.Context, gitRepoDir string, gitDir string) io.Reader {
+func Archive(ctx context.Context, gitRepoDir string, gitDir string) (io.Reader, error) {
 	readPipe, writePipe := io.Pipe()
 
+	treeish := fmt.Sprintf("HEAD:%s", gitDir)
+	cmd := exec.CommandContext(ctx, GitCommand, "archive", "--format=tar", treeish)
+	// run the command inside the git repo directory
+	cmd.Dir = gitRepoDir
+
+	// set the standard output to the write end of the pipe
+	cmd.Stdout = writePipe
+
+	// capture standard error so we can include it in the error message if the command fails
+	stderr := new(bytes.Buffer)
+	cmd.Stderr = stderr
+
+	err := cmd.Start()
+	if err != nil {
+		return nil, fmt.Errorf("failed to start command: %w", err)
+	}
+
+	// spawn a goroutine to wait for the command to finish and close the write pipe
 	go func() {
 		var err error // variable to hold any error
 
@@ -108,39 +125,16 @@ func Archive(ctx context.Context, gitRepoDir string, gitDir string) io.Reader {
 			writePipe.CloseWithError(err)
 		}()
 
-		// execute the command and capture any error
-		err = runArchiveCmd(ctx, writePipe, gitRepoDir, gitDir)
+		// wait for the command to finish and capture any error
+		err = cmd.Wait()
+		if err != nil {
+			if ee, ok := err.(*exec.ExitError); ok {
+				err = &execError{ExitError: ee, stderr: stderr.Bytes()}
+			}
+		}
 	}()
 
-	return readPipe
-}
-
-func runArchiveCmd(ctx context.Context, stdout io.Writer, gitRepoDir string, gitDir string) error {
-	// set a timeout to avoid the command hanging indefinitely
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
-	treeish := fmt.Sprintf("HEAD:%s", gitDir)
-
-	cmd := exec.CommandContext(ctx, GitCommand, "archive", "--format=tar", treeish)
-	cmd.Dir = gitRepoDir // run the command inside the git repo directory
-
-	// set the standard output to the provided writer
-	cmd.Stdout = stdout
-
-	// capture standard error so we can include it in the error message if the command fails
-	stderr := new(bytes.Buffer)
-	cmd.Stderr = stderr
-
-	// Run the command and check for errors
-	if err := cmd.Run(); err != nil {
-		if ee, ok := err.(*exec.ExitError); ok {
-			err = &execError{ExitError: ee, stderr: stderr.Bytes()}
-		}
-		return err
-	}
-
-	return nil
+	return readPipe, nil
 }
 
 func TarScrub(in io.Reader, out io.Writer) error {

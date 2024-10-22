@@ -189,7 +189,7 @@ var internalParseLibraryDefinitionDecl = &rego.Function{
 var internalReproducibleGitChecksumDecl = &rego.Function{
 	Name:             "attest.internals.reproducible_git_checksum",
 	Decl:             types.NewFunction(types.Args(types.S, types.S, types.S), valueErrorObj),
-	Nondeterministic: false, // TODO: is this correct?
+	Nondeterministic: true,
 	Memoize:          true,
 }
 

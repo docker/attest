@@ -63,7 +63,7 @@ func Clone(ctx context.Context, gitRepo string, gitCommit string, targetDir stri
 		return fmt.Errorf("failed to get worktree: %w", err)
 	}
 	err = wt.Checkout(&git.CheckoutOptions{
-		Branch: plumbing.ReferenceName(localBranch),
+		Hash: plumbing.NewHash(gitCommit),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to checkout: %w", err)

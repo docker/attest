@@ -15,7 +15,7 @@ require (
 	github.com/go-openapi/strfmt v0.23.0
 	github.com/google/go-containerregistry v0.20.2
 	github.com/in-toto/in-toto-golang v0.9.0
-	github.com/open-policy-agent/opa v0.69.0
+	github.com/open-policy-agent/opa v0.70.0
 	github.com/opencontainers/image-spec v1.1.0
 	github.com/package-url/packageurl-go v0.1.3
 	github.com/secure-systems-lab/go-securesystemslib v0.8.0
@@ -137,6 +137,7 @@ require (
 	github.com/prometheus/common v0.55.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
+	github.com/rogpeppe/go-internal v1.13.1 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
 	github.com/sassoftware/relic v7.2.1+incompatible // indirect
@@ -190,7 +191,6 @@ require (
 	google.golang.org/protobuf v1.35.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gotest.tools/v3 v3.5.1 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect

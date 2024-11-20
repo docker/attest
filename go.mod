@@ -3,7 +3,7 @@ module github.com/docker/attest
 go 1.22.8
 
 require (
-	github.com/Masterminds/semver/v3 v3.3.0
+	github.com/Masterminds/semver/v3 v3.3.1
 	github.com/aws/aws-sdk-go-v2/config v1.28.5
 	github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.0.0-20231024185945-8841054dbdb8
 	github.com/containerd/containerd/v2 v2.0.0
